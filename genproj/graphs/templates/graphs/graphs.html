@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+  <link rel="stylesheet" href="/ifl/ifl-static/fitlab/gui.css">
+  <title>NSGEN visual code generation</title>
+</head>
+
+<body>
+<div id="buttons" style="position:absolute;margin:auto;">
+  <button id="btnUndo">Undo</button>
+  <button id="btnRedo">Redo</button>
+  <button id="btnCommit">Save</button>
+  <button id="btnClear">Clear</button>
+</div>
+<div id="status" style="position:absolute;margin:auto;"><label id="lblStatus"></label></div>
+
+<div id="graph_menu_1" style="position:absolute;left:303px;overflow-y:hidden;overflow-x:hidden;margin:auto;margin-bottom:1px;"></div>
+<div id="graph_menu_2" style="position:absolute;left:202px;overflow-y:hidden;overflow-x:hidden;margin:auto;margin-bottom:1px;"></div>
+<div id="graph_menu_3" style="position:absolute;left:101px;overflow-y:hidden;overflow-x:hidden;margin:auto;margin-bottom:1px;"></div>
+<div id="graph_menu_4" style="position:absolute;left:  0px;overflow-y:hidden;overflow-x:hidden;margin:auto;margin-bottom:1px;"></div>
+
+<!-- graph session key, must be sent along with every ajax call -->
+<input id="gs_id" type="hidden" value="{{ gs_id }}">
+<!-- graph session key, must be sent along with every ajax call -->
+<input id="tab_id" type="hidden" value="{{ tab_id }}">
+</body>
+
+<script src="/static/graphs/d3.v4.min.js"></script>
+<script src="/static/graphs/jquery.min.js"></script>
+<script src="/static/graphs/jquery-ui.js"></script>
+<script src="/static/graphs/guilib.js"></script>
+<script src="/static/graphs/gui.js"></script>
+<script src="/static/graphs/nsgen.js"></script>
+<script src="/static/graphs/nodetypes.js"></script>
+
+<script>
+let intface = null;
+let menu = null;
+var statusConsole = function(s) {
+  let status = d3.select("#status");
+  status.html(s);
+  status.style("left", window.innerWidth/2-status.node().clientWidth/2 + "px");
+}
+
+$(document).ready(() => {
+  // set up events
+  $("#btnUndo").click( () => { intface.undo() });
+  $("#btnRedo").click( () => { intface.redo() });
+  $("#btnSave").click( () => { intface.commitSession() });
+  $("#btnRevert").click( () => { intface.revertSession() });
+
+  // construct graph engine and add listeners
+  let gs_id = $("body > #gs_id")[0].value;
+  let tab_id = $("body > #tab_id")[0].value;
+
+  intface = new GraphInterfaceIFL(gs_id, tab_id);
+
+  // user data controls
+  $("#tbxNodeLabel").change( () => {
+    intface.pushSelectedNodeLabel($("#tbxNodeLabel").val());
+  });
+
+  // create node menu
+  let menuCB = intface.setCreateNodeConf.bind(intface);
+  menu = new NodeTypeMenu(menuCB, 'graph_menu_1', 'handles');
+  menu = new NodeTypeMenu(menuCB, 'graph_menu_2', 'tools');
+  menu = new NodeTypeMenu(menuCB, 'graph_menu_3', 'operators');
+  menu = new NodeTypeMenu(menuCB, 'graph_menu_4', 'models');
+
+  // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)
+  $("body").addClass("noselect");
+
+  // position status label below buttons
+  let h = $("#buttons").outerHeight();
+  let t = $("#buttons").position().top;
+  $("#status").css({ "top" : (h+t)+"px", "user-select" : "auto" });
+
+  // load graph and run
+  intface.updateUi(); // why is this needed to get rid of the "self.draggable is null" error message?
+  intface.loadSession(); // this also updates the ui...
+});
+</script>
+</html>
