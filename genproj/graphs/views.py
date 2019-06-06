@@ -3,7 +3,7 @@ from .models import GraphSession, TabId
 
 # the one and only view
 def graph_session(req, gs_id):
-    print("gs_id: %d" % gs_id)
+    print("gs_id: %s" % gs_id)
     ct = {
         "gs_id" : gs_id,
         "tab_id" : 0,

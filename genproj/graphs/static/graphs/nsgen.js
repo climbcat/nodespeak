@@ -45,7 +45,7 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
 }
 
 
-class GraphInterfaceIFL extends GraphInterface {
+class GraphInterfaceNSGen extends GraphInterface {
   constructor(gs_id, tab_id) {
     super(gs_id, tab_id, ConnectionRulesNSGen);
   }

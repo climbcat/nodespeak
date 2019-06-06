@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 
 <head>
-  <link rel="stylesheet" href="/ifl/ifl-static/fitlab/gui.css">
+  <link rel="stylesheet" href="/static/graphs/gui.css">
   <title>NSGEN visual code generation</title>
 </head>
 
@@ -28,7 +28,6 @@
 
 <script src="/static/graphs/d3.v4.min.js"></script>
 <script src="/static/graphs/jquery.min.js"></script>
-<script src="/static/graphs/jquery-ui.js"></script>
 <script src="/static/graphs/guilib.js"></script>
 <script src="/static/graphs/gui.js"></script>
 <script src="/static/graphs/nsgen.js"></script>
@@ -54,7 +53,7 @@ $(document).ready(() => {
   let gs_id = $("body > #gs_id")[0].value;
   let tab_id = $("body > #tab_id")[0].value;
 
-  intface = new GraphInterfaceIFL(gs_id, tab_id);
+  intface = new GraphInterfaceNSGen(gs_id, tab_id);
 
   // user data controls
   $("#tbxNodeLabel").change( () => {
