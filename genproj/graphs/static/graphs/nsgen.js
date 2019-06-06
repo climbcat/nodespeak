@@ -73,4 +73,8 @@ class GraphInterfaceIFL extends GraphInterface {
       $("body").css("cursor", "default");
     }.bind(this));
   }
+  _recenterCB() {
+    let btnsmenu = d3.select("#buttons");
+    btnsmenu.style("left", window.innerWidth/2-btnsmenu.node().clientWidth/2 + "px");
+  }
 }
