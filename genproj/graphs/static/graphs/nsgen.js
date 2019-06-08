@@ -1,32 +1,22 @@
 //
-//  IFL extension to graphui.js.
+//  NGSen extension to graphui.js.
 //
 
 
 class ConnectionRulesNSGen extends ConnectionRulesBase {
   // bare-bones rules determining whether and how nodes can be connected
   static canConnect(a1, a2) {
-    if (a1.idx==-1 && a2.idx==-1) {
-      let tpe1 = a1.owner.owner.basetype;
-      let tpe2 = a2.owner.owner.basetype;
-      let t1 = ["object_idata", "object_ifunc", "obj"].indexOf(tpe1) != -1 && tpe2 == "method";
-      let t2 = tpe1 == "method" && ["object_idata", "object_ifunc", "obj"].indexOf(tpe2) != -1;
-      let t3 = a1.numconnections == 0;
-      let t4 = a2.numconnections == 0;
-      return t1 && t4 || t2 && t3;
-    }
-
     //  a2 input anchor, a1 output
     let t1 = a2.i_o;
     let t2 = !a1.i_o;
-    // inputs can only have one connection
-    let t5 = a2.numconnections == 0;
     // both anchors must be of the same type
     let t6 = a1.type == a2.type;
     let t7 = a1.type == '' || a2.type == '';
-    let t8 = a1.type == 'obj' || a2.type == 'obj';
+    let t8 = a1.type == 'term' || a2.type == 'term';
+    let t9 = a1.type == 'proc' || a2.type == 'proc';
+    let t10 = a1.type == 'dec' || a2.type == 'dec';
 
-    let ans = ( t1 && t2 ) && t5 && (t6 || t7 || t8);
+    let ans = ( t1 && t2 ) && (t6 || t7 || t8 || t9 || t10);
     return ans;
   }
   static couldConnect(a1, a2) {
@@ -37,9 +27,11 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
     // both anchors must be of the same type
     let t6 = a1.type == a2.type;
     let t7 = a1.type == '' || a2.type == '';
-    let t8 = a1.type == 'obj' || a2.type == 'obj';
+    let t8 = a1.type == 'term' || a2.type == 'term';
+    let t9 = a1.type == 'proc' || a2.type == 'proc';
+    let t10 = a1.type == 'dec' || a2.type == 'dec';
 
-    let ans = ( t1 && t2 ) && (t6 || t7 || t8);
+    let ans = ( t1 && t2 ) && (t6 || t7 || t8 || t9 || t10);
     return ans;
   }
 }
@@ -78,3 +70,64 @@ class GraphInterfaceNSGen extends GraphInterface {
     btnsmenu.style("left", window.innerWidth/2-btnsmenu.node().clientWidth/2 + "px");
   }
 }
+
+
+//
+//  Project specific base node types.
+//
+
+
+class NodeFCTerm extends Node {
+  static get basetype() { return "term"; }
+  get basetype() { return NodeFCTermProc.basetype; }
+  static get prefix() { return "t"; }
+  constructor(x, y, id, name, label, typeconf) {
+    super(x, y, id, name, label, typeconf);
+  }
+  _getGNType() {
+    return GraphicsNodeSquare;
+  }
+  _getAnchorType() {
+    return AnchorSquare;
+  }
+  isConnected(connectivity) {
+    return connectivity.indexOf(false) == -1;
+  }
+  isActive() {
+    return true;
+  }
+}
+
+
+class NodeFCProcess extends NodeFCTerm {
+  static get basetype() { return "proc"; }
+  get basetype() { return NodeFCTermProc.basetype; }
+  static get prefix() { return "p"; }
+}
+
+
+class NodeFCDec extends Node {
+  static get basetype() { return "dec"; }
+  get basetype() { return NodeFCTermProc.basetype; }
+  static get prefix() { return "d"; }
+  constructor(x, y, id, name, label, typeconf) {
+    super(x, y, id, name, label, typeconf);
+  }
+  _getGNType() {
+    return GraphicsNodeDiamond;
+  }
+  _getAnchorType() {
+    return AnchorCircular;
+  }
+  isConnected(connectivity) {
+    return connectivity.indexOf(false) == -1;
+  }
+  isActive() {
+    return true;
+  }
+}
+
+
+register_node_class(NodeFCTerm);
+register_node_class(NodeFCProcess);
+register_node_class(NodeFCDec);

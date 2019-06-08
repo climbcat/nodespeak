@@ -53,19 +53,18 @@ $(document).ready(() => {
   let gs_id = $("body > #gs_id")[0].value;
   let tab_id = $("body > #tab_id")[0].value;
 
+  // the graph ui interface
   intface = new GraphInterfaceNSGen(gs_id, tab_id);
 
   // user data controls
+  // TODO: bring back a user panel or delete this if no labels are needed
   $("#tbxNodeLabel").change( () => {
     intface.pushSelectedNodeLabel($("#tbxNodeLabel").val());
   });
 
   // create node menu
   let menuCB = intface.setCreateNodeConf.bind(intface);
-  menu = new NodeTypeMenu(menuCB, 'graph_menu_1', 'handles');
-  menu = new NodeTypeMenu(menuCB, 'graph_menu_2', 'tools');
-  menu = new NodeTypeMenu(menuCB, 'graph_menu_3', 'operators');
-  menu = new NodeTypeMenu(menuCB, 'graph_menu_4', 'models');
+  menu = new NodeTypeMenu(menuCB, 'graph_menu_4', 'flowchart');
 
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)
   $("body").addClass("noselect");
