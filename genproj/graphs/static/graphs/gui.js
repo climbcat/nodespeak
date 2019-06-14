@@ -54,14 +54,22 @@ class LinkHelper {
 
 // responsible for drawing, and acts as an interface
 class GraphDraw {
-  constructor(graphData, mouseAddLinkCB, delNodeCB, selectNodeCB, executeNodeCB, createNodeCB, nodeMouseDownCB, recenterCB) {
+  constructor(
+      graphData,
+      mouseAddLinkCB,
+      delNodeCB,
+      selectNodeCB,
+      dblclickNodeCB,
+      createNodeCB,
+      nodeMouseDownCB,
+      recenterCB) {
     self = this;
 
     this.graphData = graphData; // this is needed for accessing anchors and nodes for drawing and simulations
     this.mouseAddLinkCB =  mouseAddLinkCB; // this is callled when anchors are dragged to other anchors
     this.delNodeCB = delNodeCB;
     this.selectNodeCB = selectNodeCB;
-    this.executeNodeCB = executeNodeCB;
+    this.dblclickNodeCB = dblclickNodeCB;
     this.createNodeCB = createNodeCB;
     this.nodeMouseDownCB = nodeMouseDownCB; // this is used for PlotLines implementation, and can implicitly influence plotlines drawing
     this.recenterCB = recenterCB;
@@ -396,7 +404,7 @@ class GraphDraw {
       })
       .on("dblclick", function() {
         let node = d3.select(this).datum();
-        self.executeNodeCB(node);
+        self.dblclickNodeCB(node);
       })
       .on("mousedown", function(d) {
         self.nodeMouseDownCB(d);
