@@ -34,6 +34,9 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
     let ans = ( t1 && t2 ) && (t6 || t7 || t8 || t9 || t10);
     return ans;
   }
+  static getLinkBasetype(a1, a2) {
+    if (a1.idx==-1 && a2.idx==-1) return "link_double_center"; else return "link_single";
+  }
 }
 
 
@@ -128,6 +131,6 @@ class NodeFCDec extends Node {
 }
 
 
-register_node_class(NodeFCTerm);
-register_node_class(NodeFCProcess);
-register_node_class(NodeFCDec);
+NodeLinkConstrucionHelper.register_node_class(NodeFCTerm);
+NodeLinkConstrucionHelper.register_node_class(NodeFCProcess);
+NodeLinkConstrucionHelper.register_node_class(NodeFCDec);
