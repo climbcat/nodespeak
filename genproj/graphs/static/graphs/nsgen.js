@@ -44,6 +44,14 @@ class GraphInterfaceNSGen extends GraphInterface {
   constructor(gs_id, tab_id) {
     super(gs_id, tab_id, ConnectionRulesNSGen);
   }
+  // server communication
+  ajaxcall(url, data, success_cb, fail_cb=null) {
+    this.isalive = simpleajax(url, data, this.gs_id, this.tab_id, success_cb, fail_cb, true);
+  }
+  ajaxcall_noerror(url, data, success_cb) {
+    // call with showfail=false, which turns off django and offline fails
+    this.isalive = simpleajax(url, data, this.gs_id, this.tab_id, success_cb, null, false);
+  }
   loadSession() {
     $("body").css("cursor", "wait");
     this.ajaxcall("/ajax_load/" + gs_id, null, function(obj) {
@@ -75,11 +83,55 @@ class GraphInterfaceNSGen extends GraphInterface {
 }
 
 
-//
-//  Project specific base node types.
-//
+function simpleajax(url, data, gs_id, tab_id, success_cb, fail_cb=null, showfail=true) {
+  // GraphInterface utility function
+  let isalive = true;
+  $.ajax({
+    type: "POST",
+    url: url,
+    data: { "gs_id": gs_id, "tab_id": tab_id, "data_str" : JSON.stringify(data) },
+  })
+  .fail(function(xhr, statusText, errorThrown) {
+    if (!showfail) return
+    if (fail_cb) fail_cb();
+    $("body").css("cursor", "default");
+    $(window.open().document.body).html(errorThrown + xhr.status + xhr.responseText);
+  })
+  .success(function(msg) {
+    // parse & json errors
+    let obj = null;
+    try {
+      obj = JSON.parse(msg);
+    }
+    catch(error) {
+      console.log("JSON.parse error on string: ", msg);
+      alert("uncomprehensible server response: ", msg);
+      throw error;
+    }
+
+    // fatal errors
+    let fatalerror = obj["fatalerror"];
+    if (fatalerror) {
+      isalive = false;
+      alert("Please restart the session. Fatal error: " + fatalerror);
+      //location.reload();
+      close();
+    }
+
+    // timeouts
+    let timeout = obj["timeout"];
+    if (timeout) {
+      alert("timeout: " + timeout);
+    }
+
+    // pass it on
+    success_cb(obj)
+  });
+  return isalive;
+}
 
 
+//  base node types
 class NodeFCTerm extends Node {
   static get basetype() { return "term"; }
   get basetype() { return NodeFCTermProc.basetype; }

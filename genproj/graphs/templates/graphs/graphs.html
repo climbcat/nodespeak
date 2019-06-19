@@ -28,14 +28,12 @@
 
 <script src="/static/graphs/d3.v4.min.js"></script>
 <script src="/static/graphs/jquery.min.js"></script>
-<script src="/static/graphs/guilib.js"></script>
-<script src="/static/graphs/gui.js"></script>
-<script src="/static/graphs/nsgen.js"></script>
+<script src="/static/graphs/graphui.js"></script>
 <script src="/static/graphs/nodetypes.js"></script>
+<script src="/static/graphs/nsgen.js"></script>
 
 <script>
 let intface = null;
-let menu = null;
 var statusConsole = function(s) {
   let status = d3.select("#status");
   status.html(s);
@@ -63,8 +61,11 @@ $(document).ready(() => {
   });
 
   // create node menu
+  let typeobj = { "addresses" : nodeAddresses, 'tree' : nodeTypes };
   let menuCB = intface.setCreateNodeConf.bind(intface);
-  menu = new NodeTypeMenu(menuCB, 'graph_menu_4', 'flowchart');
+  let menu4 = new NodeTypeMenu('graph_menu_4', 'flowchart', typeobj);
+  menu4.rgstrClickConf(menuCB);
+
 
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)
   $("body").addClass("noselect");
