@@ -913,7 +913,7 @@ class NodeFunction extends Node {
   get basetype() { return NodeFunction.basetype; }
   static get prefix() { return "f"; }
   constructor(x, y, id, name, label, typeconf) {
-    super(x, y, id, name, label, typecond);
+    super(x, y, id, name, label, typeconf);
   }
   _getGNType() {
     return GraphicsNodeCircular;

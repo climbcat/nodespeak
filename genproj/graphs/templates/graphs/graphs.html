@@ -65,7 +65,8 @@ $(document).ready(() => {
   let menuCB = intface.setCreateNodeConf.bind(intface);
   let menu4 = new NodeTypeMenu('graph_menu_4', 'flowchart', typeobj);
   menu4.rgstrClickConf(menuCB);
-
+  let menu3 = new NodeTypeMenu('graph_menu_3', 'datagraph', typeobj);
+  menu3.rgstrClickConf(menuCB);
 
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)
   $("body").addClass("noselect");
@@ -77,7 +78,7 @@ $(document).ready(() => {
 
   // load graph and run
   intface.updateUi(); // why is this needed to get rid of the "self.draggable is null" error message?
-  intface.loadSession(); // this also updates the ui...
+  //intface.loadSession(); // this also updates the ui...
 });
 </script>
 </html>

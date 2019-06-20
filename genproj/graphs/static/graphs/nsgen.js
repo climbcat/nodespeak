@@ -5,34 +5,47 @@
 
 class ConnectionRulesNSGen extends ConnectionRulesBase {
   // bare-bones rules determining whether and how nodes can be connected
-  static canConnect(a1, a2) {
-    //  a2 input anchor, a1 output
-    let t1 = a2.i_o;
-    let t2 = !a1.i_o;
-    // both anchors must be of the same type
-    let t6 = a1.type == a2.type;
-    let t7 = a1.type == '' || a2.type == '';
-    let t8 = a1.type == 'term' || a2.type == 'term';
-    let t9 = a1.type == 'proc' || a2.type == 'proc';
-    let t10 = a1.type == 'dec' || a2.type == 'dec';
+  static canConnect(a1, a2, could=false) {
+    //  universal
+    let ta = a2.i_o;
+    let tb = !a1.i_o;
+    if (!ta || !tb) return false;
 
-    let ans = ( t1 && t2 ) && (t6 || t7 || t8 || t9 || t10);
-    return ans;
+    // flowchart
+    let fctypes = ['term', 'proc', 'dec'];
+    let isflowchart = (fctypes.indexOf(a1.owner.owner.basetype)>=0 && fctypes.indexOf(a2.owner.owner.basetype)>=0);
+    if (isflowchart) {
+      // output nodes must have a well-defined destination
+      return a1.numconnections == 0 || could;
+    }
+
+    // datagraph
+    let isdatagraph = (fctypes.indexOf(a1.owner.owner.basetype)==-1 && fctypes.indexOf(a2.owner.owner.basetype)==-1);
+    if (isdatagraph) {
+      // method links
+      if (a1.idx==-1 && a2.idx==-1) {
+        let tpe1 = a1.owner.owner.basetype;
+        let tpe2 = a2.owner.owner.basetype;
+        let t1 = tpe1 == "obj" && tpe2 == "method";
+        let t2 = tpe1 == "method" && tpe2 == "obj";
+        let t3 = a1.numconnections == 0;
+        let t4 = a2.numconnections == 0;
+        return t1 && (t4 || could) || (t2 && (t3 || could) );
+      }
+      // type matches or wildcard (pseudo-polymorphism, since not uni-directional)
+      let t5 = a1.type == a2.type;
+      let t6 = a1.type == '' || a2.type == '';
+      let t7 = a1.type == 'obj' || a2.type == 'obj';
+      // input nodes must have a well-defined origin
+      let t8 = a2.numconnections == 0
+      return (t5 || t6 || t7) && (t8 || could);
+    }
+
+    // nether, undefined
+    return false;
   }
   static couldConnect(a1, a2) {
-    // could a1 and a2 be connected if a2 was unoccupied?
-    //  a2 input anchor, a1 output
-    let t1 = a2.i_o;
-    let t2 = !a1.i_o;
-    // both anchors must be of the same type
-    let t6 = a1.type == a2.type;
-    let t7 = a1.type == '' || a2.type == '';
-    let t8 = a1.type == 'term' || a2.type == 'term';
-    let t9 = a1.type == 'proc' || a2.type == 'proc';
-    let t10 = a1.type == 'dec' || a2.type == 'dec';
-
-    let ans = ( t1 && t2 ) && (t6 || t7 || t8 || t9 || t10);
-    return ans;
+    return ConnectionRulesNSGen.canConnect(a1, a2, true);
   }
   static getLinkBasetype(a1, a2) {
     if (a1.idx==-1 && a2.idx==-1) return "link_double_center"; else return "link_single";
@@ -134,7 +147,7 @@ function simpleajax(url, data, gs_id, tab_id, success_cb, fail_cb=null, showfail
 //  base node types
 class NodeFCTerm extends Node {
   static get basetype() { return "term"; }
-  get basetype() { return NodeFCTermProc.basetype; }
+  get basetype() { return NodeFCTerm.basetype; }
   static get prefix() { return "t"; }
   constructor(x, y, id, name, label, typeconf) {
     super(x, y, id, name, label, typeconf);
@@ -156,14 +169,14 @@ class NodeFCTerm extends Node {
 
 class NodeFCProcess extends NodeFCTerm {
   static get basetype() { return "proc"; }
-  get basetype() { return NodeFCTermProc.basetype; }
+  get basetype() { return NodeFCProcess.basetype; }
   static get prefix() { return "p"; }
 }
 
 
 class NodeFCDec extends Node {
   static get basetype() { return "dec"; }
-  get basetype() { return NodeFCTermProc.basetype; }
+  get basetype() { return NodeFCDec.basetype; }
   static get prefix() { return "d"; }
   constructor(x, y, id, name, label, typeconf) {
     super(x, y, id, name, label, typeconf);
