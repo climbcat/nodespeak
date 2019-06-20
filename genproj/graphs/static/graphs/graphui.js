@@ -767,6 +767,35 @@ class LinkDouble extends Link {
   }
 }
 
+class LinkStraight extends Link {
+  // becomes a single straight line
+  static get basetype() { return "link_straight"; }
+  get basetype() { return LinkStraight.basetype; }
+  recalcPathAnchors() { /* don't */ }
+  getAnchors() { return [this.d1, this.d2]; }
+  draw(branch, i) {
+    let anchors = this.getAnchors();
+    return branch
+      .append('path')
+      .datum(anchors)
+      .attr("class", "arrow")
+      .attr('d', d3.line()
+        .x( function(p) { return p.x; } )
+        .y( function(p) { return p.y; } )
+      );
+  }
+  update(branch, i) {
+    let anchors = this.getAnchors();
+    return branch
+      .select('path')
+      .datum(anchors)
+      .attr('d', d3.line()
+        .x( function(p) { return p.x; } )
+        .y( function(p) { return p.y; } )
+      );
+  }
+}
+
 class LinkDoubleCenter extends Link {
   // becomes a straight double line
   constructor(d1, d2) {
@@ -1174,6 +1203,7 @@ NodeLinkConstrucionHelper.register_node_class(NodeMethod);
 
 // register link types
 NodeLinkConstrucionHelper.register_link_class(LinkSingle);
+NodeLinkConstrucionHelper.register_link_class(LinkStraight);
 NodeLinkConstrucionHelper.register_link_class(LinkDouble);
 NodeLinkConstrucionHelper.register_link_class(LinkDoubleCenter);
 
@@ -1772,7 +1802,7 @@ class GraphDraw {
       forcelinks = self.graphData.getForceLinks();
     }
     else {
-      let a_f = self.graphData.getAnchorsAndForceLinks(id)
+      let a_f = self.graphData.getAnchorsAndForceLinks(id);
       anchors = a_f[0];
       forcelinks = a_f[1];
     }

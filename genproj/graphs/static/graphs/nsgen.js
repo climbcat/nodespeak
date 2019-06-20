@@ -7,16 +7,18 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
   // bare-bones rules determining whether and how nodes can be connected
   static canConnect(a1, a2, could=false) {
     //  universal
-    let ta = a2.i_o;
-    let tb = !a1.i_o;
-    if (!ta || !tb) return false;
+    let ta = a2.i_o && !a1.i_o; // a1 is input and a2 is output anchor
+    let tc = a1.idx==-1 && a2.idx==-1; // both are center anchors
+    if (!ta && !tc) return false;
 
     // flowchart
-    let fctypes = ['term', 'proc', 'dec'];
+    let fctypes = ConnectionRulesNSGen.fctypes;
     let isflowchart = (fctypes.indexOf(a1.owner.owner.basetype)>=0 && fctypes.indexOf(a2.owner.owner.basetype)>=0);
     if (isflowchart) {
       // output nodes must have a well-defined destination
-      return a1.numconnections == 0 || could;
+      let tfc1 = a1.numconnections == 0;
+      let tfc2 = a1.idx!=-1 && a2.idx!=-1; // we don't want to connect fc nodes by their centers!
+      return (tfc1 || could) && tfc2;
     }
 
     // datagraph
@@ -26,8 +28,8 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
       if (a1.idx==-1 && a2.idx==-1) {
         let tpe1 = a1.owner.owner.basetype;
         let tpe2 = a2.owner.owner.basetype;
-        let t1 = tpe1 == "obj" && tpe2 == "method";
-        let t2 = tpe1 == "method" && tpe2 == "obj";
+        let t1 = tpe1 == "object" && tpe2 == "method";
+        let t2 = tpe1 == "method" && tpe2 == "object";
         let t3 = a1.numconnections == 0;
         let t4 = a2.numconnections == 0;
         return t1 && (t4 || could) || (t2 && (t3 || could) );
@@ -41,6 +43,15 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
       return (t5 || t6 || t7) && (t8 || could);
     }
 
+    // a proper combo goes in the right direction from fc node to dg node
+    let iscombo = (fctypes.indexOf(a1.owner.owner.basetype)>=0 && fctypes.indexOf(a2.owner.owner.basetype)==-1);
+    if (iscombo) {
+      let tcb_1 = a2.owner.owner.basetype == "object"; // want resulting in an assignment statemen
+      let tcb_2 = a1.owner.owner.basetype == "proc"; // only procs can execute for now
+      let tcb_3 = a1.numconnections == 0;
+      return tcb_1 && tcb_2 && tcb_3;
+    }
+
     // nether, undefined
     return false;
   }
@@ -48,9 +59,18 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
     return ConnectionRulesNSGen.canConnect(a1, a2, true);
   }
   static getLinkBasetype(a1, a2) {
-    if (a1.idx==-1 && a2.idx==-1) return "link_double_center"; else return "link_single";
+    let fctypes = ConnectionRulesNSGen.fctypes;
+    let t1 = fctypes.indexOf(a1.owner.owner.basetype)>=0 && fctypes.indexOf(a2.owner.owner.basetype)==-1;
+    let t2 = (a1.idx==-1 && a2.idx==-1);
+    if (t1 && t2)
+      return "link_straight";
+    else if (t2)
+      return "link_double_center";
+    else
+      return "link_single";
   }
 }
+ConnectionRulesNSGen.fctypes = ['term', 'proc', 'dec'];
 
 
 class GraphInterfaceNSGen extends GraphInterface {
