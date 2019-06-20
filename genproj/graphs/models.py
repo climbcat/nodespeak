@@ -8,12 +8,10 @@ class TabId(models.Model):
 
 class GraphSession(models.Model):
     created = DateTimeField('created', default=timezone.now)
+    modified = DateTimeField('modified', default=timezone.now)
 
     title = CharField(max_length=200, default="", blank=True, null=True)
     description = TextField(blank=True, null=True)
-
-    quicksaved = DateTimeField('quicksaved', blank=True, null=True)
-    stashed = DateTimeField('stashed', blank=True, null=True)
 
     graphdef = TextField(blank=True)
 

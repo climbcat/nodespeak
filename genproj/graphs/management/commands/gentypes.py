@@ -160,6 +160,7 @@ def gen_flowchart_confs(tree, addrss, catgrs):
     func1.itypes = ['int', 'int']
     func1.otypes = ['bool']
     func1.name = 'func1'
+    func1.label = 'func1'
     tree.put('datagraph', func1.get_repr(), get_key)
     addrss.append(func1.address)
 
@@ -172,6 +173,7 @@ def gen_flowchart_confs(tree, addrss, catgrs):
     func2.itypes = ['string', 'int', 'bool']
     func2.otypes = ['bool']
     func2.name = 'func2'
+    func2.label = 'func2'
     tree.put('datagraph', func2.get_repr(), get_key)
     addrss.append(func2.address)
 
@@ -184,6 +186,7 @@ def gen_flowchart_confs(tree, addrss, catgrs):
     func3.itypes = ['bool']
     func3.otypes = ['string']
     func3.name = 'func3'
+    func3.label = 'func3'
     tree.put('datagraph', func3.get_repr(), get_key)
     addrss.append(func3.address)
 
@@ -218,8 +221,9 @@ def gen_flowchart_confs(tree, addrss, catgrs):
     method.basetype = 'method'
     method.ipars = ['']
     method.itypes = ['']
-    method.otypes = ['']
+    method.otypes = []
     method.name = 'method'
+    method.label = 'somemethod'
     tree.put('datagraph', method.get_repr(), get_key)
     addrss.append(method.address)
 

@@ -77,8 +77,8 @@ $(document).ready(() => {
   $("#status").css({ "top" : (h+t)+"px", "user-select" : "auto" });
 
   // load graph and run
-  intface.updateUi(); // why is this needed to get rid of the "self.draggable is null" error message?
-  //intface.loadSession(); // this also updates the ui...
+  intface.updateUi();
+  intface.loadSession();
 });
 </script>
 </html>

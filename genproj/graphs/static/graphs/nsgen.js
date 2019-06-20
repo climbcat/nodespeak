@@ -87,9 +87,9 @@ class GraphInterfaceNSGen extends GraphInterface {
   }
   loadSession() {
     $("body").css("cursor", "wait");
-    this.ajaxcall("/ajax_load/" + gs_id, null, function(obj) {
-      let gd = obj["graphdef"]
-      let error = obj["graphdef"]
+    this.ajaxcall("/ajax_load/" + this.gs_id, null, function(obj) {
+      let gd = obj["graphdef"];
+      let error = obj["error"];
       if (gd != null) {
         this.reset();
         this.injectGraphDefinition(obj);

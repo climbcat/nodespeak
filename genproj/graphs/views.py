@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, HttpResponse
 from .models import GraphSession, TabId
 
 # the one and only view
@@ -12,10 +12,10 @@ def graph_session(req, gs_id):
 
 # ajax requests
 def ajax_load(req, gs_id):
-    session = dict(GraphSession.objects.filter(id=gs_id)).get(0, None)
+    session = GraphSession.objects.filter(id=gs_id).get()
     if session:
-        return HttpResponse('"graphdef" : "%s"' % session.graphdef)
-    return HttpResponse('{"error" : "session not found"}')
+        return HttpResponse('{"graphdef" : "%s"}' % session.graphdef)
+    return HttpResponse('{"error" : "session %s not found"}' % gs_id)
 def ajax_commit(req):
     print(req.POST)
 
