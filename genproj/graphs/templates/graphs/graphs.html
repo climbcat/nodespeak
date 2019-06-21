@@ -42,10 +42,10 @@ var statusConsole = function(s) {
 
 $(document).ready(() => {
   // set up events
-  $("#btnUndo").click( () => { intface.undo() });
-  $("#btnRedo").click( () => { intface.redo() });
-  $("#btnSave").click( () => { intface.commitSession() });
-  $("#btnRevert").click( () => { intface.revertSession() });
+  $("#btnUndo").click( () => { intface.undo(); });
+  $("#btnRedo").click( () => { intface.redo(); });
+  $("#btnLoad").click( () => { intface.loadSession(); });
+  $("#btnCommit").click( () => { intface.commitSession(); });
 
   // construct graph engine and add listeners
   let gs_id = $("body > #gs_id")[0].value;

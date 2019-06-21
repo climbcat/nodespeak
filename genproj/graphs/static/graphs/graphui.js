@@ -1539,9 +1539,10 @@ class GraphTree {
       }
     }
     let def_text = JSON.stringify(def);
+    // DB: handy
     //console.log(JSON.stringify(def, null, 2));
-    console.log(def_text);
-    return def_text;
+    //console.log(def_text);
+    return def;
   }
   getCoords() {
     let coords = {};
@@ -2220,6 +2221,7 @@ class GraphInterface {
     this.draw.drawAll();
   }
   injectGraphDefinition(def) {
+    // NODES
     let args = null;
     for (let key in def.nodes) {
       args = def.nodes[key];
@@ -2230,6 +2232,7 @@ class GraphInterface {
         console.log("inject node add: ", error.message);
       }
     }
+    // LINKS
     let data = null;
     let elinks = null;
     for (let key in def.links) {
@@ -2244,6 +2247,7 @@ class GraphInterface {
         }
       }
     }
+    // DATAS
     for (let key in def.datas) {
       data = atob(def.datas[key]);
       try {
