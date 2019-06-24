@@ -1659,7 +1659,7 @@ class GraphLayout {
       .on("tick", this.updateCB);
     this.distanceSim = null;
   }
-  recenter(data) {
+  resize(data) {
     this.centeringSim.stop();
     this.centeringSim.force("centering").x(window.innerWidth/2);
     this.centeringSim.force("centering").y(window.innerHeight/2);
@@ -1745,9 +1745,9 @@ class GraphDraw {
   rgstrMouseDownNode(f) { this._mouseDownNodeListeners.push(f); }
   deregMouseDownNode(f) { remove(this._mouseDownNodeListeners, f); }
   fireMouseDownNode(...args) { fireEvents(this._mouseDownNodeListeners, "mouseDownNode", ...args); }
-  rgstrRecenter(f) { this._recenterListeners.push(f); }
-  deregRecenter(f) { remove(this._recenterListeners, f); }
-  fireRecenter(...args) { fireEvents(this._recenterListeners, "recenter", ...args); }
+  rgstrResize(f) { this._resizeListeners.push(f); }
+  deregResize(f) { remove(this._resizeListeners, f); }
+  fireResize(...args) { fireEvents(this._resizeListeners, "resize", ...args); }
   // graphics events (re)draw and update
   rgstrDrawUpdate(f) { this._updateListn.push(f); }
   deregDrawUpdate(f) { remove(this._updateListn, f); }
@@ -1768,7 +1768,7 @@ class GraphDraw {
     this._clickNodeListeners = [];
     this._ctrlClickNodeListeners = [];
     this._mouseDownNodeListeners = [];
-    this._recenterListeners = [];
+    this._resizeListeners = [];
     this._updateListn = [];
     this._drawListn = [];
 
@@ -1826,7 +1826,7 @@ class GraphDraw {
     // svg resize @ window resize
     let svgresize = function() {
       this.svg.attr("width", window.innerWidth-20).attr("height", window.innerHeight-25);
-      this.recenter();
+      this.resize();
     }.bind(this);
     window.onresize = svgresize;
     svgresize();
@@ -1840,12 +1840,12 @@ class GraphDraw {
     this.linkHelperBranch = this.svg.append("g");
     this.h = null;
   }
-  recenter() {
-    this.layout.recenter(this.graphData);
-    this.fireRecenter();
+  resize() {
+    this.layout.resize(this.graphData);
+    this.fireResize();
   }
   dragged(d) {
-    // reheating collision protection is needed during long drags
+    // reheat check - collision protection can expire during long drags
     if (self.layout.collideSim.alpha() < 0.1) { self.layout.restartCollideSim(self.graphData); }
 
     d.x += d3.event.dx;
@@ -1862,7 +1862,7 @@ class GraphDraw {
     // restart post-drag relevant layout sims
     self.layout.restartChargeSim();
     self.layout.resetAndRestartPathSim(d.owner.id, self.graphData);
-    self.recenter();
+    self.resize();
   }
   anchorMouseDown(d) {
     self.dragAnchor = d;
@@ -2054,8 +2054,8 @@ class GraphDraw {
     // call draw callbacks
     self.fireDraw();
 
-    // recenter everything
-    self.recenter();
+    // resize everything
+    self.resize();
     // update data properties
     self.update();
   }
@@ -2095,7 +2095,7 @@ class GraphInterface {
     this.draw.rgstrClickNode(this._selNodeCB.bind(this));
     this.draw.rgstrDblClickNode(this._dblclickNodeCB.bind(this));
     this.draw.rgstrClickSVG(this._createNodeCB.bind(this));
-    this.draw.rgstrRecenter(this._recenterCB.bind(this));
+    this.draw.rgstrResize(this._resizeCB.bind(this));
 
     // node connection logics
     this.truth = conn_rules;
@@ -2119,8 +2119,8 @@ class GraphInterface {
   }
 
   // event handlers
-  _recenterCB() {
-    console.log("implement _recenterCB in descendant to reposition app-specific elements");
+  _resizeCB() {
+    console.log("implement _resizeCB in descendant to reposition app-specific elements");
   }
   _selNodeCB(node) {
     let n = null;
