@@ -1621,7 +1621,7 @@ function fireEvents(lst, sCaller, ...args) {
 
 class GraphLayout {
   // layout simulation delegate
-  constructor(updateCB, w, h) {
+  constructor(updateCB, getNodes, getAnchors, getForceLinks) {
     // layout settings
     this._pathChargeStrength = -10;
     this._distanceChargeStrength = -10;
@@ -1630,6 +1630,9 @@ class GraphLayout {
 
     // this is the (only and only) graphics redraw requred by layout sims
     this.updateCB = updateCB;
+    this.getNodes = getNodes;
+    this.getAnchors = getAnchors;
+    this.getForceLinks = getForceLinks;
 
     // force layout simulations
     this.collideSim = d3.forceSimulation()
@@ -1640,7 +1643,7 @@ class GraphLayout {
       .on("tick", this.updateCB);
     this.centeringSim = d3.forceSimulation()
       .force("centering",
-        d3.forceCenter(w/2, h/2)
+        d3.forceCenter(0, 0)
       )
       .stop()
       .on("tick", this.updateCB);
@@ -1659,18 +1662,25 @@ class GraphLayout {
       .on("tick", this.updateCB);
     this.distanceSim = null;
   }
-  resize(data) {
+  beforeChange() {
+    let nodes = this.getNodes();
+    let anchors = this.getAnchors();
+    this.collideSim.stop();
+    this.collideSim.nodes(nodes);
+    this.collideSim.alpha(1).restart();
+    // path anchors go into the center-sim only
     this.centeringSim.stop();
-    this.centeringSim.force("centering").x(window.innerWidth/2);
-    this.centeringSim.force("centering").y(window.innerHeight/2);
-    let nodes = data.getGraphicsNodeObjs();
-    let anchors = data.getAnchors();
     this.centeringSim.nodes(nodes.concat(anchors));
     this.centeringSim.alpha(1).restart();
+
   }
-  resetChargeSim(data) {
+  afterChangeDone() {
+    let nodes = this.getNodes();
+    let anchors = this.getAnchors();
+    let forceLinks = this.getForceLinks();
+
     // the charge force seems to have to reset like this for some reason
-    this.distanceSim = d3.forceSimulation(data.getGraphicsNodeObjs())
+    this.distanceSim = d3.forceSimulation(nodes)
       .force("noderepulsion",
         d3.forceManyBody()
           .strength(this._distanceChargeStrength)
@@ -1678,44 +1688,24 @@ class GraphLayout {
           .distanceMax(75))
       .stop()
       .on("tick", this.updateCB);
-  }
-  restartChargeSim() {
     this.distanceSim.stop();
     this.distanceSim.alpha(1).restart();
-  }
-  resetAndRestartPathSim(id, data) {
-    let anchors = null;
-    let forcelinks = null;
-    if (!id) {
-      anchors = data.getAnchors();
-      forcelinks = data.getForceLinks();
-    }
-    else {
-      let a_f = data.getAnchorsAndForceLinks(id);
-      anchors = a_f[0];
-      forcelinks = a_f[1];
-    }
 
     this.pathSim.stop();
     this.pathSim.nodes(anchors);
-    this.pathSim.force("link").links(forcelinks);
+    this.pathSim.force("link").links(forceLinks);
 
     this.pathSim.alpha(1);
     for (var i=0; i < 300; i++) {
       this.pathSim.tick();
     }
-
-    // is this required?
-    this.updateCB();
   }
-  restartCollideSim(data) {
-    this.collideSim.stop();
-    this.collideSim.nodes(data.getGraphicsNodeObjs());
-    this.collideSim.alpha(1).restart();
-    // path anchors go into the center-sim only
+  resize() {
+    let nodes = this.getNodes();
+    let anchors = this.getAnchors();
     this.centeringSim.stop();
-    let nodes = data.getGraphicsNodeObjs();
-    let anchors = data.getAnchors();
+    this.centeringSim.force("centering").x(window.innerWidth/2);
+    this.centeringSim.force("centering").y(window.innerHeight/2);
     this.centeringSim.nodes(nodes.concat(anchors));
     this.centeringSim.alpha(1).restart();
   }
@@ -1748,6 +1738,12 @@ class GraphDraw {
   rgstrResize(f) { this._resizeListeners.push(f); }
   deregResize(f) { remove(this._resizeListeners, f); }
   fireResize(...args) { fireEvents(this._resizeListeners, "resize", ...args); }
+  rgstrDragStarted(f) { this._dragStartedListn.push(f); }
+  deregDragStarted(f) { remove(this._dragStartedListn, f); }
+  fireDragStarted(...args) { fireEvents(this._dragStartedListn, "dragStarted", ...args); }
+  rgstrDragEnded(f) { this._dragEndedListn.push(f); }
+  deregDragEnded(f) { remove(this._dragEndedListn, f); }
+  fireDragEnded(...args) { fireEvents(this._dragEndedListn, "dragEnded", ...args); }
   // graphics events (re)draw and update
   rgstrDrawUpdate(f) { this._updateListn.push(f); }
   deregDrawUpdate(f) { remove(this._updateListn, f); }
@@ -1769,13 +1765,22 @@ class GraphDraw {
     this._ctrlClickNodeListeners = [];
     this._mouseDownNodeListeners = [];
     this._resizeListeners = [];
+    this._dragStartedListn = [];
+    this._dragEndedListn = [];
     this._updateListn = [];
     this._drawListn = [];
 
     // delegates
     this.graphData = graphData; // access anchors and nodes for drawing and simulations
-    this.layout = new GraphLayout(this.update.bind(this), svgwidth, svgheight);
-
+    this.layout = new GraphLayout(
+      this.update.bind(this), // updateCB
+      this.graphData.getGraphicsNodeObjs.bind(this.graphData), // getNodes
+      this.graphData.getAnchors.bind(this.graphData), // getAnchors
+      this.graphData.getForceLinks.bind(this.graphData) // getForceLinks
+    );
+    this.rgstrResize(this.layout.resize.bind(this.layout)); // must be called @ recenter
+    this.rgstrDragStarted(this.layout.beforeChange.bind(this.layout));
+    this.rgstrDragEnded(this.layout.afterChangeDone.bind(this.layout));
 
     // svg
     this.svg = d3.select('body')
@@ -1826,7 +1831,7 @@ class GraphDraw {
     // svg resize @ window resize
     let svgresize = function() {
       this.svg.attr("width", window.innerWidth-20).attr("height", window.innerHeight-25);
-      this.resize();
+      this.fireResize();
     }.bind(this);
     window.onresize = svgresize;
     svgresize();
@@ -1840,29 +1845,20 @@ class GraphDraw {
     this.linkHelperBranch = this.svg.append("g");
     this.h = null;
   }
-  resize() {
-    this.layout.resize(this.graphData);
-    this.fireResize();
-  }
   dragged(d) {
+    // TODO: reintroduce this functionality somehow:
     // reheat check - collision protection can expire during long drags
-    if (self.layout.collideSim.alpha() < 0.1) { self.layout.restartCollideSim(self.graphData); }
+    //if (self.layout.collideSim.alpha() < 0.1) { self.layout.restartCollideSim(self.graphData); }
 
     d.x += d3.event.dx;
     d.y += d3.event.dy;
-
-    self.fireDrawUpdate();
   }
   dragstarted(d) {
-    self.layout.restartCollideSim(self.graphData);
+    self.fireDragStarted();
   }
   dragended(d) {
     self.graphData.recalcPathAnchorsAroundNodeObj(d);
-
-    // restart post-drag relevant layout sims
-    self.layout.restartChargeSim();
-    self.layout.resetAndRestartPathSim(d.owner.id, self.graphData);
-    self.resize();
+    self.fireDragEnded();
   }
   anchorMouseDown(d) {
     self.dragAnchor = d;
@@ -2055,7 +2051,7 @@ class GraphDraw {
     self.fireDraw();
 
     // resize everything
-    self.resize();
+    self.fireResize();
     // update data properties
     self.update();
   }
@@ -2131,8 +2127,10 @@ class GraphInterface {
     if (conf == null) return;
 
     let id = this.node_add(x, y, "", "", conf.label, conf.address);
-    this.draw.layout.resetChargeSim(this.draw.graphData);
-    this.draw.layout.restartCollideSim(this.draw.graphData);
+
+    this.draw.layout.afterChangeDone();
+    //this.draw.layout.resetChargeSim(this.draw.graphData);
+    //this.draw.layout.restartCollideSim(this.draw.graphData);
 
     this._createConf = null;
 
@@ -2155,17 +2153,14 @@ class GraphInterface {
     // node rm
     this.node_rm(id);
 
-    // update
     fireEvents(this._nodeDeletedListn, "deleteNode", id);
-    // TODO: this call should probably be intrinsic to GraphDraw?
-    this.draw.layout.restartCollideSim(this.draw.graphData);
     this.updateUi();
   }
   _tryCreateLink(s, d) {
     let createLink = function(a1, a2) {
       this.link_add(a1.owner.owner.id, a1.idx, a2.owner.owner.id, a2.idx);
-      this.draw.layout.resetAndRestartPathSim(a1.owner.owner.id, this.draw.graphData);
-      this.draw.layout.resetAndRestartPathSim(a2.owner.owner.id, this.draw.graphData);
+
+      this.draw.layout.afterChangeDone();
       this.updateUi();
     }.bind(this);
 
@@ -2373,8 +2368,7 @@ class GraphInterface {
 
       id = this.graphData.nodeAdd(x, y, conf, id);
       let n = this.graphData.getNode(id);
-      // do we need this call?
-      this.draw.layout.resetChargeSim(this.draw.graphData);
+
       return [["node_add", n.gNode.x, n.gNode.y, n.id, n.name, n.label, n.address], ["node_rm", n.id]];
     }
     else if (command=="node_rm") {
