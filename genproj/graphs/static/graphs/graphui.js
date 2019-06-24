@@ -1772,15 +1772,6 @@ class GraphDraw {
 
     // delegates
     this.graphData = graphData; // access anchors and nodes for drawing and simulations
-    this.layout = new GraphLayout(
-      this.update.bind(this), // updateCB
-      this.graphData.getGraphicsNodeObjs.bind(this.graphData), // getNodes
-      this.graphData.getAnchors.bind(this.graphData), // getAnchors
-      this.graphData.getForceLinks.bind(this.graphData) // getForceLinks
-    );
-    this.rgstrResize(this.layout.resize.bind(this.layout)); // must be called @ recenter
-    this.rgstrDragStarted(this.layout.beforeChange.bind(this.layout));
-    this.rgstrDragEnded(this.layout.afterChangeDone.bind(this.layout));
 
     // svg
     this.svg = d3.select('body')
@@ -1846,10 +1837,6 @@ class GraphDraw {
     this.h = null;
   }
   dragged(d) {
-    // TODO: reintroduce this functionality somehow:
-    // reheat check - collision protection can expire during long drags
-    //if (self.layout.collideSim.alpha() < 0.1) { self.layout.restartCollideSim(self.graphData); }
-
     d.x += d3.event.dx;
     d.y += d3.event.dy;
   }
@@ -2084,6 +2071,7 @@ class GraphInterface {
     this.tab_id = tab_id;
     this.isalive = true;
 
+    // delegates
     this.graphData = new GraphTree(conn_rules);
     this.draw = new GraphDraw(this.graphData);
     this.draw.rgstrMouseAddLink(this._tryCreateLink.bind(this));
@@ -2092,6 +2080,19 @@ class GraphInterface {
     this.draw.rgstrDblClickNode(this._dblclickNodeCB.bind(this));
     this.draw.rgstrClickSVG(this._createNodeCB.bind(this));
     this.draw.rgstrResize(this._resizeCB.bind(this));
+    this.layout = new GraphLayout(
+      this.draw.update.bind(this.draw), // updateCB
+      this.draw.graphData.getGraphicsNodeObjs.bind(this.graphData), // getNodes
+      this.draw.graphData.getAnchors.bind(this.graphData), // getAnchors
+      this.draw.graphData.getForceLinks.bind(this.graphData) // getForceLinks
+    );
+    this.draw.rgstrResize(this.layout.resize.bind(this.layout)); // must be called @ recenter
+    this.draw.rgstrDragStarted(this.layout.beforeChange.bind(this.layout));
+    this.draw.rgstrDragEnded(this.layout.afterChangeDone.bind(this.layout));
+    // TODO: reintroduce this functionality somehow:
+    // reheat check - collision protection can expire during long drags
+    // (code was in draw.dragged)
+    //if (self.layout.collideSim.alpha() < 0.1) { self.layout.restartCollideSim(self.graphData); }
 
     // node connection logics
     this.truth = conn_rules;
@@ -2128,9 +2129,7 @@ class GraphInterface {
 
     let id = this.node_add(x, y, "", "", conf.label, conf.address);
 
-    this.draw.layout.afterChangeDone();
-    //this.draw.layout.resetChargeSim(this.draw.graphData);
-    //this.draw.layout.restartCollideSim(this.draw.graphData);
+    this.layout.afterChangeDone();
 
     this._createConf = null;
 
@@ -2160,7 +2159,7 @@ class GraphInterface {
     let createLink = function(a1, a2) {
       this.link_add(a1.owner.owner.id, a1.idx, a2.owner.owner.id, a2.idx);
 
-      this.draw.layout.afterChangeDone();
+      this.layout.afterChangeDone();
       this.updateUi();
     }.bind(this);
 
