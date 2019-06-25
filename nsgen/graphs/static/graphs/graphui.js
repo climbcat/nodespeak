@@ -2217,8 +2217,8 @@ class GraphInterface {
       // return it not
       else return false;
 
-      if (this.truth.canConverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype)) clearAnchor(upstream);
-      if (this.truth.canDiverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype)) clearAnchor(downstream);
+      if (!this.truth.canConverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype)) clearAnchor(downstream);
+      if (!this.truth.canDiverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype)) clearAnchor(upstream);
       createLink(upstream, downstream);
     }
   }
