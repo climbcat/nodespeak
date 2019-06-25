@@ -1249,6 +1249,7 @@ class GraphTree {
   }
   getLinks(id) {
     // returns a list of [id1, idx1, id2, idx2] sequences
+    // this is upstream-downstream agnostic
     if (!this._current.links[id]) {
       return [];
     }
@@ -2177,15 +2178,18 @@ class GraphInterface {
       this.updateUi();
     }.bind(this);
 
-    let clearThenCreateLink = function(a1, a2) {
-      let id = a2.owner.owner.id;
+    let clearAnchor = function(a) {
+      let id = a.owner.owner.id;
       let lks = this.graphData.getLinks(id);
       let entry = null;
       for (let i=0;i<lks.length;i++) {
         entry = lks[i];
-        if (entry[2] == id && entry[1] == a1.idx && entry[3] == a2.idx) {
+        // NOTE: the second condition was most likely superfluous and this only worked
+        // because "from" link indices wer always zero (single output nodes)
+        //if (entry[2] == id && entry[1] == a1.idx && entry[3] == a2.idx) {
+        if (entry[2] == id && entry[3] == a.idx) {
+          // clear all links hitting a2
           this.link_rm(entry[0], entry[1], entry[2], entry[3])
-          createLink(a1, a2);
         }
       }
     }.bind(this);
@@ -2198,10 +2202,12 @@ class GraphInterface {
     }
     // override existing link IF it could be connected
     else if (this.truth.couldConnect(s, d)) {
-      clearThenCreateLink(s, d);
+      clearAnchor(d);
+      createLink(s, d);
     }
     else if (this.truth.couldConnect(d, s)) {
-      clearThenCreateLink(d, s);
+      clearAnchor(s);
+      createLink(d, s);
     }
   }
   _getId(prefix) {
