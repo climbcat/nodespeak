@@ -77,6 +77,11 @@ class GraphInterfaceNSGen extends GraphInterface {
   constructor(gs_id, tab_id) {
     super(gs_id, tab_id, ConnectionRulesNSGen);
   }
+  _getStandardLayout() {
+    // TODO: create a new layout pradigm
+
+    return super._getStandardLayout();
+  }
   // server communication
   ajaxcall(url, data, success_cb, fail_cb=null) {
     this.isalive = simpleajax(url, data, this.gs_id, this.tab_id, success_cb, fail_cb, true);

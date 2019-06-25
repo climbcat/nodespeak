@@ -2088,24 +2088,7 @@ class GraphInterface {
     this.draw.rgstrDblClickNode(this._dblclickNodeCB.bind(this));
     this.draw.rgstrClickSVG(this._createNodeCB.bind(this));
     this.draw.rgstrResize(this._resizeCB.bind(this));
-    this.layout = new GraphLayout(
-      this.draw.update.bind(this.draw), // updateCB
-      this.draw.graphData.getGraphicsNodeObjs.bind(this.graphData), // getNodes
-      this.draw.graphData.getAnchors.bind(this.graphData), // getAnchors
-      this.draw.graphData.getForceLinks.bind(this.graphData), // getForceLinks
-      ((gNode) => { // getAnchorsAndForceLinks
-        this.graphData.recalcPathAnchorsAroundNodeObj(gNode);
-        return this.graphData.getAnchorsAndForceLinks(gNode.owner.id);
-      }).bind(this)
-    );
-    this.draw.rgstrResize(this.layout.resize.bind(this.layout)); // must be called @ recenter
-    this.draw.rgstrDragStarted(this.layout.beforeChange.bind(this.layout));
-    this.draw.rgstrDragEnded(this.layout.afterChangeDone.bind(this.layout));
-    // TODO: reintroduce this functionality somehow:
-    // reheat check - collision protection can expire during long drags
-    // (code was in draw.dragged)
-    //if (self.layout.collideSim.alpha() < 0.1) { self.layout.restartCollideSim(self.graphData); }
-
+    this.layout = this._getStandardLayout();
     // node connection logics
     this.truth = conn_rules;
 
@@ -2125,6 +2108,26 @@ class GraphInterface {
 
     // error node
     this._errorNode = null;
+  }
+  _getStandardLayout() {
+    let layout = new GraphLayout(
+      this.draw.update.bind(this.draw), // updateCB
+      this.draw.graphData.getGraphicsNodeObjs.bind(this.graphData), // getNodes
+      this.draw.graphData.getAnchors.bind(this.graphData), // getAnchors
+      this.draw.graphData.getForceLinks.bind(this.graphData), // getForceLinks
+      ((gNode) => { // getAnchorsAndForceLinks
+        this.graphData.recalcPathAnchorsAroundNodeObj(gNode);
+        return this.graphData.getAnchorsAndForceLinks(gNode.owner.id);
+      }).bind(this)
+    );
+    this.draw.rgstrResize(layout.resize.bind(layout)); // must be called @ recenter
+    this.draw.rgstrDragStarted(layout.beforeChange.bind(layout));
+    this.draw.rgstrDragEnded(layout.afterChangeDone.bind(layout));
+    // TODO: reintroduce this functionality somehow:
+    // reheat check - collision protection can expire during long drags
+    // (code was in draw.dragged)
+    //if (self.layout.collideSim.alpha() < 0.1) { self.layout.restartCollideSim(self.graphData); }
+    return layout;
   }
   // event handlers
   _resizeCB() {
