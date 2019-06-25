@@ -69,6 +69,16 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
     else
       return "link_single";
   }
+  static canConverge(basetypeUp, basetypeDown) {
+    let t1 = ConnectionRulesNSGen.fctypes.indexOf(basetypeUp) >= 0;
+    let t2 = ConnectionRulesNSGen.fctypes.indexOf(basetypeDown) >= 0;
+    return t1 && t2;
+  }
+  static canDiverge(basetypeUp, basetypeDown) {
+    let t1 = ConnectionRulesNSGen.fctypes.indexOf(basetypeUp) == -1;
+    let t2 = ConnectionRulesNSGen.fctypes.indexOf(basetypeDown) == -1;
+    return t1 && t2;
+  }
 }
 ConnectionRulesNSGen.fctypes = ['term', 'proc', 'dec'];
 

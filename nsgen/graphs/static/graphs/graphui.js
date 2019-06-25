@@ -1119,6 +1119,10 @@ class ConnectionRulesBase {
   static couldConnect(a1, a2) {}
   // get appropriate base type of link between anchors
   static getLinkBasetype(a1, a2) {}
+  // flow merge downstream rule
+  static canConverge(basetype) {}
+  // flow merge upstream rule
+  static canDiverge(basetype) {}
 }
 
 class NodeLinkConstrucionHelper {
@@ -2191,6 +2195,10 @@ class GraphInterface {
           // clear all links hitting a2
           this.link_rm(entry[0], entry[1], entry[2], entry[3])
         }
+        if (entry[0] == id && entry[1] == a.idx) {
+          // clear all links hitting a2
+          this.link_rm(entry[0], entry[1], entry[2], entry[3])
+        }
       }
     }.bind(this);
 
@@ -2200,14 +2208,18 @@ class GraphInterface {
     else if (this.truth.canConnect(d, s)) {
       createLink(d, s);
     }
-    // override existing link IF it could be connected
-    else if (this.truth.couldConnect(s, d)) {
-      clearAnchor(d);
-      createLink(s, d);
-    }
-    else if (this.truth.couldConnect(d, s)) {
-      clearAnchor(s);
-      createLink(d, s);
+    else {
+      let upstream = null;
+      let downstream = null;
+      // could the nodes be connected if the correct anchor(s) were cleared?
+      if (this.truth.couldConnect(s, d)) { upstream = s; downstream = d; }
+      else if (this.truth.couldConnect(d, s)) { upstream = d; downstream = s; }
+      // return it not
+      else return false;
+
+      if (this.truth.canConverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype)) clearAnchor(upstream);
+      if (this.truth.canDiverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype)) clearAnchor(downstream);
+      createLink(upstream, downstream);
     }
   }
   _getId(prefix) {
