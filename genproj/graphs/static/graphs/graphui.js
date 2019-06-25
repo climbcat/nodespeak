@@ -2117,7 +2117,7 @@ class GraphInterface {
 
   // event handlers
   _resizeCB() {
-    console.log("implement _resizeCB in descendant to reposition app-specific elements");
+    // implement _resizeCB in descendant to reposition app-specific elements
   }
   _selNodeCB(node) {
     let n = null;
