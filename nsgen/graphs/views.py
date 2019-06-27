@@ -1,10 +1,13 @@
-from django.shortcuts import render, HttpResponse
-from .models import GraphSession, TabId
 import json
 
+from django.shortcuts import render, HttpResponse
+from .models import GraphSession, TabId
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+
 # the one and only view
+@login_required
 def graph_session(req, gs_id):
-    print("gs_id: %s" % gs_id)
     ct = {
         "gs_id" : gs_id,
         "tab_id" : 0,
@@ -26,6 +29,7 @@ def ajax_commit(req):
     # save to db
     session = GraphSession.objects.get(id=gs_id)
     session.graphdef = graphdef_str
+    session.modified = timezone.now()
     session.save();
     # return success
     return HttpResponse('{ "msg" : "graphdef saved" }')

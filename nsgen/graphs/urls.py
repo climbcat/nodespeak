@@ -19,7 +19,7 @@ from django.conf.urls import url
 from graphs import views
 
 urlpatterns = [
-    url(r'graph_session/(?P<gs_id>[\w0-9]+)/?$', views.graph_session),
+    url(r'session/(?P<gs_id>[\w0-9]+)/?$', views.graph_session),
     url(r'ajax_load/(?P<gs_id>[\w0-9]+)/?$', views.ajax_load),
     url(r'ajax_commit/?$', views.ajax_commit),
 ]
