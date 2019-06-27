@@ -778,7 +778,9 @@ class LinkStraight extends Link {
     return branch
       .append('path')
       .datum(anchors)
-      .attr("class", "arrow")
+      .classed("comboLine", true)
+      .attr("stroke", "blue")
+      .attr("opacity", "0.5")
       .attr('d', d3.line()
         .x( function(p) { return p.x; } )
         .y( function(p) { return p.y; } )
@@ -1491,6 +1493,7 @@ class GraphTree {
     return [l.d1.owner.id, l.d1.idx, l.d2.owner.id, l.d2.idx];
   }
   _connectivity(n) {
+    // returns boolean array with connected/not connected state of all anchors
     let connectivity = [];
     let anchors = n.gNode.anchors;
     let a = null;
@@ -1501,8 +1504,9 @@ class GraphTree {
     return connectivity;
   }
   updateNodeState(n) {
+    // send connectivity array to node, ask about its state and update accordingly
     let conn = this._connectivity(n);
-    if (n.isActive()) {
+    if (n.isActive(conn)) {
       n.gNode.state = NodeState.ACTIVE;
     }
     else if (!n.isConnected(conn)){
