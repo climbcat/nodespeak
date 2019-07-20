@@ -195,7 +195,7 @@ class NodeFCTerm extends Node {
   get basetype() { return NodeFCTerm.basetype; }
   static get prefix() { return "t"; }
   constructor(x, y, id, name, label, typeconf) {
-    super(x, y, id, name, label, typeconf);
+    super(x, y, id, name, label=id, typeconf);
   }
   _getGNType() {
     return GraphicsNodeSquare;
@@ -232,7 +232,7 @@ class NodeFCDec extends Node {
   get basetype() { return NodeFCDec.basetype; }
   static get prefix() { return "d"; }
   constructor(x, y, id, name, label, typeconf) {
-    super(x, y, id, name, label, typeconf);
+    super(x, y, id, name, label=id, typeconf);
   }
   _getGNType() {
     return GraphicsNodeDiamond;
