@@ -2190,15 +2190,12 @@ class GraphInterface {
       let entry = null;
       for (let i=0;i<lks.length;i++) {
         entry = lks[i];
-        // NOTE: the second condition was most likely superfluous and this only worked
-        // because "from" link indices wer always zero (single output nodes)
-        //if (entry[2] == id && entry[1] == a1.idx && entry[3] == a2.idx) {
-        if (entry[2] == id && entry[3] == a.idx) {
-          // clear all links hitting a2
+        // clear all links hitting a (downstream anchor)
+        if (a.i_o && entry[2] == id && entry[3] == a.idx) {
           this.link_rm(entry[0], entry[1], entry[2], entry[3])
         }
-        if (entry[0] == id && entry[1] == a.idx) {
-          // clear all links hitting a2
+        // clear all links from a (upstream anchor)
+        if (!a.i_o && entry[0] == id && entry[1] == a.idx) {
           this.link_rm(entry[0], entry[1], entry[2], entry[3])
         }
       }
@@ -2219,8 +2216,16 @@ class GraphInterface {
       // return it not
       else return false;
 
-      if (!this.truth.canConverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype)) clearAnchor(downstream);
-      if (!this.truth.canDiverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype)) clearAnchor(upstream);
+      if (!this.truth.canConverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype))
+      {
+        console.log("clear downstream case");
+        clearAnchor(downstream);
+      }
+      if (!this.truth.canDiverge(upstream.owner.owner.basetype, downstream.owner.owner.basetype))
+      {
+        console.log("clear upstream case");
+        clearAnchor(upstream);
+      }
       createLink(upstream, downstream);
     }
   }
