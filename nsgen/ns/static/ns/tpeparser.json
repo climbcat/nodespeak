@@ -1,0 +1,42 @@
+{
+   "comment": "JSON tpeedt Parser",
+
+   "lex": {
+      "rules": [
+         ["\\s+",   "/* skip whitespace */"],
+         ["[\\w]+", "return 'ID'"],
+         ["\\,",      "return ','"],
+         ["\\.",      "return '.'"],
+         ["\\(",    "return '('"],
+         ["\\)",    "return ')'"],
+         ["$",      "return 'EOF'"]
+      ]
+   },
+
+   "bnf": {
+      "expressions": [
+        ["type EOF",   "return ['type', [$1]]"],
+        ["func EOF",   "return ['func', $1]"],
+        ["method EOF", "return ['method', $1]"]
+      ],
+      "func": [
+        ["ID ( args )", "$$ = [$1, $3]"],
+        ["ID ( )", "$$ = [$1]"]
+      ],
+      "args": [
+        ["a", "$$ = [$1]"],
+        ["a , args", "$$ = [$1, $3]"],
+        ["a a", "$$ = [$1, $2]"],
+        ["a a , args", "$$ = [$1, $2, $4]"]
+      ],
+      "a": [
+        ["ID", "$$ = $1"]
+      ],
+      "type": [
+        ["ID", "$$ = $1"]
+      ],
+      "method": [
+        ["type . func", "$$ = [$1, $3]"]
+      ]
+   }
+}
