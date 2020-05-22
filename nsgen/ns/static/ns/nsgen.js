@@ -130,7 +130,10 @@ class GraphInterfaceNSGen extends GraphInterface {
   }
   commitSession() {
     $("body").css("cursor", "wait");
-    let post_data = this.graphData.extractGraphDefinition();
+    let gd = this.graphData.extractGraphDefinition();
+    // TODO: extract the actual type tree
+    let tt = { "msg" : "type tree stub" };
+    let post_data = { "graphdef" : gd, "typetree" : tt };
     this.ajaxcall("/ajax_commit/", post_data, function(obj) {
       $("body").css("cursor", "default");
     }.bind(this));

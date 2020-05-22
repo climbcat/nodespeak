@@ -1,7 +1,7 @@
 import json
 
 from django.shortcuts import render, HttpResponse
-from .models import GraphSession, TabId
+from .models import GraphSession, UserTypes, TabId
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
@@ -25,17 +25,26 @@ def ajax_load(req, gs_id):
     if session:
         return HttpResponse(json.dumps({ "graphdef" : json.loads(session.graphdef) }))
     return HttpResponse('{"error" : "session %s not found"}' % gs_id)
+
 def ajax_commit(req):
-    graphdef_str = req.POST.get("data_str", None)
+    data_str = req.POST.get("data_str", None)
     gs_id = req.POST.get("gs_id", None)
-    tab_id = req.POST.get("tab_id", None)
-    if graphdef_str == None:
-        return HttpResponse('{ "msg" : "no graphdef received" }')
+    # TODO: include TabId check
+    #tab_id = req.POST.get("tab_id", None)
+    if data_str == None:
+        return HttpResponse('{ "msg" : "no data received" }')
+    obj = json.loads(data_str)
+
     # save to db
     session = GraphSession.objects.get(id=gs_id)
-    session.graphdef = graphdef_str
+    session.graphdef = obj["graphdef"]
     session.modified = timezone.now()
-    session.save();
+    session.save()
+    tree = UserTypes.objects.get_or_create(id=0)[0]
+    tree.typetree = obj["typetree"]
+    tree.modified = timezone.now()
+    tree.save()
+    
     # return success
     return HttpResponse('{ "msg" : "graphdef saved" }')
 
