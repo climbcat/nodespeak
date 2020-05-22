@@ -138,6 +138,12 @@ class GraphInterfaceNSGen extends GraphInterface {
   _resizeCB() {
     let btnsmenu = d3.select("#buttons");
     btnsmenu.style("left", window.innerWidth/2-btnsmenu.node().clientWidth/2 + "px");
+
+    let tpeedt = d3.select("#tpeedt");
+    let w = tpeedt.node().getBoundingClientRect().width;
+    tpeedt
+      //.style("left", window.innerWidth - 400 + "px");
+      .style("left", window.innerWidth - w + "px");
   }
 }
 
