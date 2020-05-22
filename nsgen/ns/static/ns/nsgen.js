@@ -142,7 +142,6 @@ class GraphInterfaceNSGen extends GraphInterface {
     let tpeedt = d3.select("#tpeedt");
     let w = tpeedt.node().getBoundingClientRect().width;
     tpeedt
-      //.style("left", window.innerWidth - 400 + "px");
       .style("left", window.innerWidth - w + "px");
   }
 }
