@@ -37,11 +37,11 @@ def ajax_commit(req):
 
     # save to db
     session = GraphSession.objects.get(id=gs_id)
-    session.graphdef = obj["graphdef"]
+    session.graphdef = json.dumps(obj["graphdef"])
     session.modified = timezone.now()
     session.save()
     tree = UserTypes.objects.get_or_create(id=0)[0]
-    tree.typetree = obj["typetree"]
+    tree.typetree = json.dumps(obj["typetree"])
     tree.modified = timezone.now()
     tree.save()
     
