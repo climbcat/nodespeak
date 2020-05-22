@@ -1549,8 +1549,8 @@ class GraphTree {
         links[n.id].push([cmd[0], cmd[1], cmd[2], cmd[3]]);
       }
     }
-    let def_text = JSON.stringify(def);
     // DB: handy
+    //let def_text = JSON.stringify(def);
     //console.log(JSON.stringify(def, null, 2));
     //console.log(def_text);
     return def;
