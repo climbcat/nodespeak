@@ -22,8 +22,9 @@ def tpeedt(req):
 # ajax requests
 def ajax_load(req, gs_id):
     session = GraphSession.objects.get(id=gs_id)
+    usertpes = UserTypes.objects.get(id=0)
     if session:
-        return HttpResponse(json.dumps({ "graphdef" : json.loads(session.graphdef) }))
+        return HttpResponse(json.dumps({ "graphdef" : json.loads(session.graphdef), "typetree" : json.loads(usertpes.typetree) }))
     return HttpResponse('{"error" : "session %s not found"}' % gs_id)
 
 def ajax_commit(req):
