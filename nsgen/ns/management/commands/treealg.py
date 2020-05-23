@@ -7,11 +7,11 @@ class TreeJsonAddr:
     A local tree with "string addressing" where dots syntactically are delimiters between paths in
     the branching hierarchy.
 
-    The tree is a "put-retrieve" tree with a "leaf" and a "branch" for every node, except root,
-    which is considered a branch. Putting items into the root layer is indicated by the address "''",
-    Within branches, nodes (an instance of the mentioned node, a {leaf, branch} dict), are keyed
-    with get_key(item). The user must provide this, thus attaining full content flexibility.
-    These keys in turn make up the address words.
+    The tree is a "put-retrieve" tree with a "leaf" and a "branch" for every node, except root.
+    Putting items into the root layer is indicated by the address "''", within branches, nodes
+    (an instance of the mentioned node, a {leaf, branch} dict), are keyed with get_key(item).
+    The user must provide this, thus attaining full content flexibility. These keys in turn
+    make up the address words.
 
     The tree will create any non-existing paths that are put, but not retrieved, in which case
     None is returned.

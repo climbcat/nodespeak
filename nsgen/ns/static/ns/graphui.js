@@ -59,6 +59,9 @@ function cloneConf(conf) {
 }
 
 
+// TODO: with custom type declaration, we need a nodeTypeWriteTree
+
+
 //
 // Graphics Nodes, Anchor and Link types
 //
