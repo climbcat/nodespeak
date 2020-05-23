@@ -22,6 +22,4 @@ urlpatterns = [
     url(r'session/(?P<gs_id>[\w0-9]+)/?$', views.graph_session),
     url(r'ajax_load/(?P<gs_id>[\w0-9]+)/?$', views.ajax_load),
     url(r'ajax_commit/?$', views.ajax_commit),
-
-    url(r'tpeedt/?$', views.tpeedt),
 ]
