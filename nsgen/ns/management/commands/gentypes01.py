@@ -168,20 +168,22 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         typetree = TreeJsonAddr()
-        addresses = [] # TODO: create a tree iterator instead of this clunkiness
+
+        # add the (empty) graphdef
+        graphdef = {}
+        typetree.root['graphdef'] = graphdef
 
         # node types - using tree.put
+        addresses = [] # TODO: create a tree iterator instead of this clunkiness
         gen_static_branch(typetree, addresses)
         gen_user_branch(typetree, addresses)
+        typetree.root['addresses'] = addresses
 
         # non-node type data using standard json (node-containing branch becomes grapical menu)
         menus = {}
         menus['FLOWCHART'] = 'static.flowchart'
         menus['DATAGRAPH'] = 'static.datagraph'
         typetree.root['menus'] = menus
-
-        # put in node addresses as a list
-        typetree.root['addresses'] = addresses
 
         print("saving typeschema to db...")
         create_typeschema_todb(typetree.root)

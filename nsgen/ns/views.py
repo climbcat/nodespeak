@@ -13,11 +13,11 @@ def graphui(req, gs_id):
     return render(req, "ns/graphs.html", context=ct)
 
 @login_required
-def new_gs(req):
-    tt_data = TypeSchema.objects.get(id=7)
+def new_gs(req, ts_id=8):
+    ts_data = TypeSchema.objects.get(id=ts_id)
     gs = GraphSession()
-    gs.data_str = tt_data.data_str
-    gs.org_version = tt_data.version
+    gs.data_str = ts_data.data_str
+    gs.org_version = ts_data.version
     gs.save()
     return redirect(graphui, gs_id=gs.id)
 
