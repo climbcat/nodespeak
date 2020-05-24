@@ -1,16 +1,25 @@
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render, HttpResponse, redirect
 from .models import GraphSession, TypeSchema, TabId
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
 # the one and only view
 @login_required
-def graph_session(req, gs_id):
+def graphui(req, gs_id):
     ct = {
         "gs_id" : gs_id,
         "tab_id" : 0,
         }
     return render(req, "ns/graphs.html", context=ct)
+
+@login_required
+def new_gs(req):
+    tt_data = TypeSchema.objects.get(id=7)
+    gs = GraphSession()
+    gs.data_str = tt_data.data_str
+    gs.org_version = tt_data.version
+    gs.save()
+    return redirect(graphui, gs_id=gs.id)
 
 # ajax requests
 def ajax_load(req, gs_id):
@@ -40,3 +49,4 @@ def ajax_commit(req):
 
 def tab_validate(req):
     pass
+

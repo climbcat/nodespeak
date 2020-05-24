@@ -19,7 +19,8 @@ from django.conf.urls import url
 from ns import views
 
 urlpatterns = [
-    url(r'session/(?P<gs_id>[\w0-9]+)/?$', views.graph_session),
+    url(r'session/(?P<gs_id>[\w0-9]+)/?$', views.graphui),
+    url(r'new/?$', views.new_gs),
     url(r'ajax_load/(?P<gs_id>[\w0-9]+)/?$', views.ajax_load),
     url(r'ajax_commit/?$', views.ajax_commit),
 ]
