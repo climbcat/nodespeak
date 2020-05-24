@@ -1133,8 +1133,8 @@ class ConnectionRulesBase {
 }
 
 class NodeLinkConstrucionHelper {
-  // Node and Link construction helper functions.
-  // Registers object types and pairs the types with their aliases.
+  // Node and Link construction. Pairs a class with its alias.
+  // Register object types here!
   static getId(basetype, existingids) {
     let prefix = null;
     let id = null;
@@ -2077,6 +2077,7 @@ class GraphInterface {
   addNodeDataUpdateListener(l) { this._nodeDataUpdateListn.push(l); }
   addNodeCreateListener(l) { this._nodeCreateListn.push(l); }
   addNodeDeletedListener(l) { this._nodeDeletedListn.push(l); }
+  addSessionLoadListener(l) { this._onLoadListn.push(l); }
   // listener interface, delegate
   addUiDrawAllListener(l) { this.draw.rgstrDraw(l); }
   addNodeSelectionListener(l) { this.draw.rgstrClickNode(gNode => { l(gNode==null ? null : gNode.owner); }); }
@@ -2087,6 +2088,7 @@ class GraphInterface {
     this._nodeCreateListn = [];
     this._nodeDeletedListn = [];
     this._nodeDataUpdateListn = [];
+    this._onLoadListn = [];
 
     // setup
     this.gs_id = gs_id;
@@ -2577,6 +2579,8 @@ class NodeTypeMenu {
     this._clickConfListn = [];
     this.root = d3.select("#"+rootelementid);
 
+    // TODO: clear the root first
+
     // menu title
     this.root
       .append("div")
@@ -2650,6 +2654,7 @@ class NodeTypeMenu {
     });
     // draw labels
     branch.append('text')
+      //.text( function(d) { return d.type } )
       .text( function(d) { return d.label } )
       .attr("font-family", "sans-serif")
       .attr("font-size", "10px")

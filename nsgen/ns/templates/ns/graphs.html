@@ -70,14 +70,17 @@ $(document).ready(() => {
   });
 
   // create node menu
-  let typeobj = { "addresses" : nodeAddresses, 'tree' : nodeTypes };
-  let menuCB = intface.setCreateNodeConf.bind(intface);
-  let menu4 = new NodeTypeMenu('graph_menu_4', 'flowchart', nodetypes_fc);
-  //let menu4 = new NodeTypeMenu('graph_menu_4', 'flowchart', typeobj);
-  menu4.rgstrClickConf(menuCB);
-  //let menu3 = new NodeTypeMenu('graph_menu_3', 'datagraph', typeobj);
-  let menu3 = new NodeTypeMenu('graph_menu_3', 'datagraph', nodetypes_dg);
-  menu3.rgstrClickConf(menuCB);
+  intface.addSessionLoadListener( (tree) => {
+    let fc_addr = tree["menus"]["FLOWCHART"];
+    let fc_confs = fc_addr.map( (itm) => nodeTypeReadTree(itm, tree) );
+    //let fc_confs = fc_addr.map( (itm) => { itm.label = itm.type );
+    let menu4 = new NodeTypeMenu('graph_menu_4', 'flowchart', fc_confs);
+    menu4.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
+    let dg_addr = tree["menus"]["DATAGRAPH"];
+    let dg_confs = dg_addr.map( (itm) => nodeTypeReadTree(itm, tree) );
+    let menu3 = new NodeTypeMenu('graph_menu_3', 'datagraph', dg_confs);
+    menu3.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
+  });
 
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)
   $("body").addClass("noselect");

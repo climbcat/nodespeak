@@ -14,6 +14,9 @@ def get_key(conf):
 
 
 def gen_static_branch(tree, address):
+    flowaddr = []
+    dgaddr = []
+    
     # fill out static flowchart branch
     term_I = NodeConfig()
     term_I.docstring = "Terminal enter program/in."
@@ -26,6 +29,7 @@ def gen_static_branch(tree, address):
     term_I.name = 'term_I'
     tree.put('static.flowchart', term_I.get_repr(), get_key)
     address.insert(1, term_I.address)
+    flowaddr.insert(1, term_I.address)
 
     term_O = NodeConfig()
     term_O.docstring = "Terminal exit program/out."
@@ -38,6 +42,7 @@ def gen_static_branch(tree, address):
     term_O.name = 'term_O'
     tree.put('static.flowchart', term_O.get_repr(), get_key)
     address.insert(2, term_O.address)
+    flowaddr.insert(2, term_O.address)
 
     proc = NodeConfig()
     proc.docstring = "Process. One process, one data graph subtree call."
@@ -50,6 +55,7 @@ def gen_static_branch(tree, address):
     proc.name = 'proc'
     tree.put('static.flowchart', proc.get_repr(), get_key)
     address.insert(3, proc.address)
+    flowaddr.insert(3, proc.address)
 
     dec = NodeConfig()
     dec.docstring = "Binary decision. Requires bool/int returning function or value."
@@ -63,6 +69,7 @@ def gen_static_branch(tree, address):
     dec.name = 'dec'
     tree.put('static.flowchart', dec.get_repr(), get_key)
     address.insert(4, dec.address)
+    flowaddr.insert(4, dec.address)
 
     # fill out static datagraph branch
     obj = NodeConfig()
@@ -76,6 +83,7 @@ def gen_static_branch(tree, address):
     obj.name = 'object'
     tree.put('static.datagraph', obj.get_repr(), get_key)
     address.append(obj.address)
+    dgaddr.append(obj.address)
 
     literal = NodeConfig()
     literal.docstring = "input value handle"
@@ -88,6 +96,9 @@ def gen_static_branch(tree, address):
     literal.name = 'literal'
     tree.put('static.datagraph', literal.get_repr(), get_key)
     address.append(literal.address)
+    dgaddr.append(literal.address)
+
+    return flowaddr, dgaddr 
 
 
 def gen_user_branch(tree, address):
@@ -175,14 +186,14 @@ class Command(BaseCommand):
 
         # node types - using tree.put
         addresses = [] # TODO: create a tree iterator instead of this clunkiness
-        gen_static_branch(typetree, addresses)
+        fcaddr, dgaddr = gen_static_branch(typetree, addresses)
         gen_user_branch(typetree, addresses)
         typetree.root['addresses'] = addresses
 
         # non-node type data using standard json (node-containing branch becomes grapical menu)
         menus = {}
-        menus['FLOWCHART'] = 'static.flowchart'
-        menus['DATAGRAPH'] = 'static.datagraph'
+        menus['FLOWCHART'] = fcaddr
+        menus['DATAGRAPH'] = dgaddr
         typetree.root['menus'] = menus
 
         print("saving typeschema to db...")
