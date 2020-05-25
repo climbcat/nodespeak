@@ -15,31 +15,32 @@ class ViewTypeDef {
 class TypeTreeUi {
   // addresses: the only ones object this instance of ttui should worry about!
   // type_tree: the actual, entire type tree (global addressing used for now)
-  constructor(root, addresses, branch_name, type_tree, notbx=false, clickItemCB) {
+  constructor(root, addresses, branch_name, type_tree, clickItemCB, notbx=false) {
     this.type_tree = type_tree;
     this.branch_name = branch_name; // this will be prefixed new type words
     this.vtd_lst = [];
     this._clickItemCB = clickItemCB;
 
     // define base groups for each kind of object
-    this.types = root.append("g");
-    this.status = root.append("g");
+    this.typegrp = root.append("g");
+    this.statusgrp = root.append("g");
 
     // create input textbox
-    if (!notbx)
-      this.types
+    if (!notbx) {
+      this.typegrp
         .append("div").style("margin-top", "10px")
         .html("| type ")
         .append("input")
         .attr("id", "tbxEnterType")
         .on("change", function(d) {
-          let val = d3.select("#tbxEnterType").html();
-          console.log("DEBUG:", val);
-        });
+          let val = d3.select("#tbxEnterType").property("value");
+          this._tryCreateType(val);
+        }.bind(this));
       // TODO: put docstring as mouse-over or in a label
+    }
 
-    // dynamic elements get a subgroup
-    this.types = this.types.append("g");
+    // dynamic elements get a subgroup (so we can use delete *)
+    this.typegrp = this.typegrp.append("g");
 
     // get initial objects and sync
     this.vtd_lst = addresses.map( (itm) => {
@@ -47,15 +48,13 @@ class TypeTreeUi {
       // TODO: throw error if conf was not found
       return new ViewTypeDef(conf.name, itm, conf, this._clickItemCB, this._tryDeleteCB);
     }, this);
-
-    // DB
-    this._show_msg("DB: test status msg");
+    this._sync(this.typegrp, this.vtd_lst);
   }
   _registerClickConf(cb) {
     this._clickItemCB = cb;
   }
-  _tryCreateCB(word) {
-    console.log("try create (not impl.)", word);
+  _tryCreateType(word) {
+    console.log("try create:", word);
     // TODO: parse word -> status and return if error
     // TODO: prefix branch name to create new address
     // TODO: check global tt uniquness -> status and return if error
@@ -72,8 +71,8 @@ class TypeTreeUi {
   }
   _show_msg(msg) {
     if (msg == null) return false;
-    this.status.selectAll("*").remove();
-    this.status.append("div").html(msg);
+    this.statusgrp.selectAll("*").remove();
+    this.statusgrp.append("div").html(msg);
   }
   _sync(group, vtd_lst) {
     group

@@ -161,7 +161,8 @@ class GraphInterfaceNSGen extends GraphInterface {
     let btnsmenu = d3.select("#buttons");
     btnsmenu.style("left", window.innerWidth/2-btnsmenu.node().clientWidth/2 + "px");
 
-    let tpeedt = d3.select("#tpeedt");
+    // TODO: move this out into graphs.html and put in a resize cb? (localization)
+    let tpeedt = d3.select("#tpeedt_1");
     let w = tpeedt.node().getBoundingClientRect().width;
     tpeedt
       .style("left", window.innerWidth - w + "px");
