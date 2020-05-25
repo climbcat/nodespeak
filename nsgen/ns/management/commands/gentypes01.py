@@ -171,7 +171,9 @@ def gen_user_branch(tree, address):
 def create_typeschema_todb(dct):
     ts = TypeSchema()
     ts.data_str = json.dumps(dct)
+    ts.version = "gentypes01"
     ts.save()
+    print("saved typeschema to db with id=%s..." % str(ts.id))
 
 
 class Command(BaseCommand):
@@ -185,7 +187,7 @@ class Command(BaseCommand):
         typetree.root['graphdef'] = graphdef
 
         # node types - using tree.put
-        addresses = [] # TODO: create a tree iterator instead of this clunkiness
+        addresses = [] # tree location/address accumulation list (TODO: create a tree iterator instead of this clunkiness)
         fcaddr, dgaddr = gen_static_branch(typetree, addresses)
         gen_user_branch(typetree, addresses)
         typetree.root['addresses'] = addresses
@@ -196,6 +198,5 @@ class Command(BaseCommand):
         menus['DATAGRAPH'] = dgaddr
         typetree.root['menus'] = menus
 
-        print("saving typeschema to db...")
         create_typeschema_todb(typetree.root)
 
