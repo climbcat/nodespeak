@@ -20,6 +20,7 @@
 <div id="graph_menu_4" style="position:absolute;left:  0px;overflow-y:hidden;overflow-x:hidden;margin:auto;margin-bottom:1px;"></div>
 
 <div id="tpeedt" style="position:absolute;overflow-y:hidden;overflow-x:hidden;margin:auto;"></div>
+<div id="tpeedt_2" style="position:absolute;overflow-y:hidden;overflow-x:hidden;margin:auto;"></div>
 
 <!-- graph session key, must be sent along with every ajax call -->
 <input id="gs_id" type="hidden" value="{{ gs_id }}">
@@ -43,13 +44,6 @@ var statusConsole = function(s) {
 }
 
 $(document).ready(() => {
-  // type editor
-  let tpeedt = d3.select("#tpeedt")
-    .style("background-color", "white")
-    .style("padding", "3px")
-    .style("border", "1px solid gray");
-  let ttui = new TypeTreeUi(tpeedt, new TpeModel());
-
   // set up events
   $("#btnUndo").click( () => { intface.undo(); });
   $("#btnRedo").click( () => { intface.redo(); });
@@ -69,7 +63,7 @@ $(document).ready(() => {
     intface.pushSelectedNodeLabel($("#tbxNodeLabel").val());
   });
 
-  // set type tree and create node menus
+  // set type tree and create node menus (gentypes01 menu structure)
   intface.addSessionLoadListener( (tree) => {
     // setup the menus manually
     let fc_addr = tree["menus"]["FLOWCHART"];
@@ -81,7 +75,13 @@ $(document).ready(() => {
     let menu3 = new NodeTypeMenu('graph_menu_3', 'datagraph', dg_confs);
     menu3.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
 
-    // TODO: setup type menu
+    // type editor
+    let tpeedt = d3.select("#tpeedt")
+      .style("background-color", "white")
+      .style("padding", "3px")
+      .style("border", "1px solid gray");
+    let ttui_1 = new TypeTreeUi(tpeedt, tree["menus"]["BUILTIN"], "user.builtin", tree, notbx=true, intface.setCreateNodeConf);
+    //let ttui2 = new TypeTreeUi(tpeedt_2, tree["menus"]["CUSTOM"], "user.custom", tree);
   });
 
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)

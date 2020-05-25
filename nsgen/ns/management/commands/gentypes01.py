@@ -98,10 +98,13 @@ def gen_static_branch(tree, address):
     address.append(literal.address)
     dgaddr.append(literal.address)
 
-    return flowaddr, dgaddr 
+    return flowaddr, dgaddr
 
 
 def gen_user_branch(tree, address):
+    biaddr = []
+    customaddr = []
+
     # user built-in branch
     obj = NodeConfig()
     obj.docstring = "test built-in int"
@@ -116,6 +119,7 @@ def gen_user_branch(tree, address):
     obj.name = 'int'
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
+    biaddr.append(obj.address)
 
     obj = NodeConfig()
     obj.docstring = "built-in bool"
@@ -130,6 +134,7 @@ def gen_user_branch(tree, address):
     obj.name = 'bool'
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
+    biaddr.append(obj.address)
 
     obj = NodeConfig()
     obj.docstring = "built-in function"
@@ -142,6 +147,7 @@ def gen_user_branch(tree, address):
     obj.name = 'someCalc'
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
+    biaddr.append(obj.address)
 
     obj = NodeConfig()
     obj.docstring = "built-in class"
@@ -154,6 +160,7 @@ def gen_user_branch(tree, address):
     obj.name = 'MyClss'
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
+    biaddr.append(obj.address)
 
     obj = NodeConfig()
     obj.docstring = "built-in int"
@@ -166,7 +173,9 @@ def gen_user_branch(tree, address):
     obj.name = 'MyClss.add'
     tree.put('user.builtin.MyClss', obj.get_repr(), get_key)
     address.append(obj.address)
+    biaddr.append(obj.address)
 
+    return biaddr, customaddr
 
 def create_typeschema_todb(dct):
     ts = TypeSchema()
@@ -189,13 +198,15 @@ class Command(BaseCommand):
         # node types - using tree.put
         addresses = [] # tree location/address accumulation list (TODO: create a tree iterator instead of this clunkiness)
         fcaddr, dgaddr = gen_static_branch(typetree, addresses)
-        gen_user_branch(typetree, addresses)
+        biaddr, customaddr = gen_user_branch(typetree, addresses)
         typetree.root['addresses'] = addresses
 
         # non-node type data using standard json (node-containing branch becomes grapical menu)
         menus = {}
         menus['FLOWCHART'] = fcaddr
         menus['DATAGRAPH'] = dgaddr
+        menus['BUILTIN'] = biaddr
+        menus['CUSTOM'] = customaddr
         typetree.root['menus'] = menus
 
         create_typeschema_todb(typetree.root)
