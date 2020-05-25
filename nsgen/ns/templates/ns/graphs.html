@@ -69,17 +69,19 @@ $(document).ready(() => {
     intface.pushSelectedNodeLabel($("#tbxNodeLabel").val());
   });
 
-  // create node menu
+  // set type tree and create node menus
   intface.addSessionLoadListener( (tree) => {
+    // setup the menus manually
     let fc_addr = tree["menus"]["FLOWCHART"];
     let fc_confs = fc_addr.map( (itm) => nodeTypeReadTree(itm, tree) );
-    //let fc_confs = fc_addr.map( (itm) => { itm.label = itm.type );
     let menu4 = new NodeTypeMenu('graph_menu_4', 'flowchart', fc_confs);
     menu4.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
     let dg_addr = tree["menus"]["DATAGRAPH"];
     let dg_confs = dg_addr.map( (itm) => nodeTypeReadTree(itm, tree) );
     let menu3 = new NodeTypeMenu('graph_menu_3', 'datagraph', dg_confs);
     menu3.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
+
+    // TODO: setup type menu
   });
 
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)

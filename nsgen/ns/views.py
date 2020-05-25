@@ -40,7 +40,7 @@ def ajax_commit(req):
 
     # save to db
     session = GraphSession.objects.get(id=gs_id)
-    session.graphdef = data_str
+    session.data_str = data_str
     session.modified = timezone.now()
     session.save()
 
