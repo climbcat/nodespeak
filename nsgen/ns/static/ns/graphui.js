@@ -2097,6 +2097,7 @@ class GraphInterface {
 
     // delegates
     this.graphData = new GraphTree(conn_rules);
+    this.typetree = null;
     this.draw = new GraphDraw(this.graphData);
     this.draw.rgstrMouseAddLink(this._tryCreateLink.bind(this));
     this.draw.rgstrCtrlClickNode(this._delNodeAndLinks.bind(this));
@@ -2124,6 +2125,13 @@ class GraphInterface {
 
     // error node
     this._errorNode = null;
+  }
+  // users must set the type tree depending on their needs
+  setTypeTree(tree) {
+    this.typetree = tree;
+  }
+  _readType(address) {
+    return nodeTypeReadTree(address, this.typetree);
   }
   _getStandardLayout() {
     let layout = new GraphLayout(
@@ -2262,6 +2270,7 @@ class GraphInterface {
     for (var i=0;i<lst.length;i++) {
       this._delNodeAndLinks(lst[i]);
     }
+    // TODO: also reset types?
     this.updateUi();
   }
   updateUi() {
@@ -2420,7 +2429,7 @@ class GraphInterface {
       let label = args[4]
       let address = args[5];
 
-      let conf = nodeTypeRead(address);
+      let conf = this._readType(address);
       conf.name = name;
       conf.label = label;
 
@@ -2590,7 +2599,6 @@ class NodeTypeMenu {
     for (let value of Object.values(nodeconfdct)) {
       this.createMenuItem(cloneConf(value));
     }
-
 
     // draw a line under the last menu item (would otw be clipped by the container)
     this.root
