@@ -38,11 +38,14 @@ function nodeTypeReadTree(address, tree) {
     throw "no item found at address: " + address;
   }
 }
-function nodeTypePutTree(conf, key, address, tree) {
+function nodeTypeDelTree(address, tree) {
+
+}
+function nodeTypePutTree(conf, key, path, tree) {
   // address is always relative to tree
   let branch = tree;
-  if ((address != "") && (address != "."))
-    branch = _descendRecurse(tree, address)["branch"];
+  if ((path != "") && (path != "."))
+    branch = _descendRecurse(tree, path)["branch"];
   _getOrCreate(branch, key)["leaf"] = conf;
 }
 function _descendRecurse(branch, address) {
