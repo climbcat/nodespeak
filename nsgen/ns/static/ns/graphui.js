@@ -56,7 +56,6 @@ function nodeTypePutTree(conf, key, path, tree) {
   // address is always relative to tree
   let branch = tree;
   if ((path != "") && (path != "."))
-    console.log(path);
     branch = _descendRecurse(tree, path)["branch"];
   _getOrCreate(branch, key)["leaf"] = conf;
 }
@@ -2156,9 +2155,6 @@ class GraphInterface {
   setTypeTree(tree) {
     this.typetree = tree;
   }
-  _readType(address) {
-    return nodeTypeReadTree(address, this.typetree);
-  }
   _getStandardLayout() {
     let layout = new GraphLayout(
       this.draw.update.bind(this.draw), // updateCB
@@ -2455,7 +2451,7 @@ class GraphInterface {
       let label = args[4]
       let address = args[5];
 
-      let conf = this._readType(address);
+      let conf = cloneConf(nodeTypeReadTree(address, this.typetree));
       conf.name = name;
       conf.label = label;
 

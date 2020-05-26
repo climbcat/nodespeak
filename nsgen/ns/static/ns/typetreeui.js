@@ -12,25 +12,33 @@ class ViewTypeDef {
 }
 
 class TypeTreeUi {
+  // listeners
+  rgstrClickConf(l) { this._clickConfListn.push(l); }
+  fireClickConf(...args) { fireEvents(this._clickConfListn, "clickConf", ...args); }
+
   // addresses: the only ones object this instance of ttui should worry about!
   // type_tree: the actual, entire type tree (global addressing used for now)
-  constructor(root, addresses, branch_name, type_tree, clickItemCB, notbx=false) {
+  constructor(title, root, addresses, branch_name, type_tree, usetbx=true) {
+    this._clickConfListn = [];
+
+    // data members
+    this.title = title;
     this.type_tree = type_tree;
     this.addresses = addresses;
     this.branch_name = branch_name; // this will be prefixed new type words
     this.vtd_lst = [];
-    this._clickItemCB = clickItemCB;
 
     // define base groups for each kind of object
     this.typegrp = root.append("g");
     this.statusgrp = root.append("g");
     // input textbox
-    if (!notbx) {
+    let tbxid = "tbxenter" + this.title;
+    if (usetbx == true) {
       this.typegrp
         .append("input")
-        .attr("id", "tbxEnterType")
+        .attr("id", tbxid)
         .on("change", function(d) {
-          let el = d3.select("#tbxEnterType");
+          let el = d3.select("#" + tbxid);
           let val = el.property("value");
           this._tryCreateType(val);
           // clear
@@ -42,9 +50,6 @@ class TypeTreeUi {
     this.typegrp = this.typegrp.append("g");
 
     this._pullAndShow();
-  }
-  _registerClickConf(cb) {
-    this._clickItemCB = cb;
   }
   _tryCreateType(word) {
     // parse word -> status and return if error
@@ -105,12 +110,11 @@ class TypeTreeUi {
     this.statusgrp.append("div").html(msg);
   }
   _pullAndShow() {
-    //console.log("our addresses: ", this.addresses);
     // get initial objects and sync
     this.vtd_lst = this.addresses.map( (itm) => {
       let conf = nodeTypeReadTree(itm, this.type_tree);
       // TODO: throw if not found
-      return new ViewTypeDef(conf.name, itm, conf, this._clickItemCB.bind(this), this._tryDeleteCB.bind(this));
+      return new ViewTypeDef(conf.name, itm, conf, this.fireClickConf.bind(this), this._tryDeleteCB.bind(this));
     }, this);
     this._sync(this.typegrp, this.vtd_lst);
   }

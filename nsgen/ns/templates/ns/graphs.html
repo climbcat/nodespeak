@@ -19,9 +19,10 @@
 <div id="graph_menu_3" style="position:absolute;left:101px;overflow-y:hidden;overflow-x:hidden;margin:auto;margin-bottom:1px;"></div>
 <div id="graph_menu_4" style="position:absolute;left:  0px;overflow-y:hidden;overflow-x:hidden;margin:auto;margin-bottom:1px;"></div>
 
-<div id="tpeedt_1" style="position:absolute;overflow-y:hidden;overflow-x:hidden;margin:auto;"></div>
-<div id="tpeedt_2" style="position:absolute;overflow-y:hidden;overflow-x:hidden;margin:auto;"></div>
-
+<div id="tpeedt_wrapper" style="position:absolute;overflow-y:hidden;overflow-x:hidden;margin:auto;">
+<div id="tpeedt_1"></div>
+<div id="tpeedt_2"></div>
+</div>
 <!-- graph session key, must be sent along with every ajax call -->
 <input id="gs_id" type="hidden" value="{{ gs_id }}">
 <!-- graph session key, must be sent along with every ajax call -->
@@ -77,13 +78,20 @@ $(document).ready(() => {
     menu3.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
 
     // type editor
-    let tpeedt_1 = d3.select("#tpeedt_1")
+    d3.select("#tpeedt_wrapper")
       .style("background-color", "white")
       .style("padding", "3px")
       .style("border", "1px solid gray");
-    //console.log(tpeedt_1);
-    let ttui_1 = new TypeTreeUi(tpeedt_1, tree["menus"]["BUILTIN"], "user.builtin", tree, intface.setCreateNodeConf);//, notbx=true);
-    //let ttui2 = new TypeTreeUi(tpeedt_2, tree["menus"]["CUSTOM"], "user.custom", tree);
+    let tpeedt_1 = d3.select("#tpeedt_1")
+      .style("background-color", "white")
+      .style("padding", "3px");
+    let tpeedt_2 = d3.select("#tpeedt_2")
+      .style("background-color", "white")
+      .style("padding", "3px");
+    let ttui_1 = new TypeTreeUi("ttui_1", tpeedt_1, tree["menus"]["BUILTIN"], "user.builtin", tree, usetbx=false);
+    ttui_1.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
+    let ttui_2 = new TypeTreeUi("ttui_2", tpeedt_2, tree["menus"]["CUSTOM"], "user.custom", tree);
+    ttui_2.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
   });
 
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)
