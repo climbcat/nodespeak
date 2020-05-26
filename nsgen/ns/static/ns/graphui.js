@@ -22,22 +22,6 @@ function isString(value) {
   return b1;
 }
 
-function nodeTypeRead(address) {
-  // reads and returns an item from a TreeJsonAddr, given a dot-address
-  let branch = nodeTypes;
-  let splt = address.split('.');
-  let key = splt[splt.length-1];
-  try {
-    for (let i=0;i<splt.length-1;i++) {
-      branch = branch[splt[i]]['branch'];
-    }
-    let item = branch[key]["leaf"];
-    return item;
-  }
-  catch(err) {
-    throw "no item found at address: " + address;
-  }
-}
 function nodeTypeReadTree(address, tree) {
   // reads and returns an item from a TreeJsonAddr, given a dot-address
   let branch = tree;
@@ -51,8 +35,33 @@ function nodeTypeReadTree(address, tree) {
     return item;
   }
   catch(err) {
-    throw "no item found at address: " + key;
+    throw "no item found at address: " + address;
   }
+}
+function nodeTypePutTree(conf, key, address, tree) {
+  // address is always relative to tree
+  let branch = tree;
+  if ((address != "") && (address != "."))
+    branch = _descendRecurse(tree, address)["branch"];
+  _getOrCreate(branch, key)["leaf"] = conf;
+}
+function _descendRecurse(branch, address) {
+  let m = /([^\.]+)\.(.*)/.exec(address);
+  if (address == "") throw "_descendRecurse fatal error";
+  if (m) {
+    let key = m[1];
+    address = m[2];
+    branch = _getOrCreate(branch, key)["branch"];
+    return _descendRecurse(branch, address);
+  } else {
+    let key = address;
+    return _getOrCreate(branch, key);
+  }
+}
+function _getOrCreate(dct, key) {
+  if (!(key in dct))
+    dct[key] = { "leaf" : {}, "branch" : {} };
+  return dct[key];
 }
 function cloneConf(conf) {
   return Object.assign({}, conf);

@@ -21,7 +21,7 @@ class CreateNode {
   }
 }
 
-// taking "args" nested list (with varname or typename+varname) and a createnode instance
+// a parsed "args" nested list is accumulated into a createnode obj
 function recurseArgs(res, cn) {
   if (res.length == 1) {
     cn.addArg(name=res[0]);
@@ -43,18 +43,20 @@ function recurseArgs(res, cn) {
 }
 
 // TODO: conform to node engine basetype
-function createNode(result) {
+//
+function createNode(parseresult) {
+  let res = parseresult;
   let cn = null;
-  if (result[0] == "type") {
-    cn = new CreateNode(basetype="type", name=result[1][0])
+  if (res[0] == "type") {
+    cn = new CreateNode(basetype="type", name=res[1][0])
   }
-  else if (result[0] == "func") {
-    cn = new CreateNode(basetype="func", name=result[1][0]); // or whatever it is ...
-    if (result[1].length > 1) recurseArgs(result[1][1], cn);
+  else if (res[0] == "func") {
+    cn = new CreateNode(basetype="func", name=res[1][0]); // or whatever it is ...
+    if (res[1].length > 1) recurseArgs(res[1][1], cn);
   }
-  else if (result[0] == "method") {
-    cn = new CreateNode(basetype="method", name=result[1][0] + '.' + result[1][1][0]); // or whatever it is ...
-    if (result[1][1].length > 1) recurseArgs(result[1][1][1], cn);
+  else if (res[0] == "method") {
+    cn = new CreateNode(basetype="method", name=res[1][0] + '.' + res[1][1][0]); // or whatever it is ...
+    if (res[1][1].length > 1) recurseArgs(res[1][1][1], cn);
   }
   else throw "createNode: bad format";
   return cn.getNode();

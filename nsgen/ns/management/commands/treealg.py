@@ -25,10 +25,9 @@ class TreeJsonAddr:
         return item
 
     def put(self, path, item, getkey):
-        root = self.root
-        branch = root
+        branch = self.root
         if path != '' and not path[0] == '.':
-            branch = self._descend_recurse(root, path)['branch']
+            branch = self._descend_recurse(self.root, path)['branch']
         key = getkey(item)
         self._get_or_create(branch, key)['leaf'] = item
 
