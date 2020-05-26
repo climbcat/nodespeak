@@ -2,7 +2,6 @@
 class ViewTypeDef {
   constructor(text, address, conf, clickCB, delCB) {
     this.text = text;
-    this.id = text;
     this.address = address; // passed with del cb
     this.conf = conf; // passed with click cb
     this.clickCB = clickCB;
@@ -24,28 +23,27 @@ class TypeTreeUi {
     // define base groups for each kind of object
     this.typegrp = root.append("g");
     this.statusgrp = root.append("g");
-
-    // create input textbox
+    // input textbox
     if (!notbx) {
       this.typegrp
-        .append("div").style("margin-top", "10px")
-        .html("| type ")
         .append("input")
         .attr("id", "tbxEnterType")
         .on("change", function(d) {
-          let val = d3.select("#tbxEnterType").property("value");
+          let el = d3.select("#tbxEnterType");
+          let val = el.property("value");
           this._tryCreateType(val);
+          // clear
+          el.property("value", "");
         }.bind(this));
-      // TODO: put docstring as mouse-over or in a label
+      // TODO: docstring
     }
-
     // dynamic elements get a subgroup (so we can use delete *)
     this.typegrp = this.typegrp.append("g");
 
     // get initial objects and sync
     this.vtd_lst = addresses.map( (itm) => {
       let conf = nodeTypeReadTree(itm, this.type_tree);
-      // TODO: throw error if conf was not found
+      // TODO: throw if not found
       return new ViewTypeDef(conf.name, itm, conf, this._clickItemCB, this._tryDeleteCB);
     }, this);
     this._sync(this.typegrp, this.vtd_lst);
@@ -60,6 +58,7 @@ class TypeTreeUi {
     // TODO: check global tt uniquness -> status and return if error
     // TODO: create conf and enter into tree
     //          -> this requires functionality for doing this, copy from Python
+    // TODO: can we sort the tree & addresses to have methods displayed after their clsses?
     // TODO: create menu item with appropriate cbs etc.
   }
   _tryDeleteCB(addr) {
@@ -85,13 +84,13 @@ class TypeTreeUi {
       .data(vtd_lst)
       .enter()
       .append("div")
-      .attr("id", function(d) { return d.id })
       .style("text-align", "left")
       .style("margin", "auto");
     containers
       // text element
       .append("div")
       .style("display", "inline-block")
+      .style("cursor", "pointer")
       .on("click", function(d) {
         d.wordClicked();
       })
