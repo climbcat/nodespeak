@@ -93,11 +93,11 @@ class TypeTreeUi {
     this._pullAndShow();
   }
   _tryDeleteCB(addr) {
-    console.log("try delete (not impl.)", addr);
-    // returns true on deletion, false otherwise. Deletes by "brute force"
-    // TODO: del from tt
-    // TODO: del from html
-    // TODO: call intface cleanup
+    // del from tt and addresses
+    nodeTypeDelTree(addr, this.type_tree);
+    remove(this.addresses, addr);
+    // show/ sync menus
+    this._pullAndShow();
   }
   _showMsg(msg) {
     if (msg == null) return false;
@@ -110,7 +110,7 @@ class TypeTreeUi {
     this.vtd_lst = this.addresses.map( (itm) => {
       let conf = nodeTypeReadTree(itm, this.type_tree);
       // TODO: throw if not found
-      return new ViewTypeDef(conf.name, itm, conf, this._clickItemCB, this._tryDeleteCB);
+      return new ViewTypeDef(conf.name, itm, conf, this._clickItemCB.bind(this), this._tryDeleteCB.bind(this));
     }, this);
     this._sync(this.typegrp, this.vtd_lst);
   }

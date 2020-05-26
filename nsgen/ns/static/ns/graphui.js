@@ -32,6 +32,8 @@ function nodeTypeReadTree(address, tree) {
       branch = branch[splt[i]]['branch'];
     }
     let item = branch[key]["leaf"];
+    // deleted item case
+    if (item == null) throw "";
     return item;
   }
   catch(err) {
@@ -39,16 +41,27 @@ function nodeTypeReadTree(address, tree) {
   }
 }
 function nodeTypeDelTree(address, tree) {
-
+  // TODO: fix edge cases
+  if ((address == "") || (address == ".")) return false;
+  let path = "";
+  let splt = address.split('.');
+  let key = splt[splt.length-1];
+  if (splt.length > 1) path = splt.slice(0, splt.length-1).join(".");
+  //console.log(tree, path, key);
+  branch = _descendRecurse(tree, path)["branch"];
+  let tobedel = _getOrCreate(branch, key);
+  tobedel["leaf"] = null;
 }
 function nodeTypePutTree(conf, key, path, tree) {
   // address is always relative to tree
   let branch = tree;
   if ((path != "") && (path != "."))
+    console.log(path);
     branch = _descendRecurse(tree, path)["branch"];
   _getOrCreate(branch, key)["leaf"] = conf;
 }
 function _descendRecurse(branch, address) {
+  // returns branch at address, recursive search
   let m = /([^\.]+)\.(.*)/.exec(address);
   if (address == "") throw "_descendRecurse fatal error";
   if (m) {
@@ -62,6 +75,7 @@ function _descendRecurse(branch, address) {
   }
 }
 function _getOrCreate(dct, key) {
+  // get dct at key, or creates a type-tree friendly branch at key, if empty
   if (!(key in dct))
     dct[key] = { "leaf" : {}, "branch" : {} };
   return dct[key];
