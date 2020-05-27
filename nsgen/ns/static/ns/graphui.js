@@ -1169,7 +1169,7 @@ class NodeLinkConstrucionHelper {
     let prefixes = nclss.map(name => name.prefix);
     let basetypes = nclss.map(name => name.basetype);
     let i = basetypes.indexOf(basetype);
-    if (i >= 0) prefix = prefixes[i]; else throw "NodeLinkConstrucionHelper.getId: unknown basetype";
+    if (i >= 0) prefix = prefixes[i]; else throw "NodeLinkConstrucionHelper.getId: unknown basetype: " + basetype;
 
     if (prefix in idxs)
       id = prefix + (idxs[prefix] += 1);

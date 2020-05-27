@@ -64,22 +64,35 @@ class TypeTreeUi {
 
     // create conf
     let res = parseresult;
-    let cn = null;
-    if (res[0] == "type") { // TODO: indicate that "type" is parse level info
-      // TODO: introduce typed objects
-      //cn = new CreateNode("object_typed", res[1][0])
-      return;
+    let conf = null;
+    let branch_name = this.branch_name; // NOTE: this is not the same for methods, as for the rest
+    if (res[0] == "type") { // TODO: indicate that "type", "func" and "method" is parse level info
+      // TODO: introduce typed objects to hold type variable, but how does this relate to cls constructor functions?
+      let name = res[1][0];
+      let cn = new CreateNode("object_typed", name, name)
+      conf = cn.getNode(branch_name);
     }
-    else if (res[0] == "func") { // TODO: indicate that "func" is parse level info
-      cn = new CreateNode("function_named", res[1][0]); // or whatever it is ...
-      if (res[1].length > 1) recurseArgs(res[1][1], cn);
+    else if (res[0] == "func") {
+      let name = res[1][0];
+      let tpe = res[1][0];
+      let args = [];
+      let hasargs = res[1].length - 1;
+      if (hasargs > 0) args = res[1][1];
+      let cn = new CreateNode("function_named", name, tpe, args);
+      conf = cn.getNode(branch_name);
     }
-    else if (res[0] == "method") { // TODO: indicate that "method" is parse level info
-      cn = new CreateNode("method", res[1][0] + '.' + res[1][1][0], res[1][0]); // or whatever it is ...
-      if (res[1][1].length > 1) recurseArgs(res[1][1][1], cn);
+    else if (res[0] == "method") {
+      let name = res[1][1][0];
+      let cls = res[1][0];
+      let tpe = res[1][0] + '.' + res[1][1][0];
+      let args = [];
+      let hasargs = res[1][1].length - 1;
+      if (hasargs > 0) args = res[1][1][1];
+      let cn = new CreateNode("method", name, tpe, args, cls);
+      branch_name += "." + cls;
+      conf = cn.getNode(branch_name);
     }
     else throw "createNode: bad format";
-    let conf = cn.getNode(this.branch_name);
 
     // check global tt uniquness - assume existence, look for "not found" exception
     let exists = true;
@@ -90,9 +103,14 @@ class TypeTreeUi {
     }
 
     // put into tree
-    this.addresses.push(conf.address);
-    nodeTypePutTree(conf, conf.name, this.branch_name, this.type_tree);
-    // TODO: sort tree & addresses to have methods displayed after their clsses
+    try {
+      nodeTypePutTree(conf, conf.name, branch_name, this.type_tree);
+      this.addresses.push(conf.address);
+      // TODO: sort tree & addresses to have methods displayed after their clsses
+    } catch (err) {
+      console.log(err);
+      return;
+    }
 
     // show/ sync menus
     this._pullAndShow();
@@ -112,9 +130,11 @@ class TypeTreeUi {
   _pullAndShow() {
     // get initial objects and sync
     this.vtd_lst = this.addresses.map( (itm) => {
-      let conf = nodeTypeReadTree(itm, this.type_tree);
-      // TODO: throw if not found
-      return new ViewTypeDef(conf.name, itm, conf, this.fireClickConf.bind(this), this._tryDeleteCB.bind(this));
+        let conf = nodeTypeReadTree(itm, this.type_tree);
+        // TODO: throw if not found
+        let label = conf.name;
+        if ((conf.label != null) && (conf.label != "")) label = conf.label;
+        return new ViewTypeDef(label, itm, conf, this.fireClickConf.bind(this), this._tryDeleteCB.bind(this));
     }, this);
     this._sync(this.typegrp, this.vtd_lst);
   }
@@ -158,44 +178,57 @@ class TypeTreeUi {
 
 
 class CreateNode {
-  constructor(basetype, name, clss=null) {
+  constructor(basetype, name, type, args_result=null, cls=null) {
     this.basetype = basetype;
-    this.name = name; // can include classname, as in MyCls.someMet
-    this.args = [];
+    this.name = name;
+    this.label = name;
+    if (cls != null) this.label = cls + "." + this.label;
+    this.type = type;
+    this.args = null;
+    this.cls = cls;
+    if (args_result != null) {
+      this.args = []; // [name, tpe] entres go here
+      this._recurseArgs(args_result);
+      // TO the reader: sorry for this line
+      this.name += "(" + this.args.map((itm)=>{ return (itm[1] + " " + itm[0]).trim(); }).join(", ") + ")";
+    }
+    // put a label (including args): name is actually type_tree key, so we need a label to display Cls.Mthd(...)
+    this.label = this.name;
+    if (cls != null) this.label = cls + "." + this.label;
   }
-  addArg(name, tpe=""){
-    this.args.push([name, tpe]);
+  _recurseArgs(args_result) {
+    let res = args_result;
+    if (res.length == 0)
+      return;
+    if (res.length == 1) {
+      this.args.push([res[0], ""]);
+      return;
+    }
+    else if (res.length == 2 && !Array.isArray(res[1])) {
+      this.args.push([res[1], res[0]]);
+      return;
+    }
+    else if (res.length == 3 && Array.isArray(res[2])) {
+      this.args.push([res[1], res[0]]);
+      this._recurseArgs(res[2]);
+    }
+    else if (res.length == 2 && Array.isArray(res[1])) {
+      this.args.push([res[0], ""]);
+      this._recurseArgs(res[1]);
+    }
+    else throw "recursArgs: bad format";
   }
   getNode(branch_name) {
     let conf = {};
     conf.docstring = "";
-    conf.type = this.name;
+    conf.type = this.type;
     conf.address = branch_name + "." + this.name;
     conf.basetype = this.basetype;
-    conf.ipars = this.args.map( (itm) => {return itm[0]} );
-    conf.itypes = this.args.map( (itm) => {return itm[1]} );
+    conf.ipars = ( this.args==null ? [] : this.args.map((itm) => {return itm[0]}) );
+    conf.itypes = ( this.args==null ? [] : this.args.map((itm) => {return itm[1]}) );
+    conf.otypes = [this.type];
     conf.name = this.name;
+    conf.label = this.label;
     return conf;
   }
-}
-
-// a parsed "args" nested list is accumulated into a createnode obj
-function recurseArgs(res, cn) {
-  if (res.length == 1) {
-    cn.addArg(name=res[0]);
-    return;
-  }
-  else if (res.length == 2 && !Array.isArray(res[1])) {
-    cn.addArg(name=res[1], tpe=res[0]);
-    return;
-  }
-  else if (res.length == 3 && Array.isArray(res[2])) {
-    cn.addArg(name=res[1], tpe=res[0]);
-    recurseArgs(res[2], cn);
-  }
-  else if (res.length == 2 && Array.isArray(res[1])) {
-    cn.addArg(name=res[0]);
-    recurseArgs(res[1], cn);
-  }
-  else throw "recursArgs: bad format";
 }
