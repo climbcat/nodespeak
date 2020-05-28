@@ -114,6 +114,15 @@ class TypeTreeUi {
       return;
     }
 
+    // type check the new conf
+    let check_builtin = checkConfTypes(conf, "user.builtin", this.type_tree);
+    let check_custom = checkConfTypes(conf, "user.custom", this.type_tree);
+    console.log(check_builtin, check_custom);
+    if (!check_builtin && !check_custom) {
+      this._showMsg("missing type for: " + conf.name);
+      return;
+    }
+
     // put into tree
     try {
       nodeTypePutTree(conf, conf.type, branch_name, this.type_tree);
@@ -185,6 +194,35 @@ class TypeTreeUi {
       })
       .html("x");
   }
+}
+
+function checkConfTypes(conf, branch_name, type_tree) {
+  // Check if all types used by conf exist in the type tree.
+  // The check is based on existing type or constructor entries.
+  let st = conf.type;
+  let ot = conf.otypes[0];
+  let hits = conf.itypes.concat(conf.otypes).map( (tpe) => {
+    if (tpe == "" || tpe == null) return true;
+    return checkTpeExists(tpe, st, branch_name, type_tree);
+  } );
+  if (hits.indexOf(false) > -1) return false;
+  return true;
+}
+
+function checkTpeExists(tpe, self_type, branch_name, type_tree) {
+  // 1. self-satisfaction
+  if (tpe == self_type) return true;
+  // 2. external satisfaction
+  let address = [branch_name, tpe].join(".");
+  let exists = true;
+  conf = null;
+  try { conf = nodeTypeReadTree(address, type_tree) } catch { exists = false; }
+  if (exists==true) {
+    exists = false;
+    if (conf.basetype == "object_typed") exists = true;
+    if (conf.basetype == "function_named" && tpe.match(/[A-Z][\w0-9]*$/)) exists = true;
+  }
+  return exists;
 }
 
 
