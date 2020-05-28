@@ -33,7 +33,7 @@ function nodeTypeReadTree(address, tree) {
     }
     let item = branch[key]["leaf"];
     // deleted item case
-    if (item == null) throw "";
+    if (item == null) throw "deleted";
     return item;
   }
   catch(err) {

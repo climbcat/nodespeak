@@ -99,15 +99,15 @@ class TypeTreeUi {
 
     // check global tt uniquness - assume existence, look for "not found" exception
     let exists = true;
-    try { nodeTypeReadTree(conf.address) } catch { exists = false; }
+    try { nodeTypeReadTree(conf.address, this.type_tree) } catch { exists = false; }
     if (exists) {
-      this._showMsg(conf.name + " already exists in scope");
+      this._showMsg(conf.address + " already exists in scope");
       return;
     }
 
     // put into tree
     try {
-      nodeTypePutTree(conf, conf.name, branch_name, this.type_tree);
+      nodeTypePutTree(conf, conf.type, branch_name, this.type_tree);
       this.addresses.push(conf.address);
       // TODO: sort tree & addresses to have methods displayed after their clsses
     } catch (err) {
@@ -136,7 +136,6 @@ class TypeTreeUi {
         let conf = nodeTypeReadTree(itm, this.type_tree);
         // TODO: throw if not found
         let label = conf.name;
-        if ((conf.label != null) && (conf.label != "")) label = conf.label;
         return new ViewTypeDef(label, itm, conf, this.fireClickConf.bind(this), this._tryDeleteCB.bind(this));
     }, this);
     this._sync(this.typegrp, this.vtd_lst);
@@ -195,11 +194,11 @@ class CreateNode {
       this._recurseArgs(args_result);
       // TO the reader: sorry for this line
       this.name += "(" + this.args.map((itm)=>{ return (itm[1] + " " + itm[0]).trim(); }).join(", ") + ")";
+      this.label += "()";
     }
     // put a label (including args): name is actually type_tree key, so we need a label to display Cls.Mthd(...)
-    this.label = this.name;
-    if (cls != null) this.label = cls + "." + this.label;
-    if (rettpe != null)  this.label = rettpe + " " + this.name;
+    if (cls != null) this.name = cls + "." + this.name;
+    if (rettpe != null)  this.name = rettpe + " " + this.name;
   }
   _recurseArgs(args_result) {
     let res = args_result;
@@ -227,7 +226,7 @@ class CreateNode {
     let conf = {};
     conf.docstring = "";
     conf.type = this.type;
-    conf.address = branch_name + "." + this.name;
+    conf.address = branch_name + "." + this.type;
     conf.basetype = this.basetype;
     conf.ipars = ( this.args==null ? [] : this.args.map((itm) => {return itm[0]}) );
     conf.itypes = ( this.args==null ? [] : this.args.map((itm) => {return itm[1]}) );
