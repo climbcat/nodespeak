@@ -67,7 +67,6 @@ class TypeTreeUi {
     let conf = null;
     let branch_name = this.branch_name; // NOTE: this is not the same for methods, as for the rest
     if (res[0] == "PRtype") {
-      // TODO: introduce typed objects to hold type variable, but how does this relate to cls constructor functions?
       let name = res[1][0];
       let cn = new CreateNode("object_typed", name, name)
       conf = cn.getNode(branch_name);
@@ -82,6 +81,16 @@ class TypeTreeUi {
       let hasargs = res[1][1] != null;
       if (hasargs > 0) args = res[1][1];
       let cn = new CreateNode("function_named", name, tpe, args, null, rettpe);
+      conf = cn.getNode(branch_name);
+    }
+    else if (res[0] == "PRconstr") {
+      let name = res[1][0];
+      let tpe = res[1][0];
+      let args = [];
+      let rettpe = tpe; // constructor: ret type is type
+      let hasargs = res[1][1] != null;
+      if (hasargs > 0) args = res[1][1];
+      let cn = new CreateNode("function_named", name, tpe, args, null, rettpe, true);
       conf = cn.getNode(branch_name);
     }
     else if (res[0] == "PRmethod") {
@@ -180,7 +189,7 @@ class TypeTreeUi {
 
 
 class CreateNode {
-  constructor(basetype, name, type, args_result=null, cls=null, rettpe=null) {
+  constructor(basetype, name, type, args_result=null, cls=null, rettpe=null, hiderettpe=false) {
     this.basetype = basetype;
     this.name = name;
     this.label = name;
@@ -198,7 +207,7 @@ class CreateNode {
     }
     // put a label (including args): name is actually type_tree key, so we need a label to display Cls.Mthd(...)
     if (cls != null) this.name = cls + "." + this.name;
-    if (rettpe != null)  this.name = rettpe + " " + this.name;
+    if (rettpe != null && hiderettpe == false) this.name = rettpe + " " + this.name;
   }
   _recurseArgs(args_result) {
     let res = args_result;
