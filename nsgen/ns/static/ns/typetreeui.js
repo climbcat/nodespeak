@@ -66,22 +66,25 @@ class TypeTreeUi {
     let res = parseresult;
     let conf = null;
     let branch_name = this.branch_name; // NOTE: this is not the same for methods, as for the rest
-    if (res[0] == "type") { // TODO: indicate that "type", "func" and "method" is parse level info
+    if (res[0] == "PRtype") {
       // TODO: introduce typed objects to hold type variable, but how does this relate to cls constructor functions?
       let name = res[1][0];
       let cn = new CreateNode("object_typed", name, name)
       conf = cn.getNode(branch_name);
     }
-    else if (res[0] == "func") {
+    else if (res[0] == "PRfunc") {
       let name = res[1][0];
       let tpe = res[1][0];
       let args = [];
-      let hasargs = res[1].length - 1;
+      let rettpe = null;
+      let hasrettpe = res[1].length == 3;
+      if (hasrettpe == true) rettpe = res[1][2];
+      let hasargs = res[1][1] != null;
       if (hasargs > 0) args = res[1][1];
-      let cn = new CreateNode("function_named", name, tpe, args);
+      let cn = new CreateNode("function_named", name, tpe, args, null, rettpe);
       conf = cn.getNode(branch_name);
     }
-    else if (res[0] == "method") {
+    else if (res[0] == "PRmethod") {
       let name = res[1][1][0];
       let cls = res[1][0];
       let tpe = res[1][0] + '.' + res[1][1][0];
@@ -92,7 +95,7 @@ class TypeTreeUi {
       branch_name += "." + cls;
       conf = cn.getNode(branch_name);
     }
-    else throw "createNode: bad format";
+    else throw "createNode bad format: " + res[0];
 
     // check global tt uniquness - assume existence, look for "not found" exception
     let exists = true;
@@ -178,7 +181,7 @@ class TypeTreeUi {
 
 
 class CreateNode {
-  constructor(basetype, name, type, args_result=null, cls=null) {
+  constructor(basetype, name, type, args_result=null, cls=null, rettpe=null) {
     this.basetype = basetype;
     this.name = name;
     this.label = name;
@@ -186,6 +189,7 @@ class CreateNode {
     this.type = type;
     this.args = null;
     this.cls = cls;
+    this.rettpe = rettpe;
     if (args_result != null) {
       this.args = []; // [name, tpe] entres go here
       this._recurseArgs(args_result);
@@ -195,6 +199,7 @@ class CreateNode {
     // put a label (including args): name is actually type_tree key, so we need a label to display Cls.Mthd(...)
     this.label = this.name;
     if (cls != null) this.label = cls + "." + this.label;
+    if (rettpe != null)  this.label = rettpe + " " + this.name;
   }
   _recurseArgs(args_result) {
     let res = args_result;
@@ -227,6 +232,7 @@ class CreateNode {
     conf.ipars = ( this.args==null ? [] : this.args.map((itm) => {return itm[0]}) );
     conf.itypes = ( this.args==null ? [] : this.args.map((itm) => {return itm[1]}) );
     conf.otypes = [this.type];
+    if (this.rettpe != null) conf.otypes = [this.rettpe];
     conf.name = this.name;
     conf.label = this.label;
     return conf;
