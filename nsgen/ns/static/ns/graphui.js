@@ -1085,6 +1085,30 @@ class NodeObject extends Node {
   }
 }
 
+class NodeObjectTyped extends Node {
+  static get basetype() { return "object_typed"; }
+  get basetype() { return NodeObject.basetype; }
+  static get prefix() { return "o"; }
+  constructor(x, y, id, name, label, typeconf) {
+    typeconf.itypes = [typeconf.type];
+    typeconf.otypes = [typeconf.type];
+    typeconf.ipars = [''];
+    super(x, y, id, name, label, typeconf);
+    this.iotype = typeconf.type;
+  }
+  _getGNType() {
+    return GraphicsNodeFluffy;
+  }
+  _getAnchorType() {
+    return AnchorCircular;
+  }
+  isConnected(connectivity) {
+    if (connectivity.length > 0) {
+      return connectivity[0];
+    }
+  }
+}
+
 class NodeObjectLiteral extends Node {
   static get basetype() { return "object_literal"; }
   get basetype() { return NodeObjectLiteral.basetype; }
@@ -1230,6 +1254,7 @@ NodeLinkConstrucionHelper._linkclasses = [];
 
 // register node types
 NodeLinkConstrucionHelper.register_node_class(NodeObject);
+NodeLinkConstrucionHelper.register_node_class(NodeObjectTyped);
 NodeLinkConstrucionHelper.register_node_class(NodeObjectLiteral);
 NodeLinkConstrucionHelper.register_node_class(NodeFunction);
 NodeLinkConstrucionHelper.register_node_class(NodeFunctionNamed);
