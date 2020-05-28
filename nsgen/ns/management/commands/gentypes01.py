@@ -110,9 +110,7 @@ def gen_user_branch(tree, address):
     obj.docstring = "test built-in int"
     obj.type = 'int'
     obj.address = 'user.builtin.int'
-    # TODO: how do we handle nodes of simple types?
-    obj.basetype = 'object'
-    #obj.basetype = 'typed_object'
+    obj.basetype = 'object_typed'
     obj.ipars = ['']
     obj.itypes = ['']
     obj.otypes = ['']
@@ -126,8 +124,7 @@ def gen_user_branch(tree, address):
     obj.type = 'bool'
     obj.address = 'user.builtin.bool'
     # TODO: how do we handle nodes of simple types?
-    obj.basetype = 'object'
-    #obj.basetype = 'typed_object'
+    obj.basetype = 'object_typed'
     obj.ipars = ['']
     obj.itypes = ['']
     obj.otypes = ['']
@@ -140,7 +137,7 @@ def gen_user_branch(tree, address):
     obj.docstring = "built-in function"
     obj.type = 'someCalc'
     obj.address = 'user.builtin.someCalc'
-    obj.basetype = 'func'
+    obj.basetype = 'function'
     obj.ipars = ['num', 'docalc']
     obj.itypes = ['int', 'bool']
     obj.otypes = ['bool']
@@ -153,9 +150,9 @@ def gen_user_branch(tree, address):
     obj.docstring = "built-in class"
     obj.type = 'MyClss'
     obj.address = 'user.builtin.MyClss'
-    obj.basetype = 'func'
-    obj.ipars = ['',]
-    obj.itypes = ['']
+    obj.basetype = 'function'
+    obj.ipars = []
+    obj.itypes = []
     obj.otypes = ['MyClss']
     obj.name = 'MyClss'
     tree.put('user.builtin', obj.get_repr(), get_key)
