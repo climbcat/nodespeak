@@ -92,6 +92,8 @@ $(document).ready(() => {
     ttui_1.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
     let ttui_2 = new TypeTreeUi("ttui_2", tpeedt_2, tree["menus"]["CUSTOM"], "user.custom", tree);
     ttui_2.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
+
+    intface.updateUi();
   });
 
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)
@@ -103,7 +105,6 @@ $(document).ready(() => {
   $("#status").css({ "top" : (h+t)+"px", "user-select" : "auto" });
 
   // load graph and run
-  intface.updateUi();
   intface.loadSession();
 });
 </script>

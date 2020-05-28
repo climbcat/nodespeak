@@ -2297,6 +2297,7 @@ class GraphInterface {
   }
   updateUi() {
     this.draw.drawAll();
+    this._resizeCB();
   }
   injectGraphDefinition(def) {
     // NODES
