@@ -26,7 +26,8 @@ class TypeTreeUi {
   // exclusive_root: WARNING: must be an exclusive, clearable branch
   // addresses: the only ones object this instance of ttui should worry about!
   // type_tree: the actual, entire type tree (global addressing used for now)
-  constructor(title, exclusive_root, addresses, branch_name, type_tree, usetbx=true) {
+  // canDelHook: a function that checks (address) and returns a bool
+  constructor(title, exclusive_root, addresses, branch_name, type_tree, canDelHook, usetbx=true) {
     this._clickConfListn = [];
     let root = exclusive_root;
 
@@ -36,6 +37,7 @@ class TypeTreeUi {
     this.addresses = addresses;
     this.branch_name = branch_name; // this will be prefixed new type words
     this.vtd_lst = [];
+    this._canDeleteHook = canDelHook;
 
     // define base groups for each kind of object
     root.selectAll("*")
@@ -155,6 +157,10 @@ class TypeTreeUi {
     this._pullAndShow();
   }
   _tryDeleteCB(addr) {
+    if (this._canDeleteHook != null && !this._canDeleteHook(addr)) {
+      this._showMsg(addr + " could not be deleted");
+      return false;
+    }
     // del from tt and addresses
     nodeTypeDelTree(addr, this.type_tree);
     remove(this.addresses, addr);

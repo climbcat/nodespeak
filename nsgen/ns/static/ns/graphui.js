@@ -1308,6 +1308,10 @@ class GraphTree {
     }
     return nbs;
   }
+  hasNodeOfAddress(addr) {
+    for (let n in this._viewNodes) if (addr == this._viewNodes[n].address) return true;
+    return false;
+  }
   getLinks(id) {
     // returns a list of [id1, idx1, id2, idx2] sequences
     // this is upstream-downstream agnostic
