@@ -98,14 +98,10 @@ class TypeTreeUi {
       let cls = res[1][0];
       let tpe = res[1][1][0];
       let args = [];
-
-
       let rettpe = null;
       let hasrettpe = res[1].length == 3;
       if (hasrettpe == true) rettpe = res[1][2];
-
-      
-      let hasargs = res[1][1].length - 2;
+      let hasargs = res[1][1][1]!=null;
       if (hasargs > 0) args = res[1][1][1];
       let cn = new CreateNode("method", name, tpe, args, rettpe);
       branch_name += "." + cls;
