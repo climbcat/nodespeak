@@ -1,14 +1,21 @@
 
 class ViewTypeDef {
-  constructor(text, address, conf, clickCB, delCB) {
+  constructor(text, address, conf, clickCB, delCB, sortidx=0) {
     this.text = text;
     this.address = address; // passed with del cb
     this.conf = conf; // passed with click cb
     this.clickCB = clickCB;
     this.delCB = delCB;
+    this.sidx = sortidx;
   }
   wordClicked() { this.clickCB(this.conf); }
   deleteClicked() { this.delCB(this.address); }
+}
+
+function vtdCompareBySortIdxFirst(v1, v2) {
+  let ret1 = v1.sidx < v2.sidx ? -1 : v1.sidx > v2.sidx ? 1 : 0;
+  if (ret1 != 0) return ret1;
+  return v1.text < v2.text ? -1 : v1.text > v2.text ? 1 : 0;
 }
 
 class TypeTreeUi {
@@ -74,6 +81,8 @@ class TypeTreeUi {
       let name = res[1][0];
       let cn = new CreateNode("object_typed", name, name)
       conf = cn.getNode(branch_name);
+      conf.sort_idx = 0;
+      if (name!=name.toLowerCase()) conf.sort_idx = 1;
     }
     else if (res[0] == "PRfunc") {
       let name = res[1][0];
@@ -86,6 +95,7 @@ class TypeTreeUi {
       if (hasargs > 0) args = res[1][1];
       let cn = new CreateNode("function_named", name, tpe, args, rettpe);
       conf = cn.getNode(branch_name);
+      conf.sort_idx = 2;
     }
     else if (res[0] == "PRconstr") {
       let name = res[1][0];
@@ -96,6 +106,7 @@ class TypeTreeUi {
       if (hasargs > 0) args = res[1][1];
       let cn = new CreateNode("function_named", name, tpe, args, rettpe, true);
       conf = cn.getNode(branch_name);
+      conf.sort_idx = 1;
     }
     else if (res[0] == "PRmethod") {
       let name = res[1][0] + '.' + res[1][1][0];
@@ -110,6 +121,7 @@ class TypeTreeUi {
       let cn = new CreateNode("method", name, tpe, args, rettpe);
       branch_name += "." + cls;
       conf = cn.getNode(branch_name);
+      conf.sort_idx = 1;
     }
     else throw "createNode bad format: " + res[0];
 
@@ -155,17 +167,20 @@ class TypeTreeUi {
     this.statusgrp.append("div").html(msg);
   }
   _pullAndShow() {
-    // get initial objects and sync
+    // get objects and sync
     try {
       this.vtd_lst = this.addresses.map( (itm) => {
-          let conf = nodeTypeReadTree(itm, this.type_tree);
-          // TODO: throw if not found
-          let label = conf.name;
-          return new ViewTypeDef(label, itm, conf, this.fireClickConf.bind(this), this._tryDeleteCB.bind(this));
+        let conf = nodeTypeReadTree(itm, this.type_tree);
+        let label = conf.name;
+        return new ViewTypeDef(label, itm, conf,
+          this.fireClickConf.bind(this), this._tryDeleteCB.bind(this),
+          conf.sort_idx == undefined ? 0 : conf.sort_idx
+        );
       }, this);
     } catch(err) {
       console.log("tpeedt pull: " + err);
     }
+    this.vtd_lst.sort(vtdCompareBySortIdxFirst);
     this._sync(this.typegrp, this.vtd_lst);
   }
   _sync(group, vtd_lst) {
