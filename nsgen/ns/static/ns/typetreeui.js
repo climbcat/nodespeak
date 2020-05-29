@@ -80,7 +80,7 @@ class TypeTreeUi {
       if (hasrettpe == true) rettpe = res[1][2];
       let hasargs = res[1][1] != null;
       if (hasargs > 0) args = res[1][1];
-      let cn = new CreateNode("function_named", name, tpe, args, null, rettpe);
+      let cn = new CreateNode("function_named", name, tpe, args, rettpe);
       conf = cn.getNode(branch_name);
     }
     else if (res[0] == "PRconstr") {
@@ -90,17 +90,24 @@ class TypeTreeUi {
       let rettpe = tpe; // constructor: ret type is type
       let hasargs = res[1][1] != null;
       if (hasargs > 0) args = res[1][1];
-      let cn = new CreateNode("function_named", name, tpe, args, null, rettpe, true);
+      let cn = new CreateNode("function_named", name, tpe, args, rettpe, true);
       conf = cn.getNode(branch_name);
     }
     else if (res[0] == "PRmethod") {
-      let name = res[1][1][0];
+      let name = res[1][0] + '.' + res[1][1][0];
       let cls = res[1][0];
-      let tpe = res[1][0] + '.' + res[1][1][0];
+      let tpe = res[1][1][0];
       let args = [];
-      let hasargs = res[1][1].length - 1;
+
+
+      let rettpe = null;
+      let hasrettpe = res[1].length == 3;
+      if (hasrettpe == true) rettpe = res[1][2];
+
+      
+      let hasargs = res[1][1].length - 2;
       if (hasargs > 0) args = res[1][1][1];
-      let cn = new CreateNode("method", name, tpe, args, cls);
+      let cn = new CreateNode("method", name, tpe, args, rettpe);
       branch_name += "." + cls;
       conf = cn.getNode(branch_name);
     }
@@ -117,7 +124,6 @@ class TypeTreeUi {
     // type check the new conf
     let check_builtin = checkConfTypes(conf, "user.builtin", this.type_tree);
     let check_custom = checkConfTypes(conf, "user.custom", this.type_tree);
-    console.log(check_builtin, check_custom);
     if (!check_builtin && !check_custom) {
       this._showMsg("missing type for: " + conf.name);
       return;
@@ -150,12 +156,16 @@ class TypeTreeUi {
   }
   _pullAndShow() {
     // get initial objects and sync
-    this.vtd_lst = this.addresses.map( (itm) => {
-        let conf = nodeTypeReadTree(itm, this.type_tree);
-        // TODO: throw if not found
-        let label = conf.name;
-        return new ViewTypeDef(label, itm, conf, this.fireClickConf.bind(this), this._tryDeleteCB.bind(this));
-    }, this);
+    try {
+      this.vtd_lst = this.addresses.map( (itm) => {
+          let conf = nodeTypeReadTree(itm, this.type_tree);
+          // TODO: throw if not found
+          let label = conf.name;
+          return new ViewTypeDef(label, itm, conf, this.fireClickConf.bind(this), this._tryDeleteCB.bind(this));
+      }, this);
+    } catch(err) {
+      console.log("tpeedt pull: " + err);
+    }
     this._sync(this.typegrp, this.vtd_lst);
   }
   _sync(group, vtd_lst) {
@@ -227,14 +237,12 @@ function checkTpeExists(tpe, self_type, branch_name, type_tree) {
 
 
 class CreateNode {
-  constructor(basetype, name, type, args_result=null, cls=null, rettpe=null, hiderettpe=false) {
+  constructor(basetype, name, type, args_result=null, rettpe=null, hiderettpe=false) {
     this.basetype = basetype;
     this.name = name;
     this.label = name;
-    if (cls != null) this.label = cls + "." + this.label;
     this.type = type;
     this.args = null;
-    this.cls = cls;
     this.rettpe = rettpe;
     if (args_result != null) {
       this.args = []; // [name, tpe] entres go here
@@ -244,7 +252,6 @@ class CreateNode {
       this.label += "()";
     }
     // put a label (including args): name is actually type_tree key, so we need a label to display Cls.Mthd(...)
-    if (cls != null) this.name = cls + "." + this.name;
     if (rettpe != null && hiderettpe == false) this.name = rettpe + " " + this.name;
   }
   _recurseArgs(args_result) {
