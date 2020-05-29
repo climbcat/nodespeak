@@ -2632,14 +2632,18 @@ class NodeTypeMenu {
   fireClickConf(...args) { fireEvents(this._clickConfListn, "clickConf", ...args); }
 
   // takes a list of dict of node confs and creates a single menu out of that
-  constructor(rootelementid, menutitle, nodeconfdct) {
+  // exclusive_rootelementid: since all children will be cleared (*), use an exclusive root for this menu
+  constructor(exclusive_rootelementid, menutitle, nodeconfdct) {
     this._clickConfListn = [];
-    this.root = d3.select("#"+rootelementid);
+    this.root = d3.select("#"+exclusive_rootelementid);
 
-    // TODO: clear the root first
+    // clear the root
+    this.root
+      .selectAll("*").remove()
 
     // menu title
     this.root
+      .selectAll("*").remove()
       .append("div")
       .attr("style","background-color:white;font-size:small;text-align:center;")
       .html(menutitle.toUpperCase());

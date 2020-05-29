@@ -16,10 +16,12 @@ class TypeTreeUi {
   rgstrClickConf(l) { this._clickConfListn.push(l); }
   fireClickConf(...args) { fireEvents(this._clickConfListn, "clickConf", ...args); }
 
+  // exclusive_root: WARNING: must be an exclusive, clearable branch
   // addresses: the only ones object this instance of ttui should worry about!
   // type_tree: the actual, entire type tree (global addressing used for now)
-  constructor(title, root, addresses, branch_name, type_tree, usetbx=true) {
+  constructor(title, exclusive_root, addresses, branch_name, type_tree, usetbx=true) {
     this._clickConfListn = [];
+    let root = exclusive_root;
 
     // data members
     this.title = title;
@@ -29,6 +31,8 @@ class TypeTreeUi {
     this.vtd_lst = [];
 
     // define base groups for each kind of object
+    root.selectAll("*")
+      .remove();
     this.typegrp = root.append("g");
     this.statusgrp = root.append("g");
     // input textbox

@@ -146,7 +146,6 @@ class GraphInterfaceNSGen extends GraphInterface {
     $("body").css("cursor", "wait");
     // allSessionData contains live type trees, and a graphdef slow
     let gd = this.graphData.extractGraphDefinition();
-    console.log(gd);
     this.allSessionData['graphdef'] = gd;
     this.ajaxcall("/ajax_commit/", this.allSessionData, function(obj) {
       $("body").css("cursor", "default");

@@ -115,6 +115,7 @@ def gen_user_branch(tree, address):
     obj.itypes = ['']
     obj.otypes = ['']
     obj.name = 'int'
+    obj.label = 'int'
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
     biaddr.append(obj.address)
@@ -129,6 +130,7 @@ def gen_user_branch(tree, address):
     obj.itypes = ['']
     obj.otypes = ['']
     obj.name = 'bool'
+    obj.label = 'bool'
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
     biaddr.append(obj.address)
@@ -142,6 +144,7 @@ def gen_user_branch(tree, address):
     obj.itypes = ['int', 'bool']
     obj.otypes = ['bool']
     obj.name = 'someCalc'
+    obj.label = 'someCalc()'
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
     biaddr.append(obj.address)
@@ -155,6 +158,7 @@ def gen_user_branch(tree, address):
     obj.itypes = []
     obj.otypes = ['MyClss']
     obj.name = 'MyClss'
+    obj.label= 'MyClss'
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
     biaddr.append(obj.address)
@@ -168,6 +172,7 @@ def gen_user_branch(tree, address):
     obj.itypes = ['int', 'int']
     obj.otypes = ['']
     obj.name = 'MyClss.add'
+    obj.label= 'MyClss.add()'
     tree.put('user.builtin.MyClss', obj.get_repr(), get_key)
     address.append(obj.address)
     biaddr.append(obj.address)
