@@ -91,7 +91,7 @@ $(document).ready(() => {
     let canDelHook = (addr) => { return !intface.graphData.hasNodeOfAddress(addr) };
     let ttui_1 = new TypeTreeUi("ttui_1", tpeedt_1, tree["menus"]["BUILTIN"], "user.builtin", tree, canDelHook, usetbx=false);
     ttui_1.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
-    let ttui_2 = new TypeTreeUi("ttui_2", tpeedt_2, tree["menus"]["CUSTOM"], "user.custom", canDelHook, tree);
+    let ttui_2 = new TypeTreeUi("ttui_2", tpeedt_2, tree["menus"]["CUSTOM"], "user.custom", tree, canDelHook);
     ttui_2.rgstrClickConf(intface.setCreateNodeConf.bind(intface));
 
     intface.updateUi();

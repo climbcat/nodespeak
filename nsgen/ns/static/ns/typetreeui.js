@@ -64,6 +64,12 @@ class TypeTreeUi {
 
     this._pullAndShow();
   }
+  _checkConfExists(conf, branch_name) {
+    let exists = true;
+    let addr = [branch_name, conf.type].join(".");
+    try { nodeTypeReadTree(addr, this.type_tree) } catch { return false; }
+    return true;
+  }
   _tryCreateType(word) {
     // parse word -> status and return if error
     let parseresult = null;
@@ -128,9 +134,7 @@ class TypeTreeUi {
     else throw "createNode bad format: " + res[0];
 
     // check global tt uniquness - assume existence, look for "not found" exception
-    let exists = true;
-    try { nodeTypeReadTree(conf.address, this.type_tree) } catch { exists = false; }
-    if (exists) {
+    if (this._checkConfExists(conf, "user.builtin") || this._checkConfExists(conf, "user.custom")) {
       this._showMsg(conf.address + " already exists in scope");
       return;
     }

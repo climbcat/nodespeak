@@ -47,7 +47,6 @@ function nodeTypeDelTree(address, tree) {
   let splt = address.split('.');
   let key = splt[splt.length-1];
   if (splt.length > 1) path = splt.slice(0, splt.length-1).join(".");
-  //console.log(tree, path, key);
   branch = _descendRecurse(tree, path)["branch"];
   let tobedel = _getOrCreate(branch, key);
   tobedel["leaf"] = null;
