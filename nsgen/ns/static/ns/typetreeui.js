@@ -161,9 +161,21 @@ class TypeTreeUi {
     // show/ sync menus
     this._pullAndShow();
   }
+  _clearMsg() {
+    this._showMsg("");
+  }
   _tryDeleteCB(addr) {
+    // clear
+//    this._clearMsg();
+
+    // this "delete hook" prevents deletion of types with active graph nodes
     if (this._canDeleteHook != null && !this._canDeleteHook(addr)) {
       this._showMsg(addr + " could not be deleted");
+      return false;
+    }
+    // this prevents classes/types from beng deleted if methods exist
+    if (addrHasBranchTypesTree(addr, this.type_tree)) {
+      this._showMsg(addr + " could not be deleted (has non-empty branch)");
       return false;
     }
     // del from tt and addresses
@@ -178,6 +190,9 @@ class TypeTreeUi {
     this.statusgrp.append("div").style("margin-top","5px").html(msg);
   }
   _pullAndShow() {
+    // clear messages
+    this._clearMsg();
+
     // get objects and sync
     try {
       this.vtd_lst = this.addresses.map( (itm) => {

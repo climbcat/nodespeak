@@ -7,6 +7,7 @@
 
 // utility
 
+
 function remove(lst, element) {
   // removes an element from a list
   let index = lst.indexOf(element);
@@ -16,12 +17,16 @@ function remove(lst, element) {
   }
   return false;
 }
+
+
 function isString(value) {
   // checks if value is a string
   let b1 = (typeof value === 'string' || value instanceof String);
   return b1;
 }
 
+
+// type tree functionality
 function nodeTypeReadTree(address, tree) {
   // reads and returns an item from a TreeJsonAddr, given a dot-address
   let branch = tree;
@@ -41,15 +46,14 @@ function nodeTypeReadTree(address, tree) {
   }
 }
 function nodeTypeDelTree(address, tree) {
-  // TODO: fix edge cases
+  // TODO: fix edge cases (e.g. address is just the key)
   if ((address == "") || (address == ".")) return false;
   let path = "";
   let splt = address.split('.');
   let key = splt[splt.length-1];
   if (splt.length > 1) path = splt.slice(0, splt.length-1).join(".");
   branch = _descendRecurse(tree, path)["branch"];
-  let tobedel = _getOrCreate(branch, key);
-  tobedel["leaf"] = null;
+  delete branch[key];
 }
 function nodeTypePutTree(conf, key, path, tree) {
   // address is always relative to tree
@@ -57,6 +61,18 @@ function nodeTypePutTree(conf, key, path, tree) {
   if ((path != "") && (path != "."))
     branch = _descendRecurse(tree, path)["branch"];
   _getOrCreate(branch, key)["leaf"] = conf;
+}
+function addrHasBranchTypesTree(address, tree) {
+  // TODO: fix edge cases
+  if ((address == "") || (address == ".")) return false;
+  let path = "";
+  let splt = address.split('.');
+  let key = splt[splt.length-1];
+  if (splt.length > 1) path = splt.slice(0, splt.length-1).join(".");
+  branch = _descendRecurse(tree, path)["branch"];
+  let node = _getOrCreate(branch, key);
+  let keys = Object.keys(node["branch"]);
+  return keys.length > 0;
 }
 function _descendRecurse(branch, address) {
   // returns branch at address, recursive search
@@ -81,7 +97,6 @@ function _getOrCreate(dct, key) {
 function cloneConf(conf) {
   return Object.assign({}, conf);
 }
-
 
 // TODO: with custom type declaration, we need a nodeTypeWriteTree
 
