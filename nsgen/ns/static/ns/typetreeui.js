@@ -49,6 +49,7 @@ class TypeTreeUi {
     if (usetbx == true) {
       this.typegrp
         .append("input")
+        .style("margin-bottom", "5px")
         .attr("id", tbxid)
         .on("change", function(d) {
           let el = d3.select("#" + tbxid);
@@ -174,7 +175,7 @@ class TypeTreeUi {
   _showMsg(msg) {
     if (msg == null) return false;
     this.statusgrp.selectAll("*").remove();
-    this.statusgrp.append("div").html(msg);
+    this.statusgrp.append("div").style("margin-top","5px").html(msg);
   }
   _pullAndShow() {
     // get objects and sync
@@ -204,7 +205,6 @@ class TypeTreeUi {
       .data(vtd_lst)
       .enter()
       .append("div")
-      .style("text-align", "left")
       .style("margin", "auto");
     containers
       // text element
@@ -216,7 +216,7 @@ class TypeTreeUi {
       })
       .html(function(d) { return d.text; })
     containers
-      // delete btn (x)
+      // delete btn (x) floating to the right
       .append("div")
       .style("display", "inline-block")
       .style("margin-left", "25px")
@@ -224,6 +224,7 @@ class TypeTreeUi {
       .style("height", "100%")
       .style("background", "white")
       .style("cursor", "pointer")
+      .style("float", "right")
       .on("click", function(d) {
         d.deleteClicked();
       })
