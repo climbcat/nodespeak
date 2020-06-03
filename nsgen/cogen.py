@@ -10,19 +10,23 @@ TODO:
 '''
 from queue import LifoQueue
 import inspect
-
+from treealg import TreeJsonAddr, NodeConfig
 '''
 Cogen interface
 '''
 def cogen(graphdef, typetree):
-    print("nodes:")
-    for n in graphdef['nodes']:
-        print(n)
-    print("links:")
-    for l in graphdef['links']:
-        print(l)
-    
+    graph = FlatGraph(typetree)
 
+    print("nodes:")
+    nds = graphdef['nodes']
+    for n in nds:
+        print(n, nds[n])
+    print("links:")
+    lnks = graphdef['links']
+    for l in lnks:
+        print(l, lnks[l])
+    
+    graph.inject_graphdef(graphdef)
 
 
 '''
@@ -89,22 +93,43 @@ child: single child (PROC/TERM/DEC)
 child0: "false" branch of dec node
 child1: "true" branch of dec node
 '''
+def add_fc_node_child(n1, idx, n2):
+    if type(n1) in (NodeDecision, ):
+        n1.add_child(n2, idx)
+    else:
+        # TODO: this is where we need the node child safeguard on term_I nodes ...
+        n1.add_child = n2
+def set_fc_targetnode(fcnode, dgnode):
+    fcnode.dgid = dgnode.name
+
+
 class NodeProc:
-    def __init__(self, fcid, dgid=None, child=None):
-        self.id = fcid
-        self.dgid= dgid
-        self.child = child
-class NodeTermIn(NodeProc): pass
-class NodeTermOut:
-    def __init__(self, fcid, dgid=None):
+    def __init__(self, fcid):
         self.fcid = fcid
-        self.dgid = dgid
+        self.dgid = None
+        self.child = None
+class NodeTerm: # goes for both term_I and term_O ...
+    def __init__(self, fcid):
+        self.fcid = fcid
+        self.dgid = None
+        self.child = None
 class NodeDecision:
-    def __init__(self, fcid, dgid=None, child0=None, child1=None):
+    def __init__(self, fcid):
         self.fcid = fcid
-        self.dgid = dgid
-        self.child0 = child0
-        self.child1 = child1
+        self.dgid = None
+        self.child0 = None
+        self.child1 = None
+    def add_child(self, n, idx=None):
+        if idx == 0:
+            self.child0 = n
+        elif idx == 1:
+            self.child1 = n
+        elif self.child0 is None:
+            self.child0 = n
+        elif self.child1 is None:
+            self.child1 = n
+        else:
+            raise Exception("NodeDecision.add_child: slots 0 and 1 full")
 
 
 #####################################################################################
@@ -214,8 +239,15 @@ class Node:
     def own(self, node):
         if not self._check_subnode(node):
             self.graph_inconsistent_fail('illegal own')
-        if node.name not in self.subnodes.keys():
-            self.subnodes[node.name] = node
+
+        # a hack to make FC nodes work in here, but worth it
+        key = None
+        if (hasattr(node, "name")):
+            key = node.name
+        else:
+            key = node.fcid
+        if key not in self.subnodes.keys():
+            self.subnodes[key] = node
         else:
             raise Node.NodeOfNameAlreadyExistsException()
     def disown(self, node):
@@ -501,9 +533,10 @@ standard_subjects = (FuncNode, MethodNode)
 '''
 Node graph operations.
 '''
-def add_subnode(root, node):
+def add_subnode(root, node, transitive=True):
     root.own(node)
-    node.subnode_to(root)
+    if transitive:
+        node.subnode_to(root)
 
 def remove_subnode(root, node):
     root.disown(node)
@@ -622,22 +655,14 @@ def _log(msg):
 
 
 class FlatGraph:
-    def __init__(self, tpe_tree, pmodule):
-        global flatgraph_pmodule
-        flatgraph_pmodule = pmodule
-        
+    def __init__(self, tpe_tree):
         self.root = RootNode("root")
-        self.tpe_tree = tpe_tree
+        self.tpe_tree = TreeJsonAddr(existing=tpe_tree)
 
         self.coords = None # should be reset with every execute syncset, and by inject_graphdef
 
         self.node_cmds_cache = {}
         self.dslinks_cache = {} # ds = downstream
-
-        self.middleware = None
-        load_mw = getattr(pmodule, "_load_middleware")
-        if load_mw:
-            self.middleware = load_mw()
 
     def _create_node(self, id, tpe_addr):
         '''
@@ -647,26 +672,37 @@ class FlatGraph:
         conf = self.tpe_tree.retrieve(tpe_addr)
         n = None
         node_tpe = basetypes[conf['basetype']]
-        if node_tpe == ObjNode:
+
+        # flowcontrol nodes
+        if node_tpe == NodeTerm:
+            n = NodeTerm(id)
+        elif node_tpe == NodeProc:
+            n = NodeProc(id)
+        elif node_tpe == NodeDecision:
+            n = NodeDecision(id)
+
+        # datagraph nodes
+        elif node_tpe == ObjNode:
             # TODO: somehow include type info derived from graph connectibility
             n = ObjNode(id, None)
-        if node_tpe == ObjNodeTyped:
-            # TODO: set attributes
-            n = ObjNode(id, None)
+        elif node_tpe == ObjNodeTyped:
+            n = ObjNodeTyped(id, conf['type'])
         elif node_tpe == ObjLiteralNode:
             n = ObjLiteralNode(id, None)
         elif node_tpe == FuncNode:
-            # TODO: set attributes
-            func = None
-            n = FuncNode(id, func)
+            n = FuncNode(id, conf['type'])
         elif node_tpe == MethodNode:
             n = MethodNode(id, conf['type'])
+
         return n
 
     def node_add(self, x, y, id, name, label, tpe):
         n = self._create_node(id, tpe)
-        _log('created node (%s) of type: "%s", content: "%s"' % (id, str(type(n)), str(n.get_object())))
-        add_subnode(self.root, n)
+        _log('created node (%s) of type: "%s"' % (id, str(type(n))))
+        if type(n) in (NodeTerm, NodeProc, NodeDecision, ):
+            add_subnode(self.root, n, transitive=False) # this is a safe add not requiring a subnode_to member on ownee
+        else:
+            add_subnode(self.root, n)
         # caching
         self.node_cmds_cache[id] = (x, y, id, name, label, tpe)
 
@@ -686,24 +722,32 @@ class FlatGraph:
         del self.node_cmds_cache[id]
         _log("deleted node: %s" % id)
 
-    def link_add(self, id1, idx1, id2, idx2, order=0):
+    def link_add(self, id1, idx1, id2, idx2, order=None):
+        ''' NOTE: order arg is depricated '''
         n1 = self.root.subnodes[id1]
         n2 = self.root.subnodes[id2]
-        
+
         # "method links" are represented in the frontend as idx==-1, but as an owner/subnode relation in nodespeak
         if idx1 == -1 and idx2 == -1:
             if type(n1) == ObjNode and type(n2) == MethodNode:
                 add_subnode(n1, n2)
             elif type(n1) == MethodNode and type(n2) == ObjNode:
                 add_subnode(n2, n1)
+            elif type(n1) in (NodeTerm, NodeProc, NodeDecision, ) and type(n2) in (ObjNode, ObjNodeTyped, ObjLiteralNode, FuncNode, ReturnFuncNode, ):
+                set_fc_targetnode(n1, n2)
+            elif type(n2) in (NodeTerm, NodeProc, NodeDecision, ) and type(n1) in (ObjNode, ObjNodeTyped, ObjLiteralNode, FuncNode, ReturnFuncNode, ):
+                set_fc_targetnode(n2, n1)
         # all other connections
         else:
-            add_connection(n1, idx1, n2, idx2, order)
+            if type(n1) in (NodeTerm, NodeProc, NodeDecision, ):
+                add_fc_node_child(n1, idx1, n2)
+            else:
+                add_connection(n1, idx1, n2, idx2)
 
         # caching
         if not self.dslinks_cache.get(id1, None):
             self.dslinks_cache[id1] = []
-        self.dslinks_cache[id1].append((id1, idx1, id2, idx2, order))
+        self.dslinks_cache[id1].append((id1, idx1, id2, idx2))
 
         _log("added link from (%s, %d) to (%s, %d)" % (id1, idx1, id2, idx2))
 
@@ -830,7 +874,7 @@ class FlatGraph:
 
         for key in links.keys():
             for cmd in links[key]:
-                self.link_add(cmd[0], cmd[1], cmd[2], cmd[3], cmd[4])
+                self.link_add(cmd[0], cmd[1], cmd[2], cmd[3])
 
     def extract_graphdef(self):
         ''' extract and return a frontend-readable graph definition, using the x_y field to insert these into the gd '''
@@ -861,8 +905,8 @@ basetypes = {
     'method' : MethodNode,
     
     # nsgen flowchart basetypes
-    'term' : NodeTermIn,
-    'proc' : NodeTermIn,
-    'dec' : NodeTermIn,
+    'term' : NodeTerm,
+    'proc' : NodeProc,
+    'dec' : NodeDecision,
 }
 
