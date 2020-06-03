@@ -1,0 +1,868 @@
+'''
+TODO: 
+- build node graph from a frontend-generated graph def
+- handle graph requirements: custom types (do we need special nodes/types to represent user typedefs or are node confs enough?)
+- gen pseudocode / lines representation
+- do goto-elimination
+- gen code from goto-eliminated pseudocode (language specific)
+- gen typedefs and stubs (language specific)
+
+'''
+from queue import LifoQueue
+import inspect
+
+'''
+Cogen interface
+'''
+def cogen(graphdef, typetree):
+    print("nodes:")
+    for n in graphdef['nodes']:
+        print(n)
+    print("links:")
+    for l in graphdef['links']:
+        print(l)
+    
+
+
+
+'''
+Pseudocode generation
+'''
+class LineStatement:
+    def __init__(self, node):
+        self.dgid = getTargetId(node) # target
+class LineBranch(LineStatement): pass
+class LineClose: pass
+class LineGoto:
+    def __init__(self, node):
+        self.fcid = getFcId(node) # target
+
+# TODO: Implement. These should throw exceptions when used on the wrong kind of nodes
+def isBranch(node):
+    return type(node) == NodeDecision
+def getFcId(node):
+    return node.fcid
+def getTargetId(node):
+    return node.dgid
+def getSingleChild(node):
+    return node.child
+def getChild0(node):
+    return node.child0
+def getChild1(node):
+    return node.child1
+
+def iterateBinbranchFlow(node):
+    ''' the flowchart-to-pseudocode representation step '''
+    idx = 0
+    vis = {} # visited node id:idx entries
+    lines = []
+    stack = LifoQueue(maxsize=100) # some outrageously large maxsize here 
+
+    while node is not None:
+        fcid = getFcId(node)
+        dgid = getTargetId(node)
+        if vis.get(fcid, None):
+            lines.append(LineGoto(fcid))
+            node = None # flag for LineClose
+        else:
+            vis[fcid] = idx
+            if isBranch(node):
+                lines.append(LineBranch(dgid))
+                stack.put(getChild0(node))
+                node = getChild1(node)
+                continue # implicit explicit
+            else:
+                lines.append(LineStatement(dgid))
+                node = getSingleChild(node)
+        if node == None:
+            idx = idx + 1
+            lines.append(LineClose())
+            node = stack.get()
+        idx = idx + 1
+
+'''
+Ultra-simple flow control model.
+
+fcid: the global id of this flowchart item
+dgid: the datagraph target global id
+child: single child (PROC/TERM/DEC)
+child0: "false" branch of dec node
+child1: "true" branch of dec node
+'''
+class NodeProc:
+    def __init__(self, fcid, dgid=None, child=None):
+        self.id = fcid
+        self.dgid= dgid
+        self.child = child
+class NodeTermIn(NodeProc): pass
+class NodeTermOut:
+    def __init__(self, fcid, dgid=None):
+        self.fcid = fcid
+        self.dgid = dgid
+class NodeDecision:
+    def __init__(self, fcid, dgid=None, child0=None, child1=None):
+        self.fcid = fcid
+        self.dgid = dgid
+        self.child0 = child0
+        self.child1 = child1
+
+
+#####################################################################################
+######################### ORG VERSION IMPORTED FROM IFL #############################
+#####################################################################################
+
+
+'''
+List-based parents/children data structure enabling unique parents, multiple children of the same index.
+
+TODO: This list-based approach might be replaced with a dict-based one (hash-table constant time lookup)
+'''
+def child_put(lst, item, idx):
+    lst.append((item, idx))
+def children_get(lst):
+    srtd = sorted(lst, key=lambda i: i[1])
+    return [l[0] for l in srtd]
+def child_rm(lst, item, idx):
+    try:
+        del lst[lst.index((item, idx))]
+    except:
+        raise Exception("child_rm: item, idx(%s) not found in lst" % idx)
+def parent_put(lst, item, idx):
+    idxs = [l[1] for l in lst]
+    if idx in idxs:
+        raise Exception('some item of idx "%s" already exists' % idx)
+    lst.append((item, idx))
+def parents_get(lst):
+    srtd = sorted(lst, key=lambda i: i[1])
+    return [l[0] for l in srtd]
+def parent_rm(lst, item, idx):
+    try:
+        del lst[lst.index((item, idx))]
+    except:
+        raise Exception("parent_rm: item, idx(%s) not found in lst" % idx)
+def child_or_parent_rm_allref(lst, item):
+    todel = [l for l in lst if l[0]==item]
+    for l in todel:
+        del lst[lst.index(l)]
+
+'''
+Base datagraph node types.
+'''
+class NodeNotExecutableException(Exception): pass
+class InternalExecutionException(Exception):
+    def __init__(self, name, msg=None):
+        self.name = name
+        super().__init__(msg)
+class GraphInconsistenceException(Exception): pass
+class AbstractMethodException(Exception): pass
+
+class Node:
+    class RemoveParentIdxInconsistencyException(Exception): pass
+    class RemoveChildIdxInconsistencyException(Exception): pass
+    class NodeOfNameAlreadyExistsException(Exception): pass
+    class NoNodeOfNameExistsException: pass
+    def __init__(self, name, exe_model):
+        self.name = name
+        self.exe_model = exe_model
+
+        self.children = []
+        self.parents = []
+        self.owners = []
+        self.subnodes = {}
+
+    def graph_inconsistent_fail(self, message):
+        raise GraphInconsistenceException('(%s %s): %s' % (type(self).__name__, self.name, message))
+
+    ''' Graph connectivity interface '''
+    def add_child(self, node, idx):
+        if node in [n for n in children_get(self.children)]:
+            raise Node.NodeOfNameAlreadyExistsException()
+        if not self._check_child(node):
+            self.graph_inconsistent_fail("illegal add_child")
+        child_put(self.children, node, idx)
+    def remove_child(self, node, idx=None):
+        if idx is None:
+            child_or_parent_rm_allref(self.children, node)
+        else:
+            child_rm(self.children, node, idx)
+    def num_children(self):
+        # NOTE: we removed adding together "zero'th and first order" children, order has been removed 
+        return len(children_get(self.children))
+
+    def add_parent(self, node, idx):
+        if node in [n for n in parents_get(self.parents)]:
+            raise Node.NodeOfNameAlreadyExistsException()
+        if not self._check_parent(node):
+            self.graph_inconsistent_fail('illegal add_parent')
+        parent_put(self.parents, node, idx)
+    def remove_parent(self, node, idx=None):
+        if idx is None:
+            child_or_parent_rm_allref(self.parents, node)
+        else:
+            parent_rm(self.parents, node, idx)
+    def num_parents(self):
+        return len(parents_get(self.parents))
+
+    def subnode_to(self, node):
+        if not self._check_owner(node):
+            self.graph_inconsistent_fail('illegal subnode_to')
+        self.owners.append(node)
+    def unsubnode_from(self, node):
+        if node in self.owners:
+            self.owners.remove(node)
+
+    def own(self, node):
+        if not self._check_subnode(node):
+            self.graph_inconsistent_fail('illegal own')
+        if node.name not in self.subnodes.keys():
+            self.subnodes[node.name] = node
+        else:
+            raise Node.NodeOfNameAlreadyExistsException()
+    def disown(self, node):
+        if node.name in self.subnodes.keys():
+            del self.subnodes[node.name]
+        else:
+            raise Node.NoNodeOfNameExistsException()
+
+    ''' Graph consistence. Implement to define conditions on graph consistency, throw a GraphInconsistenceException. '''
+    def _check_subnode(self, node):
+        pass
+    def _check_owner(self, node):
+        pass
+    def _check_child(self, node):
+        pass
+    def _check_parent(self, node):
+        pass
+
+    ''' Subject/Object execution interface '''
+    def assign(self, node):
+        raise AbstractMethodException()
+    def call(self, *args):
+        raise AbstractMethodException()
+    def get_object(self):
+        raise AbstractMethodException()
+
+    ''' Execution model interface '''
+    def exemodel(self):
+        return self.exe_model
+
+class ExecutionModel():
+    ''' Subclass to implement all methods. '''
+    class CallAndAssignException(Exception): pass
+    def can_assign(self):
+        raise AbstractMethodException()
+    def can_call(self):
+        raise AbstractMethodException()
+    def objects(self):
+        raise AbstractMethodException()
+    def subjects(self):
+        raise AbstractMethodException()
+    def check(self):
+        if self.can_assign() and self.can_call():
+            raise ExecutionModel.CallAndAssignException()
+
+
+'''
+Generic node types.
+'''
+
+class RootNode(Node):
+    ''' Used as a passive "owning" node. Can accept any child or parent as a sub-node. '''
+    class ExeModel(ExecutionModel):
+        ''' A model that does nothing. '''
+        def can_assign(self):
+            return False
+        def can_call(self):
+            return False
+        def objects(self):
+            return ()
+        def subjects(self):
+            return ()
+
+    def __init__(self, name):
+        super().__init__(name, exe_model=RootNode.ExeModel())
+    def _check_subnode(self, node):
+        return True
+    def _check_owner(self, node):
+        return True
+    def _check_child(self, node):
+        return False
+    def _check_parent(self, node):
+        return False
+
+'''
+Data graph node types.
+'''
+
+class ObjNode(Node):
+    ''' General type-agnostic object handle. '''
+    class CallException(Exception): pass
+    class ExeModel(ExecutionModel):
+        def can_assign(self):
+            return True
+        def can_call(self):
+            return False
+        def objects(self):
+            return standard_objects
+        def subjects(self):
+            return standard_subjects
+
+    def __init__(self, name, obj=None):
+        self.obj = obj
+        super().__init__(name, exe_model=type(self).ExeModel())
+
+    def assign(self, obj):
+        self.obj = obj
+        for m in [node for node in list(self.subnodes.values()) if type(node) is MethodNode]:
+            m._check_owner(self)
+    def call(self, *args):
+        raise ObjNode.CallException()
+    def get_object(self):
+        return self.obj
+
+    def _check_subnode(self, node):
+        return type(node) is MethodNode
+    def _check_owner(self, node):
+        return type(node) is RootNode
+    def _check_child(self, node):
+        return type(node) in standard_children
+    def _check_parent(self, node):
+        return type(node) in standard_parents and len( parents_get(self.parents) ) < 1
+
+class ObjNodeTyped(ObjNode): pass
+# TODO: implement to retain type info
+
+class ObjLiteralNode(ObjNode):
+    ''' Literal value handle '''
+    class ExeModel(ExecutionModel):
+        def can_assign(self):
+            ''' This does not mean that you can't assign, but the execution function! '''
+            return False
+        def can_call(self):
+            return False
+        def objects(self):
+            return [ObjLiteralNode]
+        def subjects(self):
+            return []
+    def _check_parent(self, node):
+        return False
+
+class FuncNode(Node):
+    ''' A named function, no direct execution allowed. '''
+    class ExeModel(ExecutionModel):
+        def can_assign(self):
+            return False
+        def can_call(self):
+            return False
+        def objects(self):
+            return []
+        def subjects(self):
+            return []
+
+    def __init__(self, name, func):
+        self.func = func
+        super().__init__(name, exe_model=FuncNode.ExeModel())
+        # default value parameters are not represented in the graph, but as a configuration option
+        self.defaults = {}
+        sign = inspect.signature(func)
+        for k in sign.parameters.keys():
+            par = sign.parameters[k]
+            if par.default != inspect._empty:
+                self.defaults[k] = par.default
+    def assign(self, obj):
+        if type(obj) not in (dict, ):
+            raise Exception("only do call FuncNode.assign with a dict")
+        for k in obj.keys():
+            if k in self.defaults:
+                self.defaults[k] = obj[k]
+    def call(self, *args):
+        try:
+            return self.func(*args, **self.defaults)
+        except Exception as e:
+            raise InternalExecutionException(self.name, str(e))
+    def get_object(self):
+        return self.defaults
+
+    def _check_subnode(self, node):
+        return False
+    def _check_owner(self, node):
+        return type(node) is RootNode
+    def _check_child(self, node):
+        return type(node) in standard_children
+    def _check_parent(self, node):
+        return type(node) in standard_parents and True
+
+class MethodNode(Node):
+    ''' Represents a method reference on some object, requires an ObjNode owner. '''
+    class NoMethodOfThatNameException(InternalExecutionException): pass
+    class AssignException(InternalExecutionException): pass
+    class ExeModel(ExecutionModel):
+        def can_assign(self):
+            return False
+        def can_call(self):
+            return True
+        def objects(self):
+            return standard_objects
+        def subjects(self):
+            return standard_subjects
+
+    def __init__(self, name, methodname):
+        self.methodname = methodname
+        super().__init__(name, exe_model=MethodNode.ExeModel())
+        # default value parameters are not represented in the graph as a configuration option
+        self.defaults = {}
+    def assign(self, obj):
+        if type(obj) not in (dict, ):
+            raise InternalExecutionException(self.name, "only call MethodNode.assign with a dict (%s)" % str(obj))
+        for k in obj.keys():
+            # we have to assume that they are assigning something meaningful - otherwise call() will fail (a check could be implemented though)
+            self.defaults[k] = obj[k]
+    def call(self, *args):
+        ''' call the method, grabbing self from any (unique) owner object, and attempts to apply self.defaults '''
+        last = None
+        for o in self.owners:
+            if type(o) is ObjNode:
+                # find method ref and default args
+                method = None
+                try:
+                    method = getattr(o.get_object(), self.methodname)
+                    
+                    # find parameters in sign. matching keys in self.defaults
+                    sign = inspect.signature(method)
+                    for k in sign.parameters.keys():
+                        par = sign.parameters[k]
+                        if par.default != inspect._empty:
+                            if par._name not in self.defaults.keys():
+                                self.defaults[k] = par.default
+                except:
+                    raise MethodNode.NoMethodOfThatNameException(self.name, "no method of that name")
+
+                try:
+                    last = method(*args, **self.defaults)
+                except Exception as e:
+                    raise InternalExecutionException(self.name, str(e))
+        return last
+
+    def get_object(self):
+        return self.defaults
+
+    def _check_subnode(self, node):
+        return False
+    def _check_owner(self, node):
+        return type(node) in (ObjNode, RootNode)
+    def _check_child(self, node):
+        return type(node) in standard_children and True
+    def _check_parent(self, node):
+        return type(node) in standard_parents and True
+
+class ReturnFuncNode(Node):
+    ''' Callable function supposed to return a bool or N_0 int. '''
+    class AssignException(Exception): pass
+    class ExeModel(ExecutionModel):
+        def can_assign(self):
+            return False
+        def can_call(self):
+            return True
+        def objects(self):
+            return standard_objects
+        def subjects(self):
+            return standard_subjects
+
+    def __init__(self, name, func=None):
+        self.func = func
+        super().__init__(name, exe_model=ReturnFuncNode.ExeModel())
+
+    def assign(self, obj):
+        raise ReturnFuncNode.AssignException()
+    def call(self, *args):
+        if self.func:
+            try:
+                return self.func(*args)
+            except Exception as e:
+                raise InternalExecutionException(self.name, str(e))
+        else:
+            '''_not_none default behavior '''
+            if len(args) > 0:
+                return args[0] is not None
+    def _check_subnode(self, node):
+        return False
+    def _check_owner(self, node):
+        return type(node) is RootNode
+    def _check_child(self, node):
+        return False
+    def _check_parent(self, node):
+        return type(node) in standard_children and True
+
+standard_children = (FuncNode, ObjNode, MethodNode, ReturnFuncNode)
+standard_parents = (FuncNode, ObjNode, ObjLiteralNode, MethodNode)
+standard_objects = (ObjNode, ObjLiteralNode)
+standard_subjects = (FuncNode, MethodNode)
+
+'''
+Node graph operations.
+'''
+def add_subnode(root, node):
+    root.own(node)
+    node.subnode_to(root)
+
+def remove_subnode(root, node):
+    root.disown(node)
+    node.unsubnode_from(root)
+
+def add_connection(node1, idx1, node2, idx2):
+    node1.add_child(node2, idx1)
+    node2.add_parent(node1, idx2)
+
+def remove_connection(node1, idx1, node2, idx2):
+    node1.remove_child(node2, idx1)
+    node2.remove_parent(node1, idx2)
+
+def del_node(node):
+    ''' disconnect a node and recursively disconnect all its subnodes '''
+    for c in node.children:
+        remove_connection(node, c)
+    for p in node.parents:
+        remove_connection(p, node)
+    for s in node.subnodes:
+        del_node(s)
+    if node.owner:
+        remove_subnode(node.owner, node)
+
+'''
+Node graph engine execution.
+'''
+def execute_node(node):
+    '''
+    Directed graph subtree execution.
+    '''
+    def build_subtree(root):
+        '''
+        Recursively builds a subtree from the graph consisting of a root (tree[0], possibly None), and 0-2 elements.
+        '''
+        def build_subtree_recurse(node, tree, model):
+            subjs = model.subjects()
+            objs = model.objects()
+            for p in parents_get(node.parents):
+                if type(p) in subjs:
+                    tree.append(p)
+                    tree.append(build_subtree_recurse(p, [], model))
+                elif type(p) in objs:
+                    tree.append(p)
+            return tree
+
+        model = root.exemodel()
+        tree = build_subtree_recurse(root, [], model)
+        # for "object calls" e.g. obj or "func as functional output"
+        if model.can_assign():
+            tree.insert(0, root)
+            return tree
+        # for "subject call" e.g. returnfunc
+        elif model.can_call():
+            return [None, root, tree]
+        else:
+            raise NodeNotExecutableException()
+
+    def call_subtree(tree):
+        '''
+        Recursively calls nodes in a subtree, built by the build_subtree function.
+
+        If the root (tree[0]) is not None, assignment to this node is carried out after call recursion.
+        The result is always returned.
+
+        Disregarding the tree root, a pair of elements, consisting of a subject node and a list (an arg-list)
+        signals a call recursion. Elements in that list can be singular object nodes or pairs of a subject
+        node and an arg-list. Note:
+        - During call recursion, Object nodes in argument lists are replaced with their values.
+        - During recursion, (Subject node, arg-list) pairs are recursively reduced to values. This evaluation
+        begins at the end branches.
+        '''
+        def call_recurse(f, argtree):
+            i = 0
+            while i < len(argtree):
+                if i + 1 < len(argtree) and type(argtree[i+1]) == list:
+                    f_rec = argtree[i]
+                    argtree_rec = argtree[i+1]
+                    value = call_recurse(f_rec, argtree_rec)
+                    del argtree[i]
+                    argtree[i] = value
+                else:
+                    value = argtree[i].get_object()
+                    argtree[i] = value
+                i += 1
+            return f.call(*argtree)
+
+        root = tree[0]
+        del tree[0]
+
+        result = None
+        if len(tree) == 0:
+            result = None
+            if root: root.assign(result)
+        elif len(tree) == 1:
+            result = tree[0].get_object()
+            if root: root.assign(result)
+        else:
+            func = tree[0]
+            args = tree[1]
+            result = call_recurse(func, args)
+            if root: root.assign(result)
+        return result
+
+    subtree = build_subtree(node)
+    return call_subtree(subtree)
+
+
+'''
+Flatgraph representation functionality. Node data has been removed, only static info is needed for cogen.
+'''
+
+
+def _log(msg):
+    print(msg)
+
+
+class FlatGraph:
+    def __init__(self, tpe_tree, pmodule):
+        global flatgraph_pmodule
+        flatgraph_pmodule = pmodule
+        
+        self.root = RootNode("root")
+        self.tpe_tree = tpe_tree
+
+        self.coords = None # should be reset with every execute syncset, and by inject_graphdef
+
+        self.node_cmds_cache = {}
+        self.dslinks_cache = {} # ds = downstream
+
+        self.middleware = None
+        load_mw = getattr(pmodule, "_load_middleware")
+        if load_mw:
+            self.middleware = load_mw()
+
+    def _create_node(self, id, tpe_addr):
+        '''
+        id - node id
+        tpe_addr - node type address
+        '''
+        conf = self.tpe_tree.retrieve(tpe_addr)
+        n = None
+        node_tpe = basetypes[conf['basetype']]
+        if node_tpe == ObjNode:
+            # TODO: somehow include type info derived from graph connectibility
+            n = ObjNode(id, None)
+        if node_tpe == ObjNodeTyped:
+            # TODO: set attributes
+            n = ObjNode(id, None)
+        elif node_tpe == ObjLiteralNode:
+            n = ObjLiteralNode(id, None)
+        elif node_tpe == FuncNode:
+            # TODO: set attributes
+            func = None
+            n = FuncNode(id, func)
+        elif node_tpe == MethodNode:
+            n = MethodNode(id, conf['type'])
+        return n
+
+    def node_add(self, x, y, id, name, label, tpe):
+        n = self._create_node(id, tpe)
+        _log('created node (%s) of type: "%s", content: "%s"' % (id, str(type(n)), str(n.get_object())))
+        add_subnode(self.root, n)
+        # caching
+        self.node_cmds_cache[id] = (x, y, id, name, label, tpe)
+
+    def node_rm(self, id):
+        n = self.root.subnodes.get(id, None)
+        if not n:
+            return
+        
+        obj = n.get_object()
+        if obj != None:
+            self.middleware.deregister(obj)
+        
+        if n.num_parents() != 0 or n.num_children() != 0:
+            raise Exception("node_rm: can not remove node with existing links")
+        remove_subnode(self.root, n)
+        # caching
+        del self.node_cmds_cache[id]
+        _log("deleted node: %s" % id)
+
+    def link_add(self, id1, idx1, id2, idx2, order=0):
+        n1 = self.root.subnodes[id1]
+        n2 = self.root.subnodes[id2]
+        
+        # "method links" are represented in the frontend as idx==-1, but as an owner/subnode relation in nodespeak
+        if idx1 == -1 and idx2 == -1:
+            if type(n1) == ObjNode and type(n2) == MethodNode:
+                add_subnode(n1, n2)
+            elif type(n1) == MethodNode and type(n2) == ObjNode:
+                add_subnode(n2, n1)
+        # all other connections
+        else:
+            add_connection(n1, idx1, n2, idx2, order)
+
+        # caching
+        if not self.dslinks_cache.get(id1, None):
+            self.dslinks_cache[id1] = []
+        self.dslinks_cache[id1].append((id1, idx1, id2, idx2, order))
+
+        _log("added link from (%s, %d) to (%s, %d)" % (id1, idx1, id2, idx2))
+
+    def link_rm(self, id1, idx1, id2, idx2, order=0):
+        n1 = self.root.subnodes[id1]
+        n2 = self.root.subnodes[id2]
+        
+        # method links are represented in the frontend as idx==-1, but as an owner/subnode relation in nodespeak
+        if type(n1) == ObjNode and type(n2) == MethodNode and idx1 == -1 and idx2 == -1:
+            remove_subnode(n1, n2)
+        elif type(n1) == MethodNode and type(n2) == ObjNode and idx1 == -1 and idx2 == -1:
+            remove_subnode(n2, n1)
+        # all other connections
+        else:
+            remove_connection(n1, idx1, n2, idx2, order)
+
+        # caching
+        lst = self.dslinks_cache[id1]
+        idx = lst.index((id1, idx1, id2, idx2, order))
+        del lst[idx]
+        _log("removed link from (%s, %d) to (%s, %d)" % (id1, idx1, id2, idx2))
+
+    def node_label(self, id, label):
+        # TODO: remember node label changes to be able to generate a proper graphdef
+
+        _log("node label update always ignored, (%s, %s)." % (id, label))
+        # caching
+        e = self.node_cmds_cache[id]
+        self.node_cmds_cache[id] = (e[0], e[1], e[2], e[3], label, e[5])
+
+    def graph_update(self, redo_lsts):
+        ''' takes an undo-redo list and sequentially modifies the server-side graph '''
+        _log('graph update: %d commands' % len(redo_lsts))
+        error = None
+        def erracc(msg, s):
+            ''' message accumulation '''
+            if s == None:
+                s = msg
+            else:
+                s = s + ", " + msg
+
+        for redo_molecule in redo_lsts:
+            for redo in redo_molecule:
+                cmd = redo[0]
+                args = redo[1:]
+                try:
+                    getattr(self, cmd)(*args)
+                except Exception as e:
+                    _log('graph update failed, cmd "%s" with: %s' % (redo, str(e)), error=True)
+                    erracc(str(e), error)
+
+        if error != None:
+            return {'error' : error}
+
+    def graph_coords(self, coords):
+        ''' updates the cached node_add commands x- and y-coordinate entries '''
+        keys = coords.keys()
+        for key in keys:
+            coord = coords[key]
+            cached_cmd = self.node_cmds_cache[key]
+            self.node_cmds_cache[key] = (coord[0], coord[1], cached_cmd[2], cached_cmd[3], cached_cmd[4], cached_cmd[5])
+        _log('graph coords: %d coordinate sets' % len(keys))
+
+    def execute_node(self, id):
+
+        # TODO: update this for statement generation, this is, however language dependent and sould likelye be moved to another class
+        
+        '''
+        _log("execute_node: %s" % id)
+        try:
+            n = self.root.subnodes[id]
+
+            # deregister and clear any previous object
+            old = n.get_object()
+            if old != None:
+                self.middleware.deregister(old)
+
+            # execute (assigns a new object or None), log and register
+            obj = self.middleware.execute_through_proxy( lambda _n=n: execute_node(_n) )
+            # NOTE: deregistration is handled through the execute proxy call
+
+            _log("exe yields: %s" % str(obj))
+            _log("returning json representation...")
+
+            retobj = {'dataupdate': {} }
+            update_lst = [id]
+            if type(n) in (MethodNode, ):
+                update_lst.append([o.name for o in n.owners if type(o) == ObjNode][0]) # find "owner" id...
+            for key in update_lst:
+                try:
+                    retobj['dataupdate'][key] = None
+                    m = self.root.subnodes[key]
+                    if m.exemodel().can_assign():
+                        objm = m.get_object()
+                        if objm:
+                            retobj['dataupdate'][key] = objm.get_repr()
+                except Exception as e:
+                    s = traceback.format_exc()
+                    raise ObjectRepresentationException(s)
+            return retobj
+
+        except InternalExecutionException as e:
+            _log("internal error during exe (%s): %s - %s" % (id, e.name, str(e)), error=True)
+            return {'error' : "InternalExecutionException:\n%s" % str(e), 'errorid' : e.name}
+        except NodeNotExecutableException as e:
+            _log("node is not executable (%s)" % id, error=True)
+            return {'error' : "NodeNotExecutableException:\n%s, %s" % (str(e), id)}
+        except ObjectRepresentationException as e:
+            _log("object representation error... %s" % str(e), error=True)
+            return {'error' : "ObjectRepresentationException:\n%s" % str(e)}
+        except Exception as e:
+            _log("Exotic engine error (%s): %s" % (id, str(e)), error=True)
+            return {'error' : "%s: %s" % (type(e).__name__, str(e))}
+        '''
+
+    def inject_graphdef(self, graphdef):
+        ''' adds nodes, links and datas to the graph '''
+        nodes = graphdef['nodes']
+        links = graphdef['links']
+
+        for key in nodes.keys():
+            cmd = nodes[key]
+            self.node_add(cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5])
+
+        for key in links.keys():
+            for cmd in links[key]:
+                self.link_add(cmd[0], cmd[1], cmd[2], cmd[3], cmd[4])
+
+    def extract_graphdef(self):
+        ''' extract and return a frontend-readable graph definition, using the x_y field to insert these into the gd '''
+        _log("extracting graph def...")
+        gdef = {}
+        gdef["nodes"] = {}
+        gdef["links"] = {}
+        gdef["datas"] = {}
+        gdef["labels"] = {}
+        for key in self.root.subnodes.keys():
+            # nodes
+            gdef["nodes"][key] = self.node_cmds_cache[key]
+
+            # links
+            try:
+                gdef["links"][key] = self.dslinks_cache[key]
+            except:
+                pass # not all nodes have outgoing links...
+        return gdef
+
+
+basetypes = {
+    # nsgen datagraph basetypes
+    'object' : ObjNode,
+    'object_typed' : ObjNodeTyped,
+    'object_literal' : ObjLiteralNode,
+    'function_named' : FuncNode,
+    'method' : MethodNode,
+    
+    # nsgen flowchart basetypes
+    'term' : NodeTermIn,
+    'proc' : NodeTermIn,
+    'dec' : NodeTermIn,
+}
+

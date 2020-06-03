@@ -151,6 +151,15 @@ class GraphInterfaceNSGen extends GraphInterface {
       $("body").css("cursor", "default");
     }.bind(this));
   }
+  cogenSession() {
+    $("body").css("cursor", "wait");
+    // allSessionData contains live type trees, and a graphdef slow
+    let gd = this.graphData.extractGraphDefinition();
+    this.allSessionData['graphdef'] = gd;
+    this.ajaxcall("/ajax_cogen/", this.allSessionData, function(obj) {
+      $("body").css("cursor", "default");
+    }.bind(this));
+  }
   _resizeCB() {
     let btnsmenu = d3.select("#buttons");
     btnsmenu.style("left", window.innerWidth/2-btnsmenu.node().clientWidth/2 + "px");
@@ -182,6 +191,7 @@ function simpleajax(url, data, gs_id, tab_id, success_cb, fail_cb=null, showfail
     // parse & json errors
     try {
       obj = JSON.parse(msg);
+      if (obj['msg'] != null) console.log(obj'msg');
     }
     catch(error) {
       console.log("JSON.parse error on server response: ", msg);

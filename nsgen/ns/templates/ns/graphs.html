@@ -11,6 +11,7 @@
   <button id="btnRedo">Redo</button>
   <button id="btnLoad">Load</button>
   <button id="btnCommit">Save</button>
+  <button id="btnCogen">Cogen</button>
 </div>
 <div id="status" style="position:absolute;margin:auto;"><label id="lblStatus"></label></div>
 
@@ -51,6 +52,7 @@ $(document).ready(() => {
   $("#btnRedo").click( () => { intface.redo(); });
   $("#btnLoad").click( () => { intface.loadSession(); });
   $("#btnCommit").click( () => { intface.commitSession(); });
+  $("#btnCogen").click( () => { intface.cogenSession(); });
 
   // construct graph engine and add listeners
   let gs_id = $("body > #gs_id")[0].value;

@@ -2,6 +2,8 @@ from django.shortcuts import render, HttpResponse, redirect
 from .models import GraphSession, TypeSchema, TabId
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from cogen import cogen
+import json
 
 # the one and only view
 @login_required
@@ -47,6 +49,16 @@ def ajax_commit(req):
     # return success
     return HttpResponse('{ "msg" : "graphdef saved" }')
 
-def tab_validate(req):
-    pass
+def ajax_cogen(req):
+    data_str = req.POST.get("data_str", None)
+    if data_str == None:
+        return HttpResponse('{ "msg" : "no data received" }')
 
+    obj = json.loads(data_str)
+    text = cogen(obj["graphdef"], obj)
+
+    return HttpResponse('{ "msg" : "cogen done" }')
+
+def tab_validate(req):
+    # TODO: port from IFL
+    pass

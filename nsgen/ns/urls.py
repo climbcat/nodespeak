@@ -23,4 +23,5 @@ urlpatterns = [
     url(r'new/(?P<ts_id>[0-9]+)/?$', views.new_gs),
     url(r'ajax_load/(?P<gs_id>[\w0-9]+)/?$', views.ajax_load),
     url(r'ajax_commit/?$', views.ajax_commit),
+    url(r'ajax_cogen/?$', views.ajax_cogen),
 ]
