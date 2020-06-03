@@ -191,7 +191,7 @@ function simpleajax(url, data, gs_id, tab_id, success_cb, fail_cb=null, showfail
     // parse & json errors
     try {
       obj = JSON.parse(msg);
-      if (obj['msg'] != null) console.log(obj'msg');
+      if (obj['msg'] != null) console.log(obj['msg']);
     }
     catch(error) {
       console.log("JSON.parse error on server response: ", msg);
