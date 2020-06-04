@@ -1,4 +1,4 @@
-# nodespeakgen
+# nsgen
 
 Development setup:
 
