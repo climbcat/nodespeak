@@ -4,7 +4,7 @@ Generates hard-coded node type configurations for NSGen flowcharts.
 from django.core.management.base import BaseCommand
 import json
 
-from .treealg import TreeJsonAddr, NodeConfig
+from treealg import TreeJsonAddr, NodeConfig
 from ns.models import TypeSchema
 
 
