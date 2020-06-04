@@ -55,7 +55,10 @@ def ajax_cogen(req):
         return HttpResponse('{ "msg" : "no data received" }')
 
     obj = json.loads(data_str)
-    text = cogen(obj["graphdef"], obj)
+    try:
+        text = cogen(obj["graphdef"], obj)
+    except Exception as e:
+        return HttpResponse('{ "msg" : "%s" }' % str(e))
 
     return HttpResponse('{ "msg" : "cogen done" }')
 

@@ -11,6 +11,8 @@ TODO:
 from queue import LifoQueue
 import inspect
 from treealg import TreeJsonAddr, NodeConfig
+
+
 '''
 Cogen interface
 '''
@@ -28,25 +30,84 @@ def cogen(graphdef, typetree):
     
     graph.inject_graphdef(graphdef)
 
+    # get a unique starting point or except
+    allnodes = list(graph.root.subnodes.values())
+    terms_I = [n for n in allnodes if type(n)==NodeTerm and n.child != None]
+    if len(terms_I) != 1:
+        raise Exception("flow control graph must have exactly one entry point")
+    
+    lines = iterateBinbranchFlow(terms_I[0])
+    lw = LineWriter(lines)
+    text = lw.write()
+    print(text) 
+    pass
 
 '''
 Pseudocode generation
 '''
+
+class LineWriter:
+    def __init__(self, lines, indent=4):
+        self.ilines = lines
+        self.olines = []
+        self.indent_amount = indent
+        self.indent_level = 0
+    def write(self):
+        a = self.indent_amount
+        i = self.indent_level
+        lineno = 1
+        for l in self.ilines:
+            # postivie: adjust indentation level after
+            if l.ilvl<1:
+                i = i + l.ilvl
+            # indent and print line
+            self.olines.append(str(lineno).ljust(4) + ''.ljust(i*a) + str(l))
+            # postivie: adjust indentation level after
+            if l.ilvl >= 0:
+                i = i + l.ilvl
+            lineno = lineno + 1
+        return '\n'.join(self.olines)
+
 class LineStatement:
     def __init__(self, node):
-        self.dgid = getTargetId(node) # target
-class LineBranch(LineStatement): pass
-class LineClose: pass
-class LineGoto:
+        self.dgid = getDgTargetId(node) # target
+        self.ilvl = 0
+    def __str__(self):
+        s = self.dgid
+        if self.dgid == None:
+            s = "(empty)"
+        return s
+class LineBranch:
     def __init__(self, node):
-        self.fcid = getFcId(node) # target
+        self.dgid = getDgTargetId(node) # target
+        self.ilvl = 1
+    def __str__(self):
+        return "if %s {" % self.dgid
+class LineClose:
+    def __init__(self):
+        self.ilvl = -1
+    def __str__(self):
+        return "}"
+class LineOpen:
+    def __init__(self):
+        self.ilvl = 1
+    def __str__(self):
+        return "{"
+class LineGoto:
+    def __init__(self, fcid):
+        self.fcid = fcid # target
+        self.lineno = None
+        self.ilvl = 0
+    def __str__(self):
+        return "goto " + str(self.lineno)
+    def setLineNo(self, lineno):
+        self.lineno = lineno
 
-# TODO: Implement. These should throw exceptions when used on the wrong kind of nodes
 def isBranch(node):
     return type(node) == NodeDecision
 def getFcId(node):
     return node.fcid
-def getTargetId(node):
+def getDgTargetId(node):
     return node.dgid
 def getSingleChild(node):
     return node.child
@@ -59,33 +120,42 @@ def iterateBinbranchFlow(node):
     ''' the flowchart-to-pseudocode representation step '''
     idx = 0
     vis = {} # visited node id:idx entries
-    lines = []
+    lines = [LineOpen()] # just a line open, because everything ends in a line close
     stack = LifoQueue(maxsize=100) # some outrageously large maxsize here 
 
     while node is not None:
         fcid = getFcId(node)
-        dgid = getTargetId(node)
         if vis.get(fcid, None):
             lines.append(LineGoto(fcid))
             node = None # flag for LineClose
         else:
             vis[fcid] = idx
             if isBranch(node):
-                lines.append(LineBranch(dgid))
+                lines.append(LineBranch(node))
                 stack.put(getChild0(node))
                 node = getChild1(node)
                 continue # implicit explicit
             else:
-                lines.append(LineStatement(dgid))
+                lines.append(LineStatement(node))
                 node = getSingleChild(node)
         if node == None:
             idx = idx + 1
             lines.append(LineClose())
-            node = stack.get()
+            if stack.qsize() > 0:  # safe get no wait
+                node = stack.get_nowait()
         idx = idx + 1
 
+    # assign lineno to goto's
+    for l in lines:
+        if type(l) == LineGoto:
+            l.lineno = vis[l.fcid] + 1 # LINES start at 1, indexes at zero
+
+    return lines
+
+
+
 '''
-Ultra-simple flow control model.
+Flow control model.
 
 fcid: the global id of this flowchart item
 dgid: the datagraph target global id
@@ -98,7 +168,7 @@ def add_fc_node_child(n1, idx, n2):
         n1.add_child(n2, idx)
     else:
         # TODO: this is where we need the node child safeguard on term_I nodes ...
-        n1.add_child = n2
+        n1.child = n2
 def set_fc_targetnode(fcnode, dgnode):
     fcnode.dgid = dgnode.name
 
@@ -132,15 +202,11 @@ class NodeDecision:
             raise Exception("NodeDecision.add_child: slots 0 and 1 full")
 
 
-#####################################################################################
-######################### ORG VERSION IMPORTED FROM IFL #############################
-#####################################################################################
-
 
 '''
-List-based parents/children data structure enabling unique parents, multiple children of the same index.
+Low-level graph assembly.
 
-TODO: This list-based approach might be replaced with a dict-based one (hash-table constant time lookup)
+TODO: A dict-based approach should be faster.
 '''
 def child_put(lst, item, idx):
     lst.append((item, idx))
@@ -171,7 +237,40 @@ def child_or_parent_rm_allref(lst, item):
         del lst[lst.index(l)]
 
 '''
-Base datagraph node types.
+High-level graph assembly.
+'''
+def add_subnode(root, node, transitive=True):
+    root.own(node)
+    if transitive:
+        node.subnode_to(root)
+
+def remove_subnode(root, node):
+    root.disown(node)
+    node.unsubnode_from(root)
+
+def add_connection(node1, idx1, node2, idx2):
+    node1.add_child(node2, idx1)
+    node2.add_parent(node1, idx2)
+
+def remove_connection(node1, idx1, node2, idx2):
+    node1.remove_child(node2, idx1)
+    node2.remove_parent(node1, idx2)
+
+def del_node(node):
+    ''' disconnect a node and recursively disconnect all its subnodes '''
+    for c in node.children:
+        remove_connection(node, c)
+    for p in node.parents:
+        remove_connection(p, node)
+    for s in node.subnodes:
+        del_node(s)
+    if node.owner:
+        remove_subnode(node.owner, node)
+
+
+
+'''
+Base data graph node and supporting types.
 '''
 class NodeNotExecutableException(Exception): pass
 class InternalExecutionException(Exception):
@@ -322,8 +421,9 @@ class RootNode(Node):
     def _check_parent(self, node):
         return False
 
+
 '''
-Data graph node types.
+Data graph node models.
 '''
 
 class ObjNode(Node):
@@ -395,25 +495,37 @@ class FuncNode(Node):
         self.func = func
         super().__init__(name, exe_model=FuncNode.ExeModel())
         # default value parameters are not represented in the graph, but as a configuration option
+        # TODO: rewrite/delete
+        '''
         self.defaults = {}
         sign = inspect.signature(func)
         for k in sign.parameters.keys():
             par = sign.parameters[k]
             if par.default != inspect._empty:
                 self.defaults[k] = par.default
+        '''
     def assign(self, obj):
+        # TODO: rewrite/delete
+        '''
         if type(obj) not in (dict, ):
             raise Exception("only do call FuncNode.assign with a dict")
         for k in obj.keys():
             if k in self.defaults:
                 self.defaults[k] = obj[k]
+        '''
     def call(self, *args):
+        # TODO: rewrite
+        '''
         try:
             return self.func(*args, **self.defaults)
         except Exception as e:
             raise InternalExecutionException(self.name, str(e))
+        '''
     def get_object(self):
+        # TODO: rewrite/delete
+        '''
         return self.defaults
+        '''
 
     def _check_subnode(self, node):
         return False
@@ -450,7 +562,8 @@ class MethodNode(Node):
             # we have to assume that they are assigning something meaningful - otherwise call() will fail (a check could be implemented though)
             self.defaults[k] = obj[k]
     def call(self, *args):
-        ''' call the method, grabbing self from any (unique) owner object, and attempts to apply self.defaults '''
+        # TODO: rewrite for code generation
+        '''
         last = None
         for o in self.owners:
             if type(o) is ObjNode:
@@ -474,6 +587,7 @@ class MethodNode(Node):
                 except Exception as e:
                     raise InternalExecutionException(self.name, str(e))
         return last
+        '''
 
     def get_object(self):
         return self.defaults
@@ -530,36 +644,6 @@ standard_parents = (FuncNode, ObjNode, ObjLiteralNode, MethodNode)
 standard_objects = (ObjNode, ObjLiteralNode)
 standard_subjects = (FuncNode, MethodNode)
 
-'''
-Node graph operations.
-'''
-def add_subnode(root, node, transitive=True):
-    root.own(node)
-    if transitive:
-        node.subnode_to(root)
-
-def remove_subnode(root, node):
-    root.disown(node)
-    node.unsubnode_from(root)
-
-def add_connection(node1, idx1, node2, idx2):
-    node1.add_child(node2, idx1)
-    node2.add_parent(node1, idx2)
-
-def remove_connection(node1, idx1, node2, idx2):
-    node1.remove_child(node2, idx1)
-    node2.remove_parent(node1, idx2)
-
-def del_node(node):
-    ''' disconnect a node and recursively disconnect all its subnodes '''
-    for c in node.children:
-        remove_connection(node, c)
-    for p in node.parents:
-        remove_connection(p, node)
-    for s in node.subnodes:
-        del_node(s)
-    if node.owner:
-        remove_subnode(node.owner, node)
 
 '''
 Node graph engine execution.
