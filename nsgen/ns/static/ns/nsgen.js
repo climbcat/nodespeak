@@ -157,6 +157,7 @@ class GraphInterfaceNSGen extends GraphInterface {
     let gd = this.graphData.extractGraphDefinition();
     this.allSessionData['graphdef'] = gd;
     this.ajaxcall("/ajax_cogen/", this.allSessionData, function(obj) {
+      console.log(atob(obj["pseudocode"]));
       $("body").css("cursor", "default");
     }.bind(this));
   }

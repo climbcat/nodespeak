@@ -2,8 +2,11 @@ from django.shortcuts import render, HttpResponse, redirect
 from .models import GraphSession, TypeSchema, TabId
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from cogen import cogen
+
+import base64
 import json
+
+from cogen import cogen
 
 # the one and only view
 @login_required
@@ -60,7 +63,11 @@ def ajax_cogen(req):
     except Exception as e:
         return HttpResponse('{ "msg" : "%s" }' % str(e))
 
-    return HttpResponse('{ "msg" : "cogen done" }')
+    # make this a base64 string
+    encoded = base64.b64encode(text.encode('utf-8'))
+    text = encoded.decode('utf-8')
+
+    return HttpResponse('{ "msg" : "pseudocode generation successful", "pseudocode" : "%s" }' % text)
 
 def tab_validate(req):
     # TODO: port from IFL
