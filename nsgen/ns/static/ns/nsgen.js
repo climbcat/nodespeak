@@ -76,8 +76,11 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
     let fctypes = ConnectionRulesNSGen.fctypes;
     let t1 = fctypes.indexOf(a1.owner.owner.basetype)>=0 && fctypes.indexOf(a2.owner.owner.basetype)==-1;
     let t2 = (a1.idx==-1 && a2.idx==-1);
-    if (t1 && t2)
+    let t3 = a1.owner.owner.basetype == "dec";
+    if (t1 && t2 && !t3)
       return "link_straight";
+    if (t1 && t2 && t3)
+      return "link_straight_black";
     else if (t2)
       return "link_double_center";
     else
@@ -229,11 +232,11 @@ class NodeFCTerm extends Node {
   static get basetype() { return "term"; }
   get basetype() { return NodeFCTerm.basetype; }
   static get prefix() { return "t"; }
-  constructor(x, y, id, name, label, typeconf) {
+  constructor(x, y, id, name, label, typeconf, iangles=null, oangles=null) {
     // TODO: is it better to hide id's? (What use do they have?)
     //if (id == "" && label == "") label = id;
     if (label == "") label = id;
-    super(x, y, id, name, label, typeconf);
+    super(x, y, id, name, label, typeconf, iangles, oangles);
   }
   _getGNType() {
     return GraphicsNodeSquare;
@@ -264,6 +267,27 @@ class NodeFCProcess extends NodeFCTerm {
   }
 }
 
+/*
+class NodeFCProcessHorizontal extends NodeFCTerm {
+  static get basetype() { return "proc"; }
+  get basetype() { return NodeFCProcess.basetype; }
+  static get prefix() { return "p"; }
+  constructor(x, y, id, name, label, typeconf) {
+    // TODO: is it better to hide id's? (What use do they have?)
+    //if (id == "" && label == "") label = id;
+    if (label == "") label = id;
+    super(x, y, id, name, label, typeconf, [180], [360]);
+  }
+  isConnected(connectivity) {
+    return connectivity.indexOf(false) == -1;
+  }
+  isActive(connectivity) {
+    let active = this.gNode.centerAnchor.numconnections > 0;
+    let connected = this.isConnected(connectivity);
+    return connected && active;
+  }
+}
+*/
 
 class NodeFCDec extends Node {
   static get basetype() { return "dec"; }
@@ -273,7 +297,7 @@ class NodeFCDec extends Node {
     // TODO: is it better to hide id's? (What use do they have?)
     //if (id == "" && label == "") label = id;
     if (label == "") label = id;
-    super(x, y, id, name, label, typeconf);
+    super(x, y, id, name, label, typeconf, [90], [270, 360]);
   }
   _getGNType() {
     return GraphicsNodeDiamond;

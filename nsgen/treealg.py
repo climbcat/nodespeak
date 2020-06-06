@@ -56,6 +56,7 @@ class NodeConfig:
         self.basetype = ''
         self.address = ''
         self.ipars = []
+        self.opars = []
         self.type = ''
         self.itypes = []
         self.otypes = []
@@ -73,6 +74,7 @@ class NodeConfig:
             ("type", self.type),
             ("address", self.address),
             ("ipars", self.ipars),
+            ("opars", self.opars),
             ("itypes", self.itypes),
             ("otypes", self.otypes),
             ("name", self.name),

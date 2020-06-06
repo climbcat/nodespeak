@@ -815,6 +815,7 @@ class LinkStraight extends Link {
   // becomes a single straight line
   static get basetype() { return "link_straight"; }
   get basetype() { return LinkStraight.basetype; }
+  get strokecolor() { return "blue"; }
   recalcPathAnchors() { /* don't */ }
   getAnchors() { return [this.d1, this.d2]; }
   draw(branch, i) {
@@ -823,7 +824,7 @@ class LinkStraight extends Link {
       .append('path')
       .datum(anchors)
       .classed("comboLine", true)
-      .attr("stroke", "blue")
+      .attr("stroke", this.strokecolor)
       .attr("opacity", "0.5")
       .attr('d', d3.line()
         .x( function(p) { return p.x; } )
@@ -840,6 +841,13 @@ class LinkStraight extends Link {
         .y( function(p) { return p.y; } )
       );
   }
+}
+
+class LinkStraightBlack extends LinkStraight {
+  // becomes a single straight line
+  static get basetype() { return "link_straight_black"; }
+  get basetype() { return LinkStraight.basetype; }
+  get strokecolor() { return "black"; }
 }
 
 class LinkDoubleCenter extends Link {
@@ -903,7 +911,7 @@ class LinkDoubleCenter extends Link {
 class Node {
   static get basetype() { throw "Node: basetype property must be overridden"; }
   static get prefix() { throw "Node: prefix property must be overridden"; }
-  constructor (x, y, id, name, label, typeconf) {
+  constructor (x, y, id, name, label, typeconf, iangles=null, oangles=null) {
     this.id = id;
     this.name = name;
     this.type = typeconf.type;
@@ -918,13 +926,19 @@ class Node {
     let nt = this._getGNType();
     this.gNode = new nt(this, label, x, y);
 
-    let iangles = getInputAngles(typeconf.itypes.length);
-    let oangles = getOutputAngles(typeconf.otypes.length);
+    if (iangles == null) iangles = getInputAngles(typeconf.itypes.length);
+    if (oangles == null) oangles = getOutputAngles(typeconf.otypes.length);
 
     let anchors = [];
     let at = this._getAnchorType();
-    for (var i=0;i<iangles.length;i++) { anchors.push( new at(this.gNode, iangles[i], typeconf.itypes[i], typeconf.ipars[i], true, i) ); }
-    for (var i=0;i<oangles.length;i++) { anchors.push( new at(this.gNode, oangles[i], typeconf.otypes[i], null, false, i) ); }
+    for (var i=0;i<iangles.length;i++) {
+      anchors.push( new at(this.gNode, iangles[i], typeconf.itypes[i], typeconf.ipars[i], true, i) );
+    }
+    for (var i=0;i<oangles.length;i++) {
+      let otpe = null;
+      if (typeconf.opars != null) otpe = typeconf.opars[i];
+      anchors.push( new at(this.gNode, oangles[i], typeconf.otypes[i], otpe, false, i) );
+    }
 
     this.gNode.setAnchors(anchors);
     this.gNode.onConnect = this.onConnect.bind(this);
@@ -1279,6 +1293,7 @@ NodeLinkConstrucionHelper.register_node_class(NodeMethod);
 // register link types
 NodeLinkConstrucionHelper.register_link_class(LinkSingle);
 NodeLinkConstrucionHelper.register_link_class(LinkStraight);
+NodeLinkConstrucionHelper.register_link_class(LinkStraightBlack);
 NodeLinkConstrucionHelper.register_link_class(LinkDouble);
 NodeLinkConstrucionHelper.register_link_class(LinkDoubleCenter);
 

@@ -64,6 +64,7 @@ def gen_static_branch(tree, address):
     dec.basetype = 'dec'
     # TODO: add ouput node "varname", we need "true" and "false" or similar here
     dec.ipars = ['']
+    dec.opars = ['false', 'true']
     dec.itypes = ['flow']
     dec.otypes = ['flow', 'flow']
     dec.name = 'dec'
