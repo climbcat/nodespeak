@@ -230,7 +230,9 @@ class NodeFCTerm extends Node {
   get basetype() { return NodeFCTerm.basetype; }
   static get prefix() { return "t"; }
   constructor(x, y, id, name, label, typeconf) {
-    if (id == "" && label == "") label = id;
+    // TODO: is it better to hide id's? (What use do they have?)
+    //if (id == "" && label == "") label = id;
+    if (label == "") label = id;
     super(x, y, id, name, label, typeconf);
   }
   _getGNType() {
@@ -268,7 +270,9 @@ class NodeFCDec extends Node {
   get basetype() { return NodeFCDec.basetype; }
   static get prefix() { return "d"; }
   constructor(x, y, id, name, label, typeconf) {
-    if (id == "" && label == "") label = id;
+    // TODO: is it better to hide id's? (What use do they have?)
+    //if (id == "" && label == "") label = id;
+    if (label == "") label = id;
     super(x, y, id, name, label, typeconf);
   }
   _getGNType() {
