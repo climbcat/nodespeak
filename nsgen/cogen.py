@@ -603,7 +603,11 @@ class MethodNode(Node):
     def assign(self, obj):
         pass
     def call(self, *args):
-        # TODO: get owner varname somehow
+        owners = [o for o in self.owners if type(o) in (ObjNode, ObjNodeTyped, )]
+        if len(owners) == 1:
+            # TODO: use label when that is introduced
+            owner_varname = owners[0].name
+            return owner_varname + "." + self.methodname + str(args).replace("'", "")
         return self.methodname + str(args).replace("'", "")
 
     def _check_subnode(self, node):
