@@ -61,7 +61,7 @@ def ajax_cogen(req):
     try:
         text = cogen(obj["graphdef"], obj)
     except Exception as e:
-        return HttpResponse('{ "msg" : "%s" }' % str(e))
+        return HttpResponse('{ "msg" : "cogen error" }')
 
     # make this a base64 string
     encoded = base64.b64encode(text.encode('utf-8'))

@@ -57,7 +57,7 @@ def makeLineExpressions(lines, allnodes):
         # proc/term generated lines
         if type(l) in (LineStatement, ):
             target = allnodes[l.dgid]
-            if type(target) in (ObjNode, ):
+            if type(target) in (ObjNode, MethodNode, ):
                 l.text = assign(target)
             elif type(target) in (MethodNode, ):
                 l.text = read(target)
@@ -67,7 +67,7 @@ def makeLineExpressions(lines, allnodes):
         # dec generated lines
         elif type(l) in (LineBranch, ):
             target = allnodes[l.dgid]
-            if type(target) in (ObjNode, FuncNode, MethodNode, ):
+            if type(target) in (ObjNode, ObjNodeTyped, FuncNode, MethodNode, ):
                 txt = read(target)
                 l.setText(txt)
             else:
@@ -77,9 +77,11 @@ def read(dgnode):
     ''' dgnode: can be a obj, method or func '''
     if dgnode is None:
         return None
+    if type(dgnode) in (ObjNode, ObjNodeTyped, ):
+        varname = dgnode.name
+        return varname
     subtree = build_dg_subtree(dgnode)
-    print(subtree)
-    return _getReadExpr(subtree)
+    return call_dg_subtree(subtree)
 def assign(obj_node):
     def getSingleParent(n):
         plst = parents_get(n.parents)
@@ -95,10 +97,10 @@ def assign(obj_node):
     # TODO: include working with labels server-side
     #if obj_node.label != None:
     #    varname = obj_node.label
-    return varname + " = " + read(parent)
-def _getReadExpr(tree): 
-    res = call_dg_subtree(tree)
-    return res
+    if parent == None:
+        return varname
+    else:
+        return varname + " = " + read(parent)
 
 class LineWriter:
     def __init__(self, lines, indent=4):
@@ -144,7 +146,7 @@ class LineBranch:
     def __str__(self):
         s = self.dgid
         if self.dgid == None:
-            s = "(empty)"
+            s = "/* empty */"
         if self.text != None:
             return self.text
         return "if %s {" % s
@@ -529,7 +531,7 @@ class ObjNode(Node):
     def _check_parent(self, node):
         return type(node) in standard_parents and len( parents_get(self.parents) ) < 1
 
-class ObjNodeTyped(ObjNode): pass
+ObjNodeTyped = ObjNode
 # TODO: implement to retain type info
 
 class ObjLiteralNode(ObjNode):
