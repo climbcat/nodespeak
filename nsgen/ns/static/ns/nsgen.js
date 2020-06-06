@@ -47,21 +47,23 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
     let iscombo = (fctypes.indexOf(a1.owner.owner.basetype)>=0 && fctypes.indexOf(a2.owner.owner.basetype)==-1);
     if (iscombo) {
       // process nodes assigned to objects
-      let tcb_1 = a2.owner.owner.basetype == "object"; // want resulting in an assignment statemen
-      let tcb_2 = a1.owner.owner.basetype == "proc"; // only procs can execute for now
+      let tcb_1 = a2.owner.owner.basetype == "object"; // assign
+      let tcb_5 = a2.owner.owner.basetype == "method"; // read/activate
+      let tcb_2 = a1.owner.owner.basetype == "proc"; // procs can execute
       let tcb_3 = a1.numconnections == 0;
+      let tcb_4 = a1.owner.owner.basetype == "term"; // terms also
 
       // decision nodes connected to (boolean evaluation) functions
-      // TODO: maybe use returnfuncs, but functions may always be enterprited as booleans
-      //       through false === false, zero or null; true === otherwise.
+      // TODO: includ "obj" and let that be enterprited as null==false, true otherwise
       // OR:   introduce a retfunc which is just a (bool/int returning) func that
       //       happily becomes white/active even without a target obj to catch
       //       its output value
-      let tcb_1b = a2.owner.owner.basetype == "function_named";
+      let a2_tpe = a2.owner.anchors[a2.owner.anchors.length-1].type
+      let tcb_1b = ["bool", "int"].indexOf(a2_tpe) >= 0;
       let tcb_2b = a1.owner.owner.basetype == "dec";
       let tcb_3b = a1.numconnections == 0;
 
-      return (tcb_1 && tcb_2 && tcb_3) || (tcb_1b && tcb_2b && tcb_3b);
+      return ((tcb_1 || tcb_5) && (tcb_2 || tcb_4) && (tcb_3 || could))  ||  (tcb_1b && tcb_2b && (tcb_3b || could));
     }
 
     // nether, undefined
