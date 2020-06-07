@@ -29,10 +29,9 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
         let tpe1 = a1.owner.owner.basetype;
         let tpe2 = a2.owner.owner.basetype;
         let t1 = tpe1 == "object" && tpe2 == "method";
-        let t2 = tpe1 == "method" && tpe2 == "object";
         let t3 = a1.numconnections == 0;
         let t4 = a2.numconnections == 0;
-        return t1 && (t4 || could) || (t2 && (t3 || could) );
+        return t1 && (t4 || could);
       }
       // type matches or wildcard (pseudo-polymorphism, since not uni-directional)
       let t5 = a1.type == a2.type;
@@ -43,7 +42,7 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
       return (t5 || t6 || t7) && (t8 || could);
     }
 
-    // a proper combo goes in the right direction from fc node to dg node
+    // fc->dg centerlinks
     let iscombo = (fctypes.indexOf(a1.owner.owner.basetype)>=0 && fctypes.indexOf(a2.owner.owner.basetype)==-1);
     if (iscombo) {
       // process nodes assigned to objects
@@ -66,7 +65,7 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
       return ((tcb_1 || tcb_5) && (tcb_2 || tcb_4) && (tcb_3 || could))  ||  (tcb_1b && tcb_2b && (tcb_3b || could));
     }
 
-    // nether, undefined
+    // neither, undefined
     return false;
   }
   static couldConnect(a1, a2) {
@@ -89,7 +88,7 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
   static canConverge(basetypeUp, basetypeDown) {
     let t1 = ConnectionRulesNSGen.fctypes.indexOf(basetypeUp) >= 0;
     let t2 = ConnectionRulesNSGen.fctypes.indexOf(basetypeDown) >= 0;
-    return t1 && t2;
+    return (t1 && t2) || (t1 && !t2);
   }
   static canDiverge(basetypeUp, basetypeDown) {
     let t1 = ConnectionRulesNSGen.fctypes.indexOf(basetypeUp) == -1;

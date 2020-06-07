@@ -202,7 +202,7 @@ class GraphicsNode {
   }
   // level means itypes/otypes == 0/1
   getAnchor(idx, level) {
-    if (idx == -1) return this.centerAnchor;
+    if (idx < 0) return this.centerAnchor;
 
     let a = null;
     for (var i=0;i<this.anchors.length;i++) {
@@ -1058,7 +1058,7 @@ class NodeMethod extends Node {
     return true;
   }
   onConnect(link, isInput) {
-    let gateKept = ["object", "object_idata", "object_ifunc", "method"];
+    let gateKept = ["object", "object_idata", "object_ifunc", "object_typed", "method"];
     let t1 = gateKept.indexOf(link.d1.owner.owner.basetype) != -1;
     let t2 = gateKept.indexOf(link.d2.owner.owner.basetype) != -1;
     let t3 = link.d1.idx == -1 && link.d2.idx == -1;
@@ -1067,7 +1067,13 @@ class NodeMethod extends Node {
     }
   }
   onDisconnect(link, isInput) {
-    this.gNode.detachMove();
+    let gateKept = ["object", "object_idata", "object_ifunc", "object_typed", "method"];
+    let t1 = gateKept.indexOf(link.d1.owner.owner.basetype) >= 0;
+    let t2 = gateKept.indexOf(link.d2.owner.owner.basetype) >= 0;
+    let t3 = link.d1.idx == -1 && link.d2.idx == -1;
+    if (t1 && t2 && t3) {
+      this.gNode.detachMove();
+    }
   }
 }
 
@@ -1587,7 +1593,7 @@ class GraphTree {
     let a = null;
     for (var j=0; j<anchors.length; j++) {
       a = anchors[j];
-      connectivity.push(a.numconnections>0);
+      connectivity.push(a.numconnections > 0);
     }
     return connectivity;
   }
@@ -2080,7 +2086,7 @@ class GraphDraw {
         .on("drag", self.dragged)
         .on("end", self.dragended)
       )
-      .on("contextmenu", function () {  d3.event.preventDefault(); })
+      .on("contextmenu", function () { d3.event.preventDefault(); })
       .on("click", function () {
         let node = d3.select(this).datum();
         d3.event.stopPropagation();
