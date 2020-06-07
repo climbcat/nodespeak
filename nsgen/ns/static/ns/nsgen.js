@@ -113,6 +113,14 @@ class GraphInterfaceNSGen extends GraphInterface {
 
     this.allSessionData = null;
   }
+  // label set handling - only set labels on "variables" and flow control nodes
+  pushSelectedNodeLabel(text) { // override
+    let seln = this.graphData.getSelectedNode();
+    let bt = seln.basetype;
+    let t1 = ConnectionRulesNSGen.fctypes.indexOf(bt) >= 0;
+    let t2 = bt == "object" || bt == "object_typed" || bt == "object_literal"
+    if (seln != null && (t1 || t2)) super.node_label(seln.id, text);
+  }
   // server communication
   ajaxcall(url, data, success_cb, fail_cb=null) {
     this.isalive = simpleajax(url, data, this.gs_id, this.tab_id, success_cb, fail_cb, true);
@@ -232,9 +240,7 @@ class NodeFCTerm extends Node {
   get basetype() { return NodeFCTerm.basetype; }
   static get prefix() { return "t"; }
   constructor(x, y, id, name, label, typeconf, iangles=null, oangles=null) {
-    // TODO: is it better to hide id's? (What use do they have?)
-    //if (id == "" && label == "") label = id;
-    if (label == "") label = id;
+    if (id == "" && label == "") label = id;
     super(x, y, id, name, label, typeconf, iangles, oangles);
   }
   _getGNType() {
@@ -293,9 +299,7 @@ class NodeFCDec extends Node {
   get basetype() { return NodeFCDec.basetype; }
   static get prefix() { return "d"; }
   constructor(x, y, id, name, label, typeconf) {
-    // TODO: is it better to hide id's? (What use do they have?)
-    //if (id == "" && label == "") label = id;
-    if (label == "") label = id;
+    if (id == "" && label == "") label = id;
     super(x, y, id, name, label, typeconf, [90], [270, 360]);
   }
   _getGNType() {

@@ -11,7 +11,10 @@
   <button id="btnRedo">Redo</button>
   <button id="btnLoad">Load</button>
   <button id="btnCommit">Save</button>
-  <button id="btnCogen">Cogen</button>
+  <button id="btnCogen">Cogen</button><br>
+  <div style="text-align:center;margin-top:5px;">
+    <input type="text" id="tbxNodeLabel" size=8>
+  </div>
 </div>
 <div id="status" style="position:absolute;margin:auto;"><label id="lblStatus"></label></div>
 
@@ -47,7 +50,7 @@ var statusConsole = function(s) {
 }
 
 $(document).ready(() => {
-  // set up events
+  // button events
   $("#btnUndo").click( () => { intface.undo(); });
   $("#btnRedo").click( () => { intface.redo(); });
   $("#btnLoad").click( () => { intface.loadSession(); });
@@ -57,14 +60,22 @@ $(document).ready(() => {
   // construct graph engine and add listeners
   let gs_id = $("body > #gs_id")[0].value;
   let tab_id = $("body > #tab_id")[0].value;
-
-  // the graph ui interface
   intface = new GraphInterfaceNSGen(gs_id, tab_id);
 
-  // user data controls
-  // TODO: bring back a user panel or delete this if no labels are needed
-  $("#tbxNodeLabel").change( () => {
-    intface.pushSelectedNodeLabel($("#tbxNodeLabel").val());
+  // label textbox
+  let tbx = $("#tbxNodeLabel")
+  tbx.change( () => { // commit to node label at enter/tab keypress (and focus out)
+    intface.pushSelectedNodeLabel(tbx.val());
+    tbx.val("");
+  });
+  tbx.on('keydown', (event) => { // press escape to remove focus
+    if (event.key != "Escape") return;
+    tbx.prop("selected", false)
+    tbx.blur();
+  });
+  intface.addNodeSelectionListener( (n) => { // set label text and select @ node click
+    tbx.val(n.label);
+    tbx.select();
   });
 
   // set type tree and create node menus (gentypes01 menu structure)

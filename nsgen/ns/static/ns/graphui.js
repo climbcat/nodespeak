@@ -2346,7 +2346,9 @@ class GraphInterface {
     return this.graphData.getSelectedNode();
   }
   pushSelectedNodeLabel(text) {
-    this.node_label(this.graphData.getSelectedNode().id, text);
+    let seln = this.graphData.getSelectedNode();
+    if (seln == null) return;
+    this.node_label(seln.id, text);
   }
   pushSelectedNodeData(json_txt) {
     this.node_data(this.graphData.getSelectedNode().id, json_txt);
