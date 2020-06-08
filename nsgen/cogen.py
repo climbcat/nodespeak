@@ -55,7 +55,7 @@ def makeLineExpressions(lines, allnodes):
             continue
 
         # proc/term generated lines
-        if type(l) in (LineStatement, ):
+        if type(l) in (LineStatement, LineReturnStatement, ):
             target = allnodes[l.dgid]
             if type(target) in (ObjNode, MethodNode, ):
                 l.text = assign(target)
@@ -136,6 +136,18 @@ class LineStatement:
         if self.text != None:
             return self.text
         return s
+class LineReturnStatement:
+    def __init__(self, node):
+        self.dgid = getDgTargetId(node) # target
+        self.ilvl = 0
+        self.text = None
+    def __str__(self):
+        s = self.dgid
+        if self.dgid == None:
+            s = "/* empty: */"
+        if self.text != None:
+            return "return " + self.text
+        return s
 class LineBranch:
     def __init__(self, node):
         self.dgid = getDgTargetId(node) # target
@@ -191,23 +203,30 @@ def iterateBinbranchFlow(node):
     idx = 0
     vis = {} # visited node id:idx entries
     lines = [LineOpen()] # just a line open, because everything ends in a line close
+    idx = idx + 1 # line was added
     stack = LifoQueue(maxsize=100) # some outrageously large maxsize here 
 
     while node is not None:
+        print(idx)
         fcid = getFcId(node)
         if vis.get(fcid, None):
             lines.append(LineGoto(fcid))
-            node = None # flag for LineClose
+            node = None # flag LineClose
         else:
             vis[fcid] = idx
             if isBranch(node):
                 lines.append(LineBranch(node))
                 stack.put(getChild0(node))
                 node = getChild1(node)
-                continue # implicit explicit
             else:
-                lines.append(LineStatement(node))
+                # append statment or return statement
+                stm = LineStatement(node)
+                retstm = LineReturnStatement(node)
                 node = getSingleChild(node)
+                if node ==None:
+                    lines.append(retstm)
+                else:
+                    lines.append(stm)
         if node == None:
             idx = idx + 1
             lines.append(LineClose())
