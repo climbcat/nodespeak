@@ -1064,6 +1064,9 @@ class NodeMethod extends Node {
     let t3 = link.d1.idx == -1 && link.d2.idx == -1;
     if (t1 && t2 && t3 && !isInput) {
       this.gNode.attachMoveToCenterLink(link);
+    } else
+    if (t3 && this.gNode.centerAnchor.numconnections > 0) {
+      this.gNode.centerAnchor.numconnections -= 1;
     }
   }
   onDisconnect(link, isInput) {
