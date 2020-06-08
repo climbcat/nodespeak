@@ -18,8 +18,13 @@ def graphui(req, gs_id):
     return render(req, "ns/graphs.html", context=ct)
 
 @login_required
-def new_gs(req, ts_id=8):
-    ts_data = TypeSchema.objects.get(id=ts_id)
+def new_gs(req, ts_id=None):
+    ts_data = None
+    if ts_id == None:
+        # TODO: is this a safe call returning None, or can it except?
+        ts_data = TypeSchema.objects.last()
+    else:
+        ts_data = TypeSchema.objects.get(id=ts_id)
     gs = GraphSession()
     gs.data_str = ts_data.data_str
     gs.org_version = ts_data.version
