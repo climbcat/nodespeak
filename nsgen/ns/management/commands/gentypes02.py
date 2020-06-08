@@ -116,7 +116,7 @@ def gen_user_branch(tree, address):
     obj.itypes = ['']
     obj.otypes = ['']
     obj.name = 'bool'
-    obj.label = 'bool'
+    obj.label = ''
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
     biaddr.append(obj.address)
@@ -131,7 +131,7 @@ def gen_user_branch(tree, address):
     obj.itypes = ['']
     obj.otypes = ['']
     obj.name = 'int'
-    obj.label = 'int'
+    obj.label = ''
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
     biaddr.append(obj.address)
@@ -146,7 +146,7 @@ def gen_user_branch(tree, address):
     obj.itypes = ['']
     obj.otypes = ['']
     obj.name = 'string'
-    obj.label = 'string'
+    obj.label = ''
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
     biaddr.append(obj.address)

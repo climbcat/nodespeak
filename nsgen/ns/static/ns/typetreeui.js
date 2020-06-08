@@ -90,6 +90,7 @@ class TypeTreeUi {
       let name = res[1][0];
       let cn = new CreateNode("object_typed", name, name)
       conf = cn.getNode(branch_name);
+      conf.label = ""; // a label would be a varname, which the user should set, else we use the id
       conf.sort_idx = 0;
       if (name!=name.toLowerCase()) conf.sort_idx = 1;
     }
@@ -281,7 +282,7 @@ class CreateNode {
   constructor(basetype, name, type, args_result=null, rettpe=null, hiderettpe=false) {
     this.basetype = basetype;
     this.name = name;
-    this.label = name;
+    this.label = type;
     this.type = type;
     this.args = null;
     this.rettpe = rettpe;
@@ -329,6 +330,8 @@ class CreateNode {
     if (this.rettpe != null) conf.otypes = [this.rettpe];
     conf.name = this.name;
     conf.label = this.label;
+
+    console.log(conf.label);
     return conf;
   }
 }

@@ -78,7 +78,7 @@ def read(dgnode):
     if dgnode is None:
         return None
     if type(dgnode) in (ObjNode, ObjNodeTyped, ):
-        varname = dgnode.name
+        varname = dgnode.get_varname()
         return varname
     subtree = build_dg_subtree(dgnode)
     return call_dg_subtree(subtree)
@@ -93,7 +93,7 @@ def assign(obj_node):
             return plst[0]
     ''' obj_node: must be an obj node which will be assigned to '''
     parent = getSingleParent(obj_node)
-    varname = obj_node.name
+    varname = obj_node.get_varname()
     # TODO: include working with labels server-side
     #if obj_node.label != None:
     #    varname = obj_node.label
@@ -132,7 +132,7 @@ class LineStatement:
     def __str__(self):
         s = self.dgid
         if self.dgid == None:
-            s = "/* empty */"
+            s = "/* empty: */"
         if self.text != None:
             return self.text
         return s
@@ -505,12 +505,17 @@ class ObjNode(Node):
         def subjects(self):
             return standard_subjects
 
-    def __init__(self, name, obj=None):
+    def __init__(self, name, obj=None, label=None):
         self.obj = obj
+        self.label = label
         super().__init__(name, exe_model=type(self).ExeModel())
     def __str__(self):
         return str(self.obj)
-
+    def get_varname(self):
+        if self.label != None:
+            return self.label
+        else:
+            return self.name
     def assign(self, obj):
         self.obj = obj
         for m in [node for node in list(self.subnodes.values()) if type(node) is MethodNode]:
@@ -760,7 +765,7 @@ class FlatGraph:
         self.node_cmds_cache = {}
         self.dslinks_cache = {} # ds = downstream
 
-    def _create_node(self, id, tpe_addr):
+    def _create_node(self, id, label, tpe_addr):
         '''
         id - node id
         tpe_addr - node type address
@@ -780,9 +785,9 @@ class FlatGraph:
         # datagraph nodes
         elif node_tpe == ObjNode:
             # TODO: somehow include type info derived from graph connectibility
-            n = ObjNode(id, None)
+            n = ObjNode(id, None, label)
         elif node_tpe == ObjNodeTyped:
-            n = ObjNodeTyped(id, conf['type'])
+            n = ObjNodeTyped(id, conf['type'], label)
         elif node_tpe == ObjLiteralNode:
             n = ObjLiteralNode(id, None)
         elif node_tpe == FuncNode:
@@ -792,15 +797,15 @@ class FlatGraph:
 
         return n
 
-    def node_add(self, x, y, id, name, label, tpe):
-        n = self._create_node(id, tpe)
+    def node_add(self, x, y, id, name, label, tpe_addr):
+        n = self._create_node(id, label, tpe_addr)
         _log('created node (%s) of type: "%s"' % (id, str(type(n))))
         if type(n) in (NodeTerm, NodeProc, NodeDecision, ):
             add_subnode(self.root, n, transitive=False) # this is a safe add not requiring a subnode_to member on ownee
         else:
             add_subnode(self.root, n)
         # caching
-        self.node_cmds_cache[id] = (x, y, id, name, label, tpe)
+        self.node_cmds_cache[id] = (x, y, id, name, label, tpe_addr)
 
     def node_rm(self, id):
         n = self.root.subnodes.get(id, None)
@@ -914,10 +919,11 @@ class FlatGraph:
         ''' adds nodes, links and datas to the graph '''
         nodes = graphdef['nodes']
         links = graphdef['links']
-        #labels = graphdef['labels'] labels could be stored like this, they are instanced data e.g. can never reside in the node confs
+        #labels = graphdef['labels']
 
         for key in nodes.keys():
             cmd = nodes[key]
+            print("label? ", cmd[4])
             self.node_add(cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5])
 
         for key in links.keys():
@@ -925,7 +931,8 @@ class FlatGraph:
                 self.link_add(cmd[0], cmd[1], cmd[2], cmd[3])
 
         # TODO: assign labels ! 
-        # for key in labels.keys()
+        #for key in labels.keys():
+        #    print(labels[key])
 
 basetypes = {
     # nsgen datagraph basetypes

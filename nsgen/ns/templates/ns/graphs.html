@@ -74,6 +74,7 @@ $(document).ready(() => {
     tbx.blur();
   });
   intface.addNodeSelectionListener( (n) => { // set label text and select @ node click
+    if (n==null) return;
     tbx.val(n.label);
     tbx.select();
   });
