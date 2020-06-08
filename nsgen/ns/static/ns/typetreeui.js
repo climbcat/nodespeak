@@ -326,12 +326,10 @@ class CreateNode {
     conf.basetype = this.basetype;
     conf.ipars = ( this.args==null ? [] : this.args.map((itm) => {return itm[0]}) );
     conf.itypes = ( this.args==null ? [] : this.args.map((itm) => {return itm[1]}) );
-    conf.otypes = [this.type];
+    conf.otypes = this.rettpe != null ? [this.rettpe] : [];
     if (this.rettpe != null) conf.otypes = [this.rettpe];
     conf.name = this.name;
     conf.label = this.label;
-
-    console.log(conf.label);
     return conf;
   }
 }

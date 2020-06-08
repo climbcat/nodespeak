@@ -57,7 +57,8 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
       // OR:   introduce a retfunc which is just a (bool/int returning) func that
       //       happily becomes white/active even without a target obj to catch
       //       its output value
-      let a2_tpe = a2.owner.anchors[a2.owner.anchors.length-1].type
+      let anch2 = a2.owner.anchors;
+      let a2_tpe = anch2.lenth>0 ? anch2[anch2.length-1].type : null; // this one does not have an exit type
       let tcb_1b = ["bool", "int"].indexOf(a2_tpe) >= 0;
       let tcb_2b = a1.owner.owner.basetype == "dec";
       let tcb_3b = a1.numconnections == 0;

@@ -2391,7 +2391,7 @@ class GraphInterface {
           this.link_add(args[0], args[1], args[2], args[3], args[4]);
         }
         catch(error) {
-          console.log("inject link add: ", error.message);
+          console.log("inject link add error: ", error.message);
         }
       }
     }
