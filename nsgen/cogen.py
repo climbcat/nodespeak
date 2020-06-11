@@ -34,7 +34,7 @@ def cogen(graphdef, typetree):
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
     
-    lines = iterateBinbranchFlow(term_Is[0])
+    lines = flowchartToPseudocodeList(term_Is[0])
     
     makeLineExpressions(lines, graph.root.subnodes)
 
@@ -45,15 +45,43 @@ def cogen(graphdef, typetree):
 
 
 '''
-Pseudocode generation
+Pseudocode generation directly from the flowchart
 '''
 
 def makeLineExpressions(lines, allnodes):
+    '''
+    For every line, inserts expression text corresponding to the target data graph node subtree execution pseudocode expression.
+    '''
+    def read(dgnode):
+        ''' Returns an rvalue expression. dgnode: can be a obj, method or func '''
+        if dgnode is None:
+            return None
+        if type(dgnode) in (ObjNode, ObjNodeTyped, ):
+            varname = dgnode.get_varname()
+            return varname
+        subtree = build_dg_subtree(dgnode)
+        return call_dg_subtree(subtree)
+    def assign(obj_node):
+        ''' returns an assignment expression to obj_node '''
+        def getSingleParent(n):
+            plst = _parents_get(n.parents)
+            if len(plst) > 1:
+                raise Exception("obj nodes should only have zero or one parents!")
+            elif len(plst) == 0:
+                return None
+            elif len(plst) == 1:
+                return plst[0]
+        ''' obj_node: must be an obj node which will be assigned to '''
+        parent = getSingleParent(obj_node)
+        varname = obj_node.get_varname()
+        if parent == None:
+            return varname
+        else:
+            return varname + " = " + read(parent)
+
     for l in lines:
-        # (all Line object should have a dgid member just for this check)
         if l.dgid is None:
             continue
-
         # proc/term generated lines
         if type(l) in (LineStatement, LineReturnStatement, ):
             target = allnodes[l.dgid]
@@ -63,7 +91,6 @@ def makeLineExpressions(lines, allnodes):
                 l.text = read(target)
             else:
                 raise Exception("fc proc/term can only be associated with Obj or Method dg nodes: %s" % target.name)
-
         # dec generated lines
         elif type(l) in (LineBranch, ):
             target = allnodes[l.dgid]
@@ -72,35 +99,6 @@ def makeLineExpressions(lines, allnodes):
                 l.setText(txt)
             else:
                 raise Exception("fc dec can only be associated with Obj, Func or Method nodes: %s" % target.name)
-
-def read(dgnode):
-    ''' dgnode: can be a obj, method or func '''
-    if dgnode is None:
-        return None
-    if type(dgnode) in (ObjNode, ObjNodeTyped, ):
-        varname = dgnode.get_varname()
-        return varname
-    subtree = build_dg_subtree(dgnode)
-    return call_dg_subtree(subtree)
-def assign(obj_node):
-    def getSingleParent(n):
-        plst = parents_get(n.parents)
-        if len(plst) > 1:
-            raise Exception("obj nodes should only have zero or one parents!")
-        elif len(plst) == 0:
-            return None
-        elif len(plst) == 1:
-            return plst[0]
-    ''' obj_node: must be an obj node which will be assigned to '''
-    parent = getSingleParent(obj_node)
-    varname = obj_node.get_varname()
-    # TODO: include working with labels server-side
-    #if obj_node.label != None:
-    #    varname = obj_node.label
-    if parent == None:
-        return varname
-    else:
-        return varname + " = " + read(parent)
 
 class LineWriter:
     def __init__(self, lines, indent=4):
@@ -126,7 +124,7 @@ class LineWriter:
 
 class LineStatement:
     def __init__(self, node):
-        self.dgid = getDgTargetId(node) # target
+        self.dgid = node.dgid # target
         self.ilvl = 0
         self.text = None
     def __str__(self):
@@ -138,7 +136,7 @@ class LineStatement:
         return s
 class LineReturnStatement:
     def __init__(self, node):
-        self.dgid = getDgTargetId(node) # target
+        self.dgid = node.dgid # target
         self.ilvl = 0
         self.text = None
     def __str__(self):
@@ -150,7 +148,7 @@ class LineReturnStatement:
         return s
 class LineBranch:
     def __init__(self, node):
-        self.dgid = getDgTargetId(node) # target
+        self.dgid = node.dgid # target
         self.ilvl = 1
         self.text = None
     def setText(self, readexpr):
@@ -185,26 +183,26 @@ class LineGoto:
     def setLineNo(self, lineno):
         self.lineno = lineno
 
-def isBranch(node):
-    return type(node) == NodeDecision
-def getFcId(node):
-    return node.fcid
-def getDgTargetId(node):
-    return node.dgid
-def getSingleChild(node):
-    return node.child
-def getChild0(node):
-    return node.child0
-def getChild1(node):
-    return node.child1
 
-def iterateBinbranchFlow(node):
-    ''' the flowchart-to-pseudocode representation step '''
+def flowchartToPseudocodeList(root):
+    ''' flowchart-to-pseudocode graph iterator '''
+    def isBranch(node):
+        return type(node) == NodeDecision
+    def getFcId(node):
+        return node.fcid
+    def getSingleChild(node):
+        return node.child
+    def getChild0(node):
+        return node.child0
+    def getChild1(node):
+        return node.child1
+
     idx = 0
     vis = {} # visited node id:idx entries
     lines = [LineOpen()] # just a line open, because everything ends in a line close
     idx = idx + 1 # line was added
-    stack = LifoQueue(maxsize=100) # some outrageously large maxsize here 
+    stack = LifoQueue(maxsize=100) # some outrageously large maxsize here
+    node = root
 
     while node is not None:
         print(idx)
@@ -243,7 +241,7 @@ def iterateBinbranchFlow(node):
 
 
 '''
-Flow control model.
+Flow control graph model.
 
 fcid: the global id of this flowchart item
 dgid: the datagraph target global id
@@ -291,40 +289,7 @@ class NodeDecision:
 
 
 '''
-Low-level graph assembly.
-
-TODO: A dict-based approach should be faster.
-'''
-def child_put(lst, item, idx):
-    lst.append((item, idx))
-def children_get(lst):
-    srtd = sorted(lst, key=lambda i: i[1])
-    return [l[0] for l in srtd]
-def child_rm(lst, item, idx):
-    try:
-        del lst[lst.index((item, idx))]
-    except:
-        raise Exception("child_rm: item, idx(%s) not found in lst" % idx)
-def parent_put(lst, item, idx):
-    idxs = [l[1] for l in lst]
-    if idx in idxs:
-        raise Exception('some item of idx "%s" already exists' % idx)
-    lst.append((item, idx))
-def parents_get(lst):
-    srtd = sorted(lst, key=lambda i: i[1])
-    return [l[0] for l in srtd]
-def parent_rm(lst, item, idx):
-    try:
-        del lst[lst.index((item, idx))]
-    except:
-        raise Exception("parent_rm: item, idx(%s) not found in lst" % idx)
-def child_or_parent_rm_allref(lst, item):
-    todel = [l for l in lst if l[0]==item]
-    for l in todel:
-        del lst[lst.index(l)]
-
-'''
-High-level graph assembly.
+Graph assembly functionality, used by FlatGraph.
 '''
 def add_subnode(root, node, transitive=True):
     root.own(node)
@@ -353,10 +318,38 @@ def del_node(node):
         del_node(s)
     if node.owner:
         remove_subnode(node.owner, node)
+''' TODO: A dict-based data structure should be faster. '''
+def _child_put(lst, item, idx):
+    lst.append((item, idx))
+def _children_get(lst):
+    srtd = sorted(lst, key=lambda i: i[1])
+    return [l[0] for l in srtd]
+def _child_rm(lst, item, idx):
+    try:
+        del lst[lst.index((item, idx))]
+    except:
+        raise Exception("_child_rm: item, idx(%s) not found in lst" % idx)
+def _parent_put(lst, item, idx):
+    idxs = [l[1] for l in lst]
+    if idx in idxs:
+        raise Exception('some item of idx "%s" already exists' % idx)
+    lst.append((item, idx))
+def _parents_get(lst):
+    srtd = sorted(lst, key=lambda i: i[1])
+    return [l[0] for l in srtd]
+def _parent_rm(lst, item, idx):
+    try:
+        del lst[lst.index((item, idx))]
+    except:
+        raise Exception("_parent_rm: item, idx(%s) not found in lst" % idx)
+def _child_or_parent_rm_allref(lst, item):
+    todel = [l for l in lst if l[0]==item]
+    for l in todel:
+        del lst[lst.index(l)]
 
 
 '''
-Base data graph node and supporting types.
+Data graph model - imported from IFL and heavily modded.
 '''
 class NodeNotExecutableException(Exception): pass
 class InternalExecutionException(Exception):
@@ -385,33 +378,33 @@ class Node:
 
     ''' Graph connectivity interface '''
     def add_child(self, node, idx):
-        if node in [n for n in children_get(self.children)]:
+        if node in [n for n in _children_get(self.children)]:
             raise Node.NodeOfNameAlreadyExistsException()
         if not self._check_child(node):
             self.graph_inconsistent_fail("illegal add_child")
-        child_put(self.children, node, idx)
+        _child_put(self.children, node, idx)
     def remove_child(self, node, idx=None):
         if idx is None:
-            child_or_parent_rm_allref(self.children, node)
+            _child_or_parent_rm_allref(self.children, node)
         else:
-            child_rm(self.children, node, idx)
+            _child_rm(self.children, node, idx)
     def num_children(self):
         # NOTE: we removed adding together "zero'th and first order" children, order has been removed 
-        return len(children_get(self.children))
+        return len(_children_get(self.children))
 
     def add_parent(self, node, idx):
-        if node in [n for n in parents_get(self.parents)]:
+        if node in [n for n in _parents_get(self.parents)]:
             raise Node.NodeOfNameAlreadyExistsException()
         if not self._check_parent(node):
             self.graph_inconsistent_fail('illegal add_parent')
-        parent_put(self.parents, node, idx)
+        _parent_put(self.parents, node, idx)
     def remove_parent(self, node, idx=None):
         if idx is None:
-            child_or_parent_rm_allref(self.parents, node)
+            _child_or_parent_rm_allref(self.parents, node)
         else:
-            parent_rm(self.parents, node, idx)
+            _parent_rm(self.parents, node, idx)
     def num_parents(self):
-        return len(parents_get(self.parents))
+        return len(_parents_get(self.parents))
 
     def subnode_to(self, node):
         if not self._check_owner(node):
@@ -478,10 +471,6 @@ class ExecutionModel():
         if self.can_assign() and self.can_call():
             raise ExecutionModel.CallAndAssignException()
 
-
-'''
-Generic node types.
-'''
 class RootNode(Node):
     ''' Used as a passive "owning" node. Can accept any child or parent as a sub-node. '''
     class ExeModel(ExecutionModel):
@@ -505,11 +494,6 @@ class RootNode(Node):
         return False
     def _check_parent(self, node):
         return False
-
-
-'''
-Data graph node models.
-'''
 
 class ObjNode(Node):
     ''' General type-agnostic object handle. '''
@@ -553,7 +537,7 @@ class ObjNode(Node):
     def _check_child(self, node):
         return type(node) in standard_children
     def _check_parent(self, node):
-        return type(node) in standard_parents and len( parents_get(self.parents) ) < 1
+        return type(node) in standard_parents and len( _parents_get(self.parents) ) < 1
 
 ObjNodeTyped = ObjNode
 # TODO: implement to retain type info
@@ -690,10 +674,8 @@ standard_subjects = (FuncNode, MethodNode)
 
 
 '''
-statement and expression building based on a data graph subtree build-and-traverse
+Data graph subtree-expression builder/caller. Uses recursion to build or traverse the built product.
 '''
-
-
 def build_dg_subtree(root):
     '''
     Recursively builds a subtree from the directed graph given by root.
@@ -701,7 +683,7 @@ def build_dg_subtree(root):
     def build_subtree_recurse(node, tree, model):
         subjs = model.subjects()
         objs = model.objects()
-        for p in parents_get(node.parents):
+        for p in _parents_get(node.parents):
             if type(p) in subjs:
                 tree.append(p)
                 tree.append(build_subtree_recurse(p, [], model))
@@ -770,7 +752,9 @@ def call_dg_subtree(tree):
 
 
 '''
-Flatgraph representation functionality. Node data has been removed, only static info is needed for cogen.
+Flatgraph flow-and-data graph representation. This is used to assemble and hold the server side
+version of ui graph data. It enterprits ui data, structured as commands, and builds an identical
+graph from that.
 '''
 def _log(msg):
     print(msg)
@@ -824,9 +808,11 @@ class FlatGraph:
         else:
             add_subnode(self.root, n)
         # caching
+        # TODO: remove?
         self.node_cmds_cache[id] = (x, y, id, name, label, tpe_addr)
 
     def node_rm(self, id):
+        # TODO: remove?
         n = self.root.subnodes.get(id, None)
         if not n:
             return
@@ -839,11 +825,11 @@ class FlatGraph:
             raise Exception("node_rm: can not remove node with existing links")
         remove_subnode(self.root, n)
         # caching
+        # TODO: remove?
         del self.node_cmds_cache[id]
         _log("deleted node: %s" % id)
 
-    def link_add(self, id1, idx1, id2, idx2, order=None):
-        ''' NOTE: order arg is depricated '''
+    def link_add(self, id1, idx1, id2, idx2):
         n1 = self.root.subnodes[id1]
         n2 = self.root.subnodes[id2]
 
@@ -865,6 +851,7 @@ class FlatGraph:
                 add_connection(n1, idx1, n2, idx2)
 
         # caching
+        # TODO: remove?
         if not self.dslinks_cache.get(id1, None):
             self.dslinks_cache[id1] = []
         self.dslinks_cache[id1].append((id1, idx1, id2, idx2))
@@ -872,6 +859,7 @@ class FlatGraph:
         _log("added link from (%s, %d) to (%s, %d)" % (id1, idx1, id2, idx2))
 
     def link_rm(self, id1, idx1, id2, idx2, order=0):
+        # TODO: remove?
         n1 = self.root.subnodes[id1]
         n2 = self.root.subnodes[id2]
         
@@ -885,23 +873,21 @@ class FlatGraph:
             remove_connection(n1, idx1, n2, idx2, order)
 
         # caching
+        # TODO: remove?
         lst = self.dslinks_cache[id1]
         idx = lst.index((id1, idx1, id2, idx2, order))
         del lst[idx]
         _log("removed link from (%s, %d) to (%s, %d)" % (id1, idx1, id2, idx2))
 
     def node_label(self, id, label):
-        # TODO: 
-
+        # TODO: remove?
         _log("node label update always ignored, (%s, %s)." % (id, label))
         # caching
         e = self.node_cmds_cache[id]
         self.node_cmds_cache[id] = (e[0], e[1], e[2], e[3], label, e[5])
 
     def graph_update(self, redo_lsts):
-        # TODO: superfluous?
-        
-        
+        # TODO: remove?
         ''' takes an undo-redo list and sequentially modifies the server-side graph '''
         _log('graph update: %d commands' % len(redo_lsts))
         error = None
@@ -926,6 +912,7 @@ class FlatGraph:
             return {'error' : error}
 
     def graph_coords(self, coords):
+        # TODO: remove?
         ''' updates the cached node_add commands x- and y-coordinate entries '''
         keys = coords.keys()
         for key in keys:
@@ -935,10 +922,9 @@ class FlatGraph:
         _log('graph coords: %d coordinate sets' % len(keys))
 
     def inject_graphdef(self, graphdef):
-        ''' adds nodes, links and datas to the graph '''
+        ''' builds the graph from commands describing node and link adds '''
         nodes = graphdef['nodes']
         links = graphdef['links']
-        #labels = graphdef['labels']
 
         for key in nodes.keys():
             cmd = nodes[key]
@@ -949,10 +935,7 @@ class FlatGraph:
             for cmd in links[key]:
                 self.link_add(cmd[0], cmd[1], cmd[2], cmd[3])
 
-        # TODO: assign labels ! 
-        #for key in labels.keys():
-        #    print(labels[key])
-
+''' conversion table: json basetype string to server side node class equivalent '''
 basetypes = {
     # nsgen datagraph basetypes
     'object' : ObjNode,
