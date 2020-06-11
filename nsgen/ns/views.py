@@ -31,6 +31,11 @@ def new_gs(req, ts_id=None):
     gs.save()
     return redirect(graphui, gs_id=gs.id)
 
+@login_required
+def latest_gs(req):
+    gslast = GraphSession.objects.last()
+    return graphui(req, gslast.id)
+
 # ajax requests
 def ajax_load(req, gs_id):
     ''' data is loaded to client as-is '''
