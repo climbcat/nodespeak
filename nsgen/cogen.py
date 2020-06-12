@@ -34,7 +34,7 @@ def cogen(graphdef, typetree):
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
     
-    lines = flowchartToPseudocodeList(term_Is[0])
+    lines = flowchartToPseudocode(term_Is[0])
     
     makeLineExpressions(lines, graph.root.subnodes)
 
@@ -45,7 +45,176 @@ def cogen(graphdef, typetree):
 
 
 '''
-Pseudocode generation directly from the flowchart
+Flow chart to AST (syntax tree) generation.
+'''
+# tree building types with parent nodes
+class AST_root: # ast global handle signaling enter/start
+    def __init__(self):
+        self.child
+class AST_bassign: # statement: assignment to a boolean (only cogen'd)
+    def __init__(self):
+        self.parent
+        self.child
+        self.varname # bvar
+        self.right # brval or bext
+class AST_extern: # statement: external expression (dg subtree call)
+    def __init__(self):
+        self.parent
+        self.child
+        self.dgid
+class AST_goto: # statement: goto label
+    '''
+    NOTE: the label will be handled by a list containing goto's and their labels,
+    and a label dict pointing to the appropriate AST locations
+    '''
+    def __init__(self):
+        self.parent # goto's are always a dead end
+class AST_return: # statement: flow exit, implies generating a return/exit statement
+    def __init__(self):
+        self.parent
+class AST_if:
+    def __init__(self):
+        self.parent
+        self.child0 # false branch
+        self.child1 # true branch
+        self.condition # bvar, brval or bext
+class AST_dowhile:
+    def __init__(self):
+        self.parent
+        self.child0
+        self.child1
+        self.condition # bvar, brval or bext
+# supporting types
+class AST_bvar: # boolean value
+    def __init__(self):
+        self.parent
+        self.varname
+class AST_brval: # probably only true/false, of which we will only use true...
+    # TODO: should we just use AST_true and AST_false instead?
+    def __init__(self):
+        self.parent
+        self.valueexpr
+class AST_bext: # external (dg) boolean value, not necessarily an rval
+    def __init__(self):
+        self.parent
+        self.dgid
+class AST_or:
+    def __init__(self):
+        self.parent
+        self.left # bvar, brval, bext
+        self.right # bvar, brval, bext
+class AST_not:
+    def __init__(self):
+        self.parent
+        self.right  # bvar, brval, bext
+
+''' syntax tree operations '''
+def AST_connect(p, c, branch=0):
+    ''' connects a primary syntax tree node with a subnode '''
+    if type(c) in (AST_root):
+        raise Exception("AST_connect error: AST_root can have no parent")
+    # c has a parent
+    if type(p) in (AST_root, AST_bassign, AST_extern, AST_return, ):
+        p.child = c
+        c.parent = p
+    elif type(p) in (AST_if, AST_dowhile, ):
+        if branch==0:
+            p.child0 = c
+        else:
+            p.child1 = c
+        c.parent = p
+    else:
+        raise Exception("AST_connect error: %s, %s" % (str(p), str(c)))
+_brval_types = (AST_bvar, AST_brval, AST_extern, AST_not, AST_or, )
+def AST_leaf(p, c1, c2=None):
+    ''' connects certain primary syntax tree nodes (bassign/if/dowhile) with leaf children '''
+    if type(p) in (AST_bassign, ):
+        if type(c1) in (AST_bvar, ) and type(c2) in _brval_types:
+            p.varname = c1
+            p.right = c2
+            c1.parent = p
+            c2.parent = p
+        else: 
+            raise Exception("AST_leaf: AST_bassign can leaf a pair of (AST_bvar, AST_bvar/AST_brval)")
+    if type(p) in (AST_if, AST_dowhile, ) and c2 == None:
+        if type(c1) in _brval_types:
+            pass
+        else:
+            raise Exception("AST_leaf: AST_if/AST_dowhile can leaf a condition AST_bvar/AST_brval")
+def AST_notleaf(p, c):
+    if type(p) in (AST_not, ) and type(c) in _brval_types:
+        p.right = c
+        c.parent = p
+    else:
+        raise Exception("AST_notleaf: mismatch")
+def AST_orleaf(p, c1, c2):
+    if type(p) in (AST_or, ) and type(c) in _brval_types:
+        p.left = c1
+        p.right = c2
+        c1.parent = p
+        c2.parent = p
+    else:
+        raise Exception("AST_orleaf: mismatch")
+
+def flowchartToSyntaxTree(root):
+    ''' flowchart to syntax tree graph iterator '''
+    # TODO: impl.
+    '''
+    def isBranch(node):
+        return type(node) == NodeDecision
+    def getFcId(node):
+        return node.fcid
+    def getSingleChild(node):
+        return node.child
+    def getChild0(node):
+        return node.child0
+    def getChild1(node):
+        return node.child1
+    idx = 0
+    vis = {} # visited node id:idx entries
+    ast = AST_root() # syntax tree building node
+    stack = LifoQueue(maxsize=100) # some outrageously large maxsize here
+    node = root
+
+    while node is not None:
+        fcid = getFcId(node)
+        if vis.get(fcid, None):
+            lines.append(LineGoto(fcid))
+            node = None # flag LineClose
+        else:
+            vis[fcid] = idx
+            if isBranch(node):
+                lines.append(LineBranch(node))
+                stack.put(getChild0(node))
+                node = getChild1(node)
+            else:
+                # append statment or return statement
+                stm = LineStatement(node)
+                retstm = LineReturnStatement(node)
+                node = getSingleChild(node)
+                if node ==None:
+                    lines.append(retstm)
+                else:
+                    lines.append(stm)
+        if node == None:
+            idx = idx + 1
+            lines.append(LineClose())
+            if stack.qsize() > 0:  # safe get no wait
+                node = stack.get_nowait()
+        idx = idx + 1
+
+    # assign lineno to goto's
+    for l in lines:
+        if type(l) == LineGoto:
+            l.lineno = vis[l.fcid] + 1 # LINES start at 1, indexes at zero
+
+    return lines
+    '''
+
+
+
+'''
+Flow chart to pseudocode generation. Pseudocode is a list of "line" objects which can be printed into actual pseudocode.
 '''
 
 def makeLineExpressions(lines, allnodes):
@@ -184,7 +353,7 @@ class LineGoto:
         self.lineno = lineno
 
 
-def flowchartToPseudocodeList(root):
+def flowchartToPseudocode(root):
     ''' flowchart-to-pseudocode graph iterator '''
     def isBranch(node):
         return type(node) == NodeDecision
@@ -205,7 +374,6 @@ def flowchartToPseudocodeList(root):
     node = root
 
     while node is not None:
-        print(idx)
         fcid = getFcId(node)
         if vis.get(fcid, None):
             lines.append(LineGoto(fcid))
