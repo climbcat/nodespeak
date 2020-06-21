@@ -33,14 +33,26 @@ def cogen(graphdef, typetree):
     term_Is = [n for n in list(graph.root.subnodes.values()) if type(n)==NodeTerm and n.child != None]
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
-    
-    lines = flowchartToPseudocode(term_Is[0])
-    
-    makeLineExpressions(lines, graph.root.subnodes)
 
+    # flowchart to pseudocode:   
+    lines = flowchartToPseudocode(term_Is[0])
+    makeLineExpressions(lines, graph.root.subnodes)
     lw = LineWriter(lines)
     text = lw.write()
     print(text)
+
+    # flowchart to syntax tree:
+    '''
+    astroot = AST_root()
+    labels, gotos = flowchartToSyntaxTree(term_Is[0], astroot)
+    print()
+    print(labels, gotos)
+    for g in gotos:
+        print(g)
+    for key in labels:
+        print(key, labels[key])
+    '''
+
     return text
 
 
@@ -68,7 +80,7 @@ class AST_goto: # statement: goto label
     and a label dict pointing to the appropriate AST locations
     '''
     def __init__(self):
-        self.parent # goto's are always a dead end
+        self.parent # goto's are dead ends in terms of having no AST children
 class AST_return: # statement: flow exit, implies generating a return/exit statement
     def __init__(self):
         self.parent
@@ -109,8 +121,9 @@ class AST_not:
         self.right  # bvar, brval, bext
 
 ''' syntax tree operations '''
-def AST_connect(p, c, branch=0):
+def AST_connect(p, c, branchfirst=0):
     ''' connects a primary syntax tree node with a subnode '''
+    ''' NOTE: branchfirst parameter decides how c should be connected to a binary branchfirst p '''
     if type(c) in (AST_root):
         raise Exception("AST_connect error: AST_root can have no parent")
     # c has a parent
@@ -118,10 +131,13 @@ def AST_connect(p, c, branch=0):
         p.child = c
         c.parent = p
     elif type(p) in (AST_if, AST_dowhile, ):
-        if branch==0:
+        if branchfirst==0 and p.child0 == None:
             p.child0 = c
-        else:
+        elif p.child1 == None:
             p.child1 = c
+        else:
+            # should we rollback parent connection?
+            raise Exception("AST_connect error: bin branchfirst is full")
         c.parent = p
     else:
         raise Exception("AST_connect error: %s, %s" % (str(p), str(c)))
@@ -156,65 +172,84 @@ def AST_orleaf(p, c1, c2):
     else:
         raise Exception("AST_orleaf: mismatch")
 
-def flowchartToSyntaxTree(root):
-    ''' flowchart to syntax tree graph iterator '''
-    # TODO: impl.
+def flowchartToSyntaxTree(fcroot, astroot):
     '''
-    def isBranch(node):
-        return type(node) == NodeDecision
-    def getFcId(node):
-        return node.fcid
+    Flowchart to syntax tree graph iterator.
+    At this level, only if, extern, goto and a return nodes are needed.
+    (Here, extern refers to a dgid, AKA a subtree expression.)
+
+    Returns astroot, a dict of goto:label node pairs and a list of all goto nodes.
+    '''
     def getSingleChild(node):
         return node.child
     def getChild0(node):
         return node.child0
     def getChild1(node):
         return node.child1
+
     idx = 0
-    vis = {} # visited node id:idx entries
-    ast = AST_root() # syntax tree building node
-    stack = LifoQueue(maxsize=100) # some outrageously large maxsize here
-    node = root
+    visited = {} # visited node ids
+    treesibs = {} # corresponding point in the AST to every fc node, used for creating the labels
+    labels = {} # goto:label pairs, where label is an ast node
+    gotos = [] # chronological list of goto's (according to tree building order)
+    stack = LifoQueue(maxsize=1000)
+    node = fcroot # new AST node is created from this
+    astparent = astroot # new AST node becomes connected to this
 
     while node is not None:
-        fcid = getFcId(node)
-        if vis.get(fcid, None):
-            lines.append(LineGoto(fcid))
+        visited = visited.get(node.fcid, None)
+        if visited:
+            astnew = AST_goto()
+            labels[astnew] = treesibs[visited]
+            gotos.append(astnew)
+            AST_connect(astparent, astnew)
+
+            # signal get from stack
+            astparent = None
             node = None # flag LineClose
         else:
-            vis[fcid] = idx
-            if isBranch(node):
-                lines.append(LineBranch(node))
-                stack.put(getChild0(node))
+            visited[node.fcid] = idx
+            if type(node) == NodeDecision:
+                # if branch:
+
+                astnew = AST_if()
+                astcond = AST_extern()
+                astcond.dgid = node.dgid
+                astnew.condition = astcond
+                AST_connect(astparent, astnew, branchfirst=1)
+                astparent = astnew
+
+                # save state for branch 0:
+                stack.put( (getChild0(node), astparent) )
+
+                # continue iterating on branch 1:
+                treesibs[astnew] = node
                 node = getChild1(node)
             else:
-                # append statment or return statement
-                stm = LineStatement(node)
-                retstm = LineReturnStatement(node)
+                # stm or return:
+
+                astnew = AST_extern()
+                astnew.dgid = node.dgid
+                AST_connect(astparent, astnew)
+
+                treesibs[astnew] = node
                 node = getSingleChild(node)
-                if node ==None:
-                    lines.append(retstm)
+                if not node:
+                    AST_connect(astnew, AST_return())
+                    astparent = None # the end:)
                 else:
-                    lines.append(stm)
+                    astparent = astnew # continue
+
         if node == None:
-            idx = idx + 1
-            lines.append(LineClose())
             if stack.qsize() > 0:  # safe get no wait
-                node = stack.get_nowait()
-        idx = idx + 1
+                (node, astparent) = stack.get_nowait()
 
-    # assign lineno to goto's
-    for l in lines:
-        if type(l) == LineGoto:
-            l.lineno = vis[l.fcid] + 1 # LINES start at 1, indexes at zero
-
-    return lines
-    '''
-
+    return labels, gotos
 
 
 '''
 Flow chart to pseudocode generation. Pseudocode is a list of "line" objects which can be printed into actual pseudocode.
+But this is not sufficient for goto-elimination, which requires a syntax tree for various manipulations.
 '''
 
 def makeLineExpressions(lines, allnodes):
@@ -252,7 +287,7 @@ def makeLineExpressions(lines, allnodes):
         if l.dgid is None:
             continue
         # proc/term generated lines
-        if type(l) in (LineStatement, LineReturnStatement, ):
+        if type(l) in (LineStatement, ):
             target = allnodes[l.dgid]
             if type(target) in (ObjNode, MethodNode, ):
                 l.text = assign(target)
@@ -304,17 +339,12 @@ class LineStatement:
             return self.text
         return s
 class LineReturnStatement:
-    def __init__(self, node):
-        self.dgid = node.dgid # target
+    def __init__(self):
+        self.dgid = None
         self.ilvl = 0
-        self.text = None
     def __str__(self):
-        s = self.dgid
-        if self.dgid == None:
-            s = "/* empty: */"
-        if self.text != None:
-            return "return " + self.text
-        return s
+        return "return"
+
 class LineBranch:
     def __init__(self, node):
         self.dgid = node.dgid # target
@@ -387,12 +417,11 @@ def flowchartToPseudocode(root):
             else:
                 # append statment or return statement
                 stm = LineStatement(node)
-                retstm = LineReturnStatement(node)
+                lines.append(stm)
                 node = getSingleChild(node)
-                if node ==None:
-                    lines.append(retstm)
-                else:
-                    lines.append(stm)
+                if node == None:
+                    idx = idx + 1
+                    lines.append(LineReturnStatement())
         if node == None:
             idx = idx + 1
             lines.append(LineClose())
@@ -969,6 +998,9 @@ class FlatGraph:
         return n
 
     def node_add(self, x, y, id, name, label, tpe_addr):
+        if label == "":
+            label = id
+
         n = self._create_node(id, label, tpe_addr)
         _log('created node (%s) of type: "%s"' % (id, str(type(n))))
         if type(n) in (NodeTerm, NodeProc, NodeDecision, ):
@@ -1096,7 +1128,6 @@ class FlatGraph:
 
         for key in nodes.keys():
             cmd = nodes[key]
-            print("label? ", cmd[4])
             self.node_add(cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5])
 
         for key in links.keys():
