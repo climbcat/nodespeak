@@ -41,17 +41,23 @@ def cogen(graphdef, typetree):
     text = lw.write()
     print(text)
 
+
+
     # flowchart to syntax tree:
-    '''
     astroot = AST_root()
-    labels, gotos = flowchartToSyntaxTree(term_Is[0], astroot)
+    try:
+        labels, gotos = flowchartToSyntaxTree(term_Is[0], astroot)
+    except Exception as e:
+        print(str(e))
+        pass
     print()
     print(labels, gotos)
     for g in gotos:
         print(g)
     for key in labels:
         print(key, labels[key])
-    '''
+
+
 
     return text
 
@@ -62,63 +68,63 @@ Flow chart to AST (syntax tree) generation.
 # tree building types with parent nodes
 class AST_root: # ast global handle signaling enter/start
     def __init__(self):
-        self.child
+        self.child = None
 class AST_bassign: # statement: assignment to a boolean (only cogen'd)
     def __init__(self):
-        self.parent
-        self.child
-        self.varname # bvar
-        self.right # brval or bext
+        self.parent = None
+        self.child = None
+        self.varname = None # bvar
+        self.right = None # brval or bext
 class AST_extern: # statement: external expression (dg subtree call)
     def __init__(self):
-        self.parent
-        self.child
-        self.dgid
+        self.parent = None
+        self.child = None
+        self.dgid = None
 class AST_goto: # statement: goto label
     '''
     NOTE: the label will be handled by a list containing goto's and their labels,
     and a label dict pointing to the appropriate AST locations
     '''
     def __init__(self):
-        self.parent # goto's are dead ends in terms of having no AST children
+        self.parent = None # goto's are dead ends in terms of having no AST children
 class AST_return: # statement: flow exit, implies generating a return/exit statement
     def __init__(self):
-        self.parent
+        self.parent = None
 class AST_if:
     def __init__(self):
-        self.parent
-        self.child0 # false branch
-        self.child1 # true branch
+        self.parent = None
+        self.child0 = None # false branch
+        self.child1 = None # true branch
         self.condition # bvar, brval or bext
 class AST_dowhile:
     def __init__(self):
-        self.parent
-        self.child0
-        self.child1
-        self.condition # bvar, brval or bext
+        self.parent = None
+        self.child0 = None
+        self.child1 = None
+        self.condition = None # bvar, brval or bext
 # supporting types
 class AST_bvar: # boolean value
     def __init__(self):
-        self.parent
-        self.varname
+        self.parent = None
+        self.varname = None
 class AST_brval: # probably only true/false, of which we will only use true...
     # TODO: should we just use AST_true and AST_false instead?
     def __init__(self):
-        self.parent
-        self.valueexpr
+        self.parent = None
+        self.valueexpr = None
 class AST_bext: # external (dg) boolean value, not necessarily an rval
     def __init__(self):
-        self.parent
-        self.dgid
+        self.parent = None
+        self.dgid = None
 class AST_or:
     def __init__(self):
-        self.parent
-        self.left # bvar, brval, bext
-        self.right # bvar, brval, bext
+        self.parent = None
+        self.left = None # bvar, brval, bext
+        self.right = None # bvar, brval, bext
 class AST_not:
     def __init__(self):
-        self.parent
-        self.right  # bvar, brval, bext
+        self.parent = None
+        self.right = None # bvar, brval, bext
 
 ''' syntax tree operations '''
 def AST_connect(p, c, branchfirst=0):
@@ -197,10 +203,10 @@ def flowchartToSyntaxTree(fcroot, astroot):
     astparent = astroot # new AST node becomes connected to this
 
     while node is not None:
-        visited = visited.get(node.fcid, None)
-        if visited:
+        vis = visited.get(node.fcid, None)
+        if vis:
             astnew = AST_goto()
-            labels[astnew] = treesibs[visited]
+            labels[astnew] = treesibs[vis]
             gotos.append(astnew)
             AST_connect(astparent, astnew)
 
