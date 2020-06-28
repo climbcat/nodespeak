@@ -526,7 +526,7 @@ class Anchor {
 
     this.vx = 0;
     this.vy = 0;
-    this.r = 3;
+    this.r = anchorRadius;
     this.localx = null;
     this.localy = null;
 
@@ -1667,7 +1667,7 @@ class GraphTree {
 // *************************************
 
 // global setting
-const anchorRadius = 6; // required by the copy-pasta of nodetypemenu
+const anchorRadius = 8; // required by the copy-pasta of nodetypemenu
 
 
 class LinkHelper {
