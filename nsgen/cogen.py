@@ -40,7 +40,7 @@ def cogen(graphdef, typetree):
     lw = LineWriter(lines)
     text = lw.write()
     print(text)
-
+    #return text
 
 
     # flowchart to syntax tree:
@@ -57,8 +57,6 @@ def cogen(graphdef, typetree):
     for key in labels:
         print(key, labels[key])
 
-
-
     return text
 
 
@@ -69,17 +67,23 @@ Flow chart to AST (syntax tree) generation.
 class AST_root: # ast global handle signaling enter/start
     def __init__(self):
         self.child = None
+    def __str__(self):
+        return "root"
 class AST_bassign: # statement: assignment to a boolean (only cogen'd)
     def __init__(self):
         self.parent = None
         self.child = None
         self.varname = None # bvar
         self.right = None # brval or bext
+    def __str__(self):
+        return "bassign"
 class AST_extern: # statement: external expression (dg subtree call)
     def __init__(self):
         self.parent = None
         self.child = None
         self.dgid = None
+    def __str__(self):
+        return "extern"
 class AST_goto: # statement: goto label
     '''
     NOTE: the label will be handled by a list containing goto's and their labels,
@@ -87,31 +91,43 @@ class AST_goto: # statement: goto label
     '''
     def __init__(self):
         self.parent = None # goto's are dead ends in terms of having no AST children
+    def __str__(self):
+        return "goto"
 class AST_return: # statement: flow exit, implies generating a return/exit statement
     def __init__(self):
         self.parent = None
+    def __str__(self):
+        return "return"
 class AST_if:
     def __init__(self):
         self.parent = None
         self.child0 = None # false branch
         self.child1 = None # true branch
-        self.condition # bvar, brval or bext
+        self.condition = None# bvar, brval or bext
+    def __str__(self):
+        return "if"
 class AST_dowhile:
     def __init__(self):
         self.parent = None
         self.child0 = None
         self.child1 = None
         self.condition = None # bvar, brval or bext
+    def __str__(self):
+        return "dowhile"
 # supporting types
 class AST_bvar: # boolean value
     def __init__(self):
         self.parent = None
         self.varname = None
+    def __str__(self):
+        return "bvar"
 class AST_brval: # probably only true/false, of which we will only use true...
     # TODO: should we just use AST_true and AST_false instead?
     def __init__(self):
         self.parent = None
         self.valueexpr = None
+    def __str__(self):
+        return "brval"
 class AST_bext: # external (dg) boolean value, not necessarily an rval
     def __init__(self):
         self.parent = None
@@ -121,16 +137,20 @@ class AST_or:
         self.parent = None
         self.left = None # bvar, brval, bext
         self.right = None # bvar, brval, bext
+    def __str__(self):
+        return "or"
 class AST_not:
     def __init__(self):
         self.parent = None
         self.right = None # bvar, brval, bext
+    def __str__(self):
+        return "not"
 
 ''' syntax tree operations '''
 def AST_connect(p, c, branchfirst=0):
     ''' connects a primary syntax tree node with a subnode '''
     ''' NOTE: branchfirst parameter decides how c should be connected to a binary branchfirst p '''
-    if type(c) in (AST_root):
+    if type(c) in (AST_root, ):
         raise Exception("AST_connect error: AST_root can have no parent")
     # c has a parent
     if type(p) in (AST_root, AST_bassign, AST_extern, AST_return, ):
@@ -178,6 +198,16 @@ def AST_orleaf(p, c1, c2):
     else:
         raise Exception("AST_orleaf: mismatch")
 
+def treePrintRec(astnode, indentlvl):
+    print("".ljust(2*indentlvl) + str(astnode))
+    if type(astnode) in (AST_if, AST_dowhile, ):
+        treePrintRec(astnode.child0, indentlvl+1)
+        treePrintRec(astnode.child1, indentlvl+1)
+    else:
+        if hasattr(astnode, "child"):
+            treePrintRec(astnode.child, indentlvl+1)
+    
+
 def flowchartToSyntaxTree(fcroot, astroot):
     '''
     Flowchart to syntax tree graph iterator.
@@ -200,21 +230,22 @@ def flowchartToSyntaxTree(fcroot, astroot):
     gotos = [] # chronological list of goto's (according to tree building order)
     stack = LifoQueue(maxsize=1000)
     node = fcroot # new AST node is created from this
-    astparent = astroot # new AST node becomes connected to this
+    astnode = astroot # new AST node becomes connected to this
 
+    # TODO: infinite loop here??
     while node is not None:
         vis = visited.get(node.fcid, None)
-        if vis:
+        if vis is not None:
             astnew = AST_goto()
             labels[astnew] = treesibs[vis]
             gotos.append(astnew)
-            AST_connect(astparent, astnew)
+            AST_connect(astnode, astnew)
 
             # signal get from stack
-            astparent = None
+            astnode = None
             node = None # flag LineClose
         else:
-            visited[node.fcid] = idx
+            visited[node.fcid] = node
             if type(node) == NodeDecision:
                 # if branch:
 
@@ -222,33 +253,33 @@ def flowchartToSyntaxTree(fcroot, astroot):
                 astcond = AST_extern()
                 astcond.dgid = node.dgid
                 astnew.condition = astcond
-                AST_connect(astparent, astnew, branchfirst=1)
-                astparent = astnew
+                AST_connect(astnode, astnew, branchfirst=1)
+                astnode = astnew
 
                 # save state for branch 0:
-                stack.put( (getChild0(node), astparent) )
+                stack.put( (getChild0(node), astnode) )
 
                 # continue iterating on branch 1:
-                treesibs[astnew] = node
+                treesibs[node] = astnew
                 node = getChild1(node)
             else:
                 # stm or return:
 
                 astnew = AST_extern()
                 astnew.dgid = node.dgid
-                AST_connect(astparent, astnew)
+                AST_connect(astnode, astnew)
 
-                treesibs[astnew] = node
+                treesibs[node] = astnew
                 node = getSingleChild(node)
                 if not node:
                     AST_connect(astnew, AST_return())
-                    astparent = None # the end:)
+                    astnode = None # the end:)
                 else:
-                    astparent = astnew # continue
+                    astnode = astnew # continue
 
         if node == None:
             if stack.qsize() > 0:  # safe get no wait
-                (node, astparent) = stack.get_nowait()
+                (node, astnode) = stack.get_nowait()
 
     return labels, gotos
 
