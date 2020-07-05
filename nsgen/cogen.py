@@ -1,12 +1,14 @@
 '''
 TODO: 
-- build node graph from a frontend-generated graph def
-- handle graph requirements: custom types (do we need special nodes/types to represent user typedefs or are node confs enough?)
-- gen pseudocode / lines representation
-- do goto-elimination
-- gen code from goto-eliminated pseudocode (language specific)
+- OK - build node graph from a frontend-generated graph def
+- OK - gen pseudocode with goto statements representing the fc as a test
+- OK - gen AST from fc graph with a goto list and labels dict
+- write atomic goto-lifting and goto-elimination operations operating on the AST
+- use operations to implement the goto-elimination alg operating on the AST
+- gen code from goto-eliminated AST (language specific)
 - gen typedefs and stubs (language specific)
 '''
+
 from queue import LifoQueue
 import inspect
 from treealg import TreeJsonAddr, NodeConfig
@@ -17,16 +19,6 @@ Cogen interface
 '''
 def cogen(graphdef, typetree):
     graph = FlatGraph(typetree)
-
-    print("nodes:")
-    nds = graphdef['nodes']
-    for n in nds:
-        print(n, nds[n])
-    print("links:")
-    lnks = graphdef['links']
-    for l in lnks:
-        print(l, lnks[l])
-    
     graph.inject_graphdef(graphdef)
 
     # get a unique starting point or except
