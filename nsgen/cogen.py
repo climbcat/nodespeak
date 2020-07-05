@@ -49,15 +49,17 @@ def cogen(graphdef, typetree):
     for key in labels:
         print(key, labels[key])
 
+
     return text
 
 
 '''
-Flow chart to AST (syntax tree) generation.
+Flow chart to AST (syntax tree) generation and AST manipulation.
 '''
 # tree building types with parent nodes
 class AST_root: # ast global handle signaling enter/start
     def __init__(self):
+        self.parent = None;
         self.child = None
     def __str__(self):
         return "root"
@@ -141,7 +143,7 @@ class AST_not:
 ''' syntax tree operations '''
 def AST_connect(p, c, branchfirst=0):
     ''' connects a primary syntax tree node with a subnode '''
-    ''' NOTE: branchfirst parameter decides how c should be connected to a binary branchfirst p '''
+    ''' NOTE: branchfirst parameter decides how c should be connected to a binary branch p '''
     if type(c) in (AST_root, ):
         raise Exception("AST_connect error: AST_root can have no parent")
     # c has a parent
@@ -151,11 +153,15 @@ def AST_connect(p, c, branchfirst=0):
     elif type(p) in (AST_if, AST_dowhile, ):
         if branchfirst==0 and p.child0 == None:
             p.child0 = c
-        elif p.child1 == None:
+        elif branchfirst==0 and p.child1 == None:
+            p.child1 = c
+        elif branchfirst==1 and p.child0 == None:
+            p.child0 = c
+        elif branchfirst==1 and p.child1 == None:
             p.child1 = c
         else:
-            # should we rollback parent connection?
-            raise Exception("AST_connect error: bin branchfirst is full")
+            raise Exception("AST_connect: inconsistent use of branchfirst or too many children")
+
         c.parent = p
     else:
         raise Exception("AST_connect error: %s, %s" % (str(p), str(c)))
@@ -274,6 +280,29 @@ def flowchartToSyntaxTree(fcroot, astroot):
                 (node, astnode) = stack.get_nowait()
 
     return labels, gotos
+
+
+def findCommonParentFork(ast1, ast2):
+    ''' find the common parent fork of ast1 and ast2 '''
+    forks = []
+    if ast1.parent == None or ast2.parent == None:
+        return None
+    
+    # map all forks above ast1
+    parent = ast1.parent
+    while parent is not None:
+        if type(parent) in (AST_if, AST_dowhile, ):
+            forks.append(parent)
+        parent = parent.parent
+    
+    # search ast2's parent forks for a match
+    parent = ast2.parent
+    while parent is not None:
+        if type(parent) in (AST_if, AST_dowhile, ):
+            if parent in forks:
+                return parent
+        parent = parent.parent
+
 
 
 '''
