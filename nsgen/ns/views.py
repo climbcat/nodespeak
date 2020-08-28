@@ -2,13 +2,30 @@ from django.shortcuts import render, HttpResponse, redirect
 from .models import GraphSession, TypeSchema, TabId
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-
+import django.contrib.auth as auth
 import base64
 import json
-
 from cogen import cogen
 
-# the one and only view
+def index(req):
+    return redirect("/login")
+
+def login(req):
+    return render(req, "ns/login.html")
+
+def login_submit(req):
+    user = auth.authenticate(username=req.POST["username"], password=req.POST["password"])
+    if user is None or not user.is_active:
+        return redirect("/login")
+    auth.login(req, user)
+    return redirect("/latest/")
+
+@login_required
+def logout(req):
+    auth.logout(req)
+    return redirect("/login")
+
+# the one and only graphui view
 @login_required
 def graphui(req, gs_id):
     ct = {
