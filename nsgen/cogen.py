@@ -21,34 +21,25 @@ def cogen(graphdef, typetree):
     # create the graph given the graphdef
     graph = SimpleGraph(typetree, graphdef)
 
-    # get a unique term-enter node or except
+    # get the unique term-enter node or except
     term_Is = [n for n in list(graph.root.subnodes.values()) if type(n)==NodeTerm and n.child != None]
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
+    term_I = term_Is[0]
 
-    # flowchart to pseudocode:   
-    lines = flowchartToPseudocode(term_Is[0])
+    # flowchart to pseudocode:
+    lines = flowchartToPseudocode(term_I)
     makeLineExpressions(lines, graph.root.subnodes)
     lw = LineWriter(lines)
     text = lw.write()
     print(text)
-    #return text
-
 
     # flowchart to syntax tree:
     astroot = AST_root()
     try:
-        labels, gotos = flowchartToSyntaxTree(term_Is[0], astroot)
+        labels, gotos = flowchartToSyntaxTree(term_I, astroot)
     except Exception as e:
-        print(str(e))
-        pass
-    print()
-    print(labels, gotos)
-    for g in gotos:
-        print(g)
-    for key in labels:
-        print(key, labels[key])
-
+        print("FAIL: " + str(e))
 
     return text
 

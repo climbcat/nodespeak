@@ -25,7 +25,6 @@ def logout(req):
     auth.logout(req)
     return redirect("/login")
 
-# the one and only graphui view
 @login_required
 def graphui(req, gs_id):
     ct = {
@@ -53,7 +52,7 @@ def latest_gs(req):
     gslast = GraphSession.objects.last()
     return graphui(req, gslast.id)
 
-# ajax requests
+@login_required
 def ajax_load(req, gs_id):
     ''' data is loaded to client as-is '''
     session = GraphSession.objects.get(id=gs_id)
@@ -61,8 +60,9 @@ def ajax_load(req, gs_id):
         return HttpResponse(session.data_str)
     return HttpResponse('{"error" : "session %s not found"}' % gs_id)
 
+@login_required
 def ajax_commit(req):
-    ''' data is not unpacked, just saved as-is '''
+    ''' data is not unpacked, but saved as-is '''
     data_str = req.POST.get("data_str", None)
     gs_id = req.POST.get("gs_id", None)
     # TODO: include TabId check
@@ -79,6 +79,7 @@ def ajax_commit(req):
     # return success
     return HttpResponse('{ "msg" : "graphdef saved" }')
 
+@login_required
 def ajax_cogen(req):
     data_str = req.POST.get("data_str", None)
     if data_str == None:
@@ -96,6 +97,7 @@ def ajax_cogen(req):
 
     return HttpResponse('{ "msg" : "pseudocode generation successful", "pseudocode" : "%s" }' % text)
 
+@login_required
 def tab_validate(req):
     # TODO: port from IFL
     pass
