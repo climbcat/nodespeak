@@ -34,9 +34,11 @@ def cogen(graphdef, typetree):
     print(text)
 
     # flowchart to syntax tree:
-    astroot = AST_root()
     try:
-        labels, gotos = flowchartToSyntaxTree(term_I, astroot)
+        astroot, gotos, labels = flowchartToSyntaxTree(term_I)
+        
+        print()
+        treePrintRec(astroot)
     except Exception as e:
         print("FAIL: " + str(e))
 
@@ -44,16 +46,16 @@ def cogen(graphdef, typetree):
 
 
 '''
-Flow chart to AST (syntax tree) generation and AST manipulation.
+AST (abstract syntax tree) types
 '''
-# tree building types with parent nodes
-class AST_root: # ast global handle signaling enter/start
+# tree building/primary types
+class AST_root:
     def __init__(self):
         self.parent = None;
         self.child = None
     def __str__(self):
         return "root"
-class AST_bassign: # statement: assignment to a boolean (only cogen'd)
+class AST_bassign: # assignment to a boolean
     def __init__(self):
         self.parent = None
         self.child = None
@@ -61,23 +63,23 @@ class AST_bassign: # statement: assignment to a boolean (only cogen'd)
         self.right = None # brval or bext
     def __str__(self):
         return "bassign"
-class AST_extern: # statement: external expression (dg subtree call)
+class AST_extern: # external statement (dg subtree call)
     def __init__(self):
         self.parent = None
         self.child = None
         self.dgid = None
     def __str__(self):
         return "extern"
-class AST_goto: # statement: goto label
+class AST_goto: # goto statement
     '''
-    NOTE: the label will be handled by a list containing goto's and their labels,
+    NOTE: the label will be handled by a list containing goto's,
     and a label dict pointing to the appropriate AST locations
     '''
     def __init__(self):
-        self.parent = None # goto's are dead ends in terms of having no AST children
+        self.parent = None
     def __str__(self):
         return "goto"
-class AST_return: # statement: flow exit, implies generating a return/exit statement
+class AST_return:
     def __init__(self):
         self.parent = None
     def __str__(self):
@@ -87,7 +89,7 @@ class AST_if:
         self.parent = None
         self.child0 = None # false branch
         self.child1 = None # true branch
-        self.condition = None# bvar, brval or bext
+        self.condition = None # bvar, brval or bext
     def __str__(self):
         return "if"
 class AST_dowhile:
@@ -98,21 +100,22 @@ class AST_dowhile:
         self.condition = None # bvar, brval or bext
     def __str__(self):
         return "dowhile"
-# supporting types
+
+# leaf/supporting types
 class AST_bvar: # boolean value
     def __init__(self):
         self.parent = None
         self.varname = None
     def __str__(self):
         return "bvar"
-class AST_brval: # probably only true/false, of which we will only use true...
-    # TODO: should we just use AST_true and AST_false instead?
+class AST_brval: # probably only true/false
+    # TODO: should we use AST_true and AST_false instead?
     def __init__(self):
         self.parent = None
         self.valueexpr = None
     def __str__(self):
         return "brval"
-class AST_bext: # external (dg) boolean value, not necessarily an rval
+class AST_bext: # external (dg) boolean  or subtree call
     def __init__(self):
         self.parent = None
         self.dgid = None
@@ -129,6 +132,14 @@ class AST_not:
         self.right = None # bvar, brval, bext
     def __str__(self):
         return "not"
+
+
+''' syntax tree classify & iterate '''
+def AST_is_primary_node(p):
+    return p in (AST_root, AST_bassign, AST_extern, AST_goto, AST_return, AST_if, AST_dowhile, )
+def AST_is_leaf_node(c):
+    return c in (AST_bvar, AST_brval, AST_bext, AST_or, AST_not, )
+
 
 ''' syntax tree operations '''
 def AST_connect(p, c, branchfirst=0):
@@ -156,8 +167,12 @@ def AST_connect(p, c, branchfirst=0):
     else:
         raise Exception("AST_connect error: %s, %s" % (str(p), str(c)))
 _bool_rval_types = (AST_bvar, AST_brval, AST_extern, AST_not, AST_or, )
-def AST_leaf(p, c1, c2=None):
-    ''' connects certain primary syntax tree nodes (bassign/if/dowhile) with leaf children '''
+
+'''
+jg-200902: I don't think this code is useful at this point
+
+def AST_leafto(p, c1, c2=None):
+    # connects certain primary syntax tree nodes (bassign/if/dowhile) with leaf children
     if type(p) in (AST_bassign, ):
         if type(c1) in (AST_bvar, ) and type(c2) in _bool_rval_types:
             p.varname = c1
@@ -165,28 +180,29 @@ def AST_leaf(p, c1, c2=None):
             c1.parent = p
             c2.parent = p
         else: 
-            raise Exception("AST_leaf: AST_bassign can leaf a pair of (AST_bvar, AST_bvar/AST_brval)")
+            raise Exception("AST_leafto: AST_bassign can leaf a pair of (AST_bvar, AST_bvar/AST_brval)")
     if type(p) in (AST_if, AST_dowhile, ) and c2 == None:
         if type(c1) in _bool_rval_types:
             pass
         else:
-            raise Exception("AST_leaf: AST_if/AST_dowhile can leaf a condition AST_bvar/AST_brval")
-def AST_notleaf(p, c):
+            raise Exception("AST_leafto: AST_if/AST_dowhile can leaf a condition AST_bvar/AST_brval")
+def AST_notleafto(p, c):
     if type(p) in (AST_not, ) and type(c) in _bool_rval_types:
         p.right = c
         c.parent = p
     else:
-        raise Exception("AST_notleaf: mismatch")
-def AST_orleaf(p, c1, c2):
+        raise Exception("AST_notleafto: mismatch")
+def AST_orleafto(p, c1, c2):
     if type(p) in (AST_or, ) and type(c1) in _bool_rval_types and type(c2) in _bool_rval_types:
         p.left = c1
         p.right = c2
         c1.parent = p
         c2.parent = p
     else:
-        raise Exception("AST_orleaf: mismatch")
+        raise Exception("AST_orleafto: mismatch")
+'''
 
-def treePrintRec(astnode, indentlvl):
+def treePrintRec(astnode, indentlvl=2):
     print("".ljust(2*indentlvl) + str(astnode))
     if type(astnode) in (AST_if, AST_dowhile, ):
         treePrintRec(astnode.child0, indentlvl+1)
@@ -194,15 +210,13 @@ def treePrintRec(astnode, indentlvl):
     else:
         if hasattr(astnode, "child"):
             treePrintRec(astnode.child, indentlvl+1)
-    
 
-def flowchartToSyntaxTree(fcroot, astroot):
+
+def flowchartToSyntaxTree(fcroot):
     '''
-    Flowchart to syntax tree graph iterator.
-    At this level, only if, extern, goto and a return nodes are needed.
-    (Here, extern refers to a dgid, AKA a subtree expression.)
+    Flowchart to syntax tree iterator using queues.
 
-    Returns astroot, a dict of goto:label node pairs and a list of all goto nodes.
+    Returns the ast root node, a list of all gotos, and a dict of goto:label pairs.
     '''
     def getSingleChild(node):
         return node.child
@@ -211,14 +225,14 @@ def flowchartToSyntaxTree(fcroot, astroot):
     def getChild1(node):
         return node.child1
 
-    idx = 0
     visited = {} # visited node ids
     treesibs = {} # corresponding point in the AST to every fc node, used for creating the labels
     labels = {} # goto:label pairs, where label is an ast node
-    gotos = [] # chronological list of goto's (according to tree building order)
+    gotos = [] # chronological list of goto's (depends on ast building order)
     stack = LifoQueue(maxsize=1000)
-    node = fcroot # new AST node is created from this
-    astnode = astroot # new AST node becomes connected to this
+    node = fcroot
+    astroot = AST_root()
+    astnode = astroot
 
     # TODO: infinite loop here??
     while node is not None:
@@ -269,30 +283,29 @@ def flowchartToSyntaxTree(fcroot, astroot):
             if stack.qsize() > 0:  # safe get no wait
                 (node, astnode) = stack.get_nowait()
 
-    return labels, gotos
+    return astroot, gotos, labels
 
 
-def findCommonParentFork(ast1, ast2):
-    ''' find the common parent fork of ast1 and ast2 '''
+def findCommonParentFork(n1, n2):
+    ''' find the common parent fork of n1 and n2 '''
     forks = []
-    if ast1.parent == None or ast2.parent == None:
+    if n1.parent == None or n2.parent == None:
         return None
     
-    # map all forks above ast1
-    parent = ast1.parent
+    # map all forks above n1
+    parent = n1.parent
     while parent is not None:
         if type(parent) in (AST_if, AST_dowhile, ):
             forks.append(parent)
         parent = parent.parent
     
-    # search ast2's parent forks for a match
-    parent = ast2.parent
+    # search n2's parent forks for a match
+    parent = n2.parent
     while parent is not None:
         if type(parent) in (AST_if, AST_dowhile, ):
             if parent in forks:
                 return parent
         parent = parent.parent
-
 
 
 '''
@@ -301,9 +314,7 @@ But this is not sufficient for goto-elimination, which requires a syntax tree fo
 '''
 
 def makeLineExpressions(lines, allnodes):
-    '''
-    For every line, inserts expression text corresponding to the target data graph node subtree execution pseudocode expression.
-    '''
+    ''' For every line, insert text corresponding to the target data graph node subtree. '''
     def read(dgnode):
         ''' Returns an rvalue expression. dgnode: can be a obj, method or func '''
         if dgnode is None:
@@ -331,11 +342,14 @@ def makeLineExpressions(lines, allnodes):
         else:
             return varname + " = " + read(parent)
 
+
     for l in lines:
-        if l.dgid is None:
-            continue
         # proc/term generated lines
         if type(l) in (LineStatement, ):
+            if l.dgid is None:
+                l.text = "/* " + l.node.label + " */"
+                continue
+
             target = allnodes[l.dgid]
             if type(target) in (NodeObj, NodeMethod, ):
                 l.text = assign(target)
@@ -345,6 +359,10 @@ def makeLineExpressions(lines, allnodes):
                 raise Exception("fc proc/term can only be associated with Obj or Method dg nodes: %s" % target.name)
         # dec generated lines
         elif type(l) in (LineBranch, ):
+            if l.dgid is None:
+                l.text = "/* " + l.node.label + " */"
+                continue
+
             target = allnodes[l.dgid]
             if type(target) in (NodeObj, NodeObjTyped, NodeFunc, NodeMethod, ):
                 txt = read(target)
@@ -376,6 +394,7 @@ class LineWriter:
 
 class LineStatement:
     def __init__(self, node):
+        self.node = node
         self.dgid = node.dgid # target
         self.ilvl = 0
         self.text = None
@@ -395,6 +414,7 @@ class LineReturnStatement:
 
 class LineBranch:
     def __init__(self, node):
+        self.node = node
         self.dgid = node.dgid # target
         self.ilvl = 1
         self.text = None

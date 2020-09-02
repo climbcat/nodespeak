@@ -418,17 +418,20 @@ class NodeProc:
         self.fcid = fcid
         self.dgid = None
         self.child = None
+        self.label = None
 class NodeTerm: # goes for both term_I and term_O ...
     def __init__(self, fcid):
         self.fcid = fcid
         self.dgid = None
         self.child = None
+        self.label = None
 class NodeDecision:
     def __init__(self, fcid):
         self.fcid = fcid
         self.dgid = None
         self.child0 = None
         self.child1 = None
+        self.label = None
     def add_child(self, n, idx=None):
         if idx == 0:
             self.child0 = n
@@ -563,10 +566,13 @@ class SimpleGraph:
         # flowcontrol nodes
         if node_tpe == NodeTerm:
             n = NodeTerm(id)
+            n.label = label
         elif node_tpe == NodeProc:
             n = NodeProc(id)
+            n.label = label
         elif node_tpe == NodeDecision:
             n = NodeDecision(id)
+            n.label = label
         # datagraph nodes
         elif node_tpe == NodeObj:
             # TODO: somehow include type info derived from graph connectibility
