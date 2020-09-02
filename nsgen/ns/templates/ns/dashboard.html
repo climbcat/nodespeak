@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>ns-gen Dashboard</title>
+  </head>
+<body>
+
+<table id="tbl_sessions">
+{% for gs_id in sessions %}
+<tr>
+<td style="padding-left:25px;">session_{{ gs_id }}</td>
+<td style="padding-left:25px;"><a href="/session/{{ gs_id }}" target="_blank">resume</a></td>
+<td style="padding-left:25px;"><a href="/delete/{{ gs_id }}">delete</a></td>
+</tr>
+{% endfor %}
+</table>
+
+</body>
+</html>

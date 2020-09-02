@@ -48,6 +48,20 @@ def new_gs(req, ts_id=None):
     return redirect(graphui, gs_id=gs.id)
 
 @login_required
+def delete_gs(req, gs_id):
+    try:
+        gs = GraphSession.objects.get(id=gs_id)
+        gs.delete()
+    except:
+        print("graph session %s" % gs_id + " to delete not found")
+    return redirect(dashboard)
+
+@login_required
+def dashboard(req):
+    ct = { "sessions" : [s.id for s in GraphSession.objects.all() ] }
+    return render(req, "ns/dashboard.html", context = ct)
+
+@login_required
 def latest_gs(req):
     gslast = GraphSession.objects.last()
     return graphui(req, gslast.id)

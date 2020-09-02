@@ -22,11 +22,17 @@ urlpatterns = [
     url(r'login/?$', views.login),
     url(r'login_submit/?$', views.login_submit),
     url(r'logout/?$', views.logout),
+
     url(r'session/(?P<gs_id>[0-9]+)/?$', views.graphui),
-    url(r'new/(?P<ts_id>[0-9]+)/?$', views.new_gs),
-    url(r'new/?$', views.new_gs),
+
     url(r'latest/?$', views.latest_gs),
     url(r'last/?$', views.latest_gs),
+    url(r'delete/(?P<gs_id>[0-9]+)/?$', views.delete_gs),
+    url(r'new/(?P<ts_id>[0-9]+)/?$', views.new_gs),
+    url(r'new/?$', views.new_gs),
+    url(r'dashboard/?$', views.dashboard),
+
+    
     url(r'ajax_load/(?P<gs_id>[\w0-9]+)/?$', views.ajax_load),
     url(r'ajax_commit/?$', views.ajax_commit),
     url(r'ajax_cogen/?$', views.ajax_cogen),
