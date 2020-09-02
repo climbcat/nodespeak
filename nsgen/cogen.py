@@ -18,10 +18,10 @@ from treealg import TreeJsonAddr, NodeConfig
 Cogen interface
 '''
 def cogen(graphdef, typetree):
-    graph = FlatGraph(typetree)
-    graph.inject_graphdef(graphdef)
+    # create the graph given the graphdef
+    graph = SimpleGraph(typetree, graphdef)
 
-    # get a unique starting point or except
+    # get a unique term-enter node or except
     term_Is = [n for n in list(graph.root.subnodes.values()) if type(n)==NodeTerm and n.child != None]
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
@@ -165,11 +165,11 @@ def AST_connect(p, c, branchfirst=0):
         c.parent = p
     else:
         raise Exception("AST_connect error: %s, %s" % (str(p), str(c)))
-_brval_types = (AST_bvar, AST_brval, AST_extern, AST_not, AST_or, )
+_bool_rval_types = (AST_bvar, AST_brval, AST_extern, AST_not, AST_or, )
 def AST_leaf(p, c1, c2=None):
     ''' connects certain primary syntax tree nodes (bassign/if/dowhile) with leaf children '''
     if type(p) in (AST_bassign, ):
-        if type(c1) in (AST_bvar, ) and type(c2) in _brval_types:
+        if type(c1) in (AST_bvar, ) and type(c2) in _bool_rval_types:
             p.varname = c1
             p.right = c2
             c1.parent = p
@@ -177,18 +177,18 @@ def AST_leaf(p, c1, c2=None):
         else: 
             raise Exception("AST_leaf: AST_bassign can leaf a pair of (AST_bvar, AST_bvar/AST_brval)")
     if type(p) in (AST_if, AST_dowhile, ) and c2 == None:
-        if type(c1) in _brval_types:
+        if type(c1) in _bool_rval_types:
             pass
         else:
             raise Exception("AST_leaf: AST_if/AST_dowhile can leaf a condition AST_bvar/AST_brval")
 def AST_notleaf(p, c):
-    if type(p) in (AST_not, ) and type(c) in _brval_types:
+    if type(p) in (AST_not, ) and type(c) in _bool_rval_types:
         p.right = c
         c.parent = p
     else:
         raise Exception("AST_notleaf: mismatch")
 def AST_orleaf(p, c1, c2):
-    if type(p) in (AST_or, ) and type(c) in _brval_types:
+    if type(p) in (AST_or, ) and type(c1) in _bool_rval_types and type(c2) in _bool_rval_types:
         p.left = c1
         p.right = c2
         c1.parent = p
@@ -544,7 +544,7 @@ class NodeDecision:
 
 
 '''
-Graph assembly functionality, used by FlatGraph.
+Graph assembly functionality, used by SimpleGraph.
 '''
 def add_subnode(root, node, transitive=True):
     root.own(node)
@@ -1006,31 +1006,45 @@ def call_dg_subtree(tree):
     return result
 
 
-'''
-Flatgraph flow-and-data graph representation. This is used to assemble and hold the server side
-version of ui graph data. It enterprits ui data, structured as commands, and builds an identical
-graph from that.
-'''
 def _log(msg):
     print(msg)
-class FlatGraph:
-    def __init__(self, tpe_tree):
+'''
+Simple one-off flow-chart and data-graph representation.
+Can not be changed, is created once from a graph definition.
+'''
+class SimpleGraph:
+    basetypes = {
+        'object' : ObjNode,
+        'object_typed' : ObjNodeTyped,
+        'object_literal' : ObjLiteralNode,
+        'function_named' : FuncNode,
+        'method' : MethodNode,
+        'term' : NodeTerm,
+        'proc' : NodeProc,
+        'dec' : NodeDecision,
+    }
+    def __init__(self, tpe_tree, graphdef):
         self.root = RootNode("root")
         self.tpe_tree = TreeJsonAddr(existing=tpe_tree)
-
-        self.coords = None # should be reset with every execute syncset, and by inject_graphdef
-
-        self.node_cmds_cache = {}
         self.dslinks_cache = {} # ds = downstream
+        
+        # build the graph from node- and link-add commands in graphdef
+        nodes = graphdef['nodes']
+        links = graphdef['links']
+
+        for key in nodes.keys():
+            cmd = nodes[key]
+            self._node_add(cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5])
+
+        for key in links.keys():
+            for cmd in links[key]:
+                self._link_add(cmd[0], cmd[1], cmd[2], cmd[3])
+
 
     def _create_node(self, id, label, tpe_addr):
-        '''
-        id - node id
-        tpe_addr - node type address
-        '''
         conf = self.tpe_tree.retrieve(tpe_addr)
         n = None
-        node_tpe = basetypes[conf['basetype']]
+        node_tpe = SimpleGraph.basetypes[conf['basetype']]
 
         # flowcontrol nodes
         if node_tpe == NodeTerm:
@@ -1039,7 +1053,6 @@ class FlatGraph:
             n = NodeProc(id)
         elif node_tpe == NodeDecision:
             n = NodeDecision(id)
-
         # datagraph nodes
         elif node_tpe == ObjNode:
             # TODO: somehow include type info derived from graph connectibility
@@ -1052,42 +1065,19 @@ class FlatGraph:
             n = FuncNode(id, conf['type'])
         elif node_tpe == MethodNode:
             n = MethodNode(id, conf['type'])
-
         return n
 
-    def node_add(self, x, y, id, name, label, tpe_addr):
+    def _node_add(self, x, y, id, name, label, tpe_addr):
         if label == "":
             label = id
-
         n = self._create_node(id, label, tpe_addr)
         _log('created node (%s) of type: "%s"' % (id, str(type(n))))
         if type(n) in (NodeTerm, NodeProc, NodeDecision, ):
             add_subnode(self.root, n, transitive=False) # this is a safe add not requiring a subnode_to member on ownee
         else:
             add_subnode(self.root, n)
-        # caching
-        # TODO: remove?
-        self.node_cmds_cache[id] = (x, y, id, name, label, tpe_addr)
 
-    def node_rm(self, id):
-        # TODO: remove?
-        n = self.root.subnodes.get(id, None)
-        if not n:
-            return
-        
-        obj = n.get_object()
-        if obj != None:
-            self.middleware.deregister(obj)
-        
-        if n.num_parents() != 0 or n.num_children() != 0:
-            raise Exception("node_rm: can not remove node with existing links")
-        remove_subnode(self.root, n)
-        # caching
-        # TODO: remove?
-        del self.node_cmds_cache[id]
-        _log("deleted node: %s" % id)
-
-    def link_add(self, id1, idx1, id2, idx2):
+    def _link_add(self, id1, idx1, id2, idx2):
         n1 = self.root.subnodes[id1]
         n2 = self.root.subnodes[id2]
 
@@ -1107,102 +1097,5 @@ class FlatGraph:
                 add_fc_node_child(n1, idx1, n2)
             else:
                 add_connection(n1, idx1, n2, idx2)
-
-        # caching
-        # TODO: remove?
-        if not self.dslinks_cache.get(id1, None):
-            self.dslinks_cache[id1] = []
-        self.dslinks_cache[id1].append((id1, idx1, id2, idx2))
-
         _log("added link from (%s, %d) to (%s, %d)" % (id1, idx1, id2, idx2))
 
-    def link_rm(self, id1, idx1, id2, idx2, order=0):
-        # TODO: remove?
-        n1 = self.root.subnodes[id1]
-        n2 = self.root.subnodes[id2]
-        
-        # method links are represented in the frontend as idx==-1, but as an owner/subnode relation in nodespeak
-        if type(n1) == ObjNode and type(n2) == MethodNode and idx1 == -1 and idx2 == -1:
-            remove_subnode(n1, n2)
-        elif type(n1) == MethodNode and type(n2) == ObjNode and idx1 == -1 and idx2 == -1:
-            remove_subnode(n2, n1)
-        # all other connections
-        else:
-            remove_connection(n1, idx1, n2, idx2, order)
-
-        # caching
-        # TODO: remove?
-        lst = self.dslinks_cache[id1]
-        idx = lst.index((id1, idx1, id2, idx2, order))
-        del lst[idx]
-        _log("removed link from (%s, %d) to (%s, %d)" % (id1, idx1, id2, idx2))
-
-    def node_label(self, id, label):
-        # TODO: remove?
-        _log("node label update always ignored, (%s, %s)." % (id, label))
-        # caching
-        e = self.node_cmds_cache[id]
-        self.node_cmds_cache[id] = (e[0], e[1], e[2], e[3], label, e[5])
-
-    def graph_update(self, redo_lsts):
-        # TODO: remove?
-        ''' takes an undo-redo list and sequentially modifies the server-side graph '''
-        _log('graph update: %d commands' % len(redo_lsts))
-        error = None
-        def erracc(msg, s):
-            ''' message accumulation '''
-            if s == None:
-                s = msg
-            else:
-                s = s + ", " + msg
-
-        for redo_molecule in redo_lsts:
-            for redo in redo_molecule:
-                cmd = redo[0]
-                args = redo[1:]
-                try:
-                    getattr(self, cmd)(*args)
-                except Exception as e:
-                    _log('graph update failed, cmd "%s" with: %s' % (redo, str(e)), error=True)
-                    erracc(str(e), error)
-
-        if error != None:
-            return {'error' : error}
-
-    def graph_coords(self, coords):
-        # TODO: remove?
-        ''' updates the cached node_add commands x- and y-coordinate entries '''
-        keys = coords.keys()
-        for key in keys:
-            coord = coords[key]
-            cached_cmd = self.node_cmds_cache[key]
-            self.node_cmds_cache[key] = (coord[0], coord[1], cached_cmd[2], cached_cmd[3], cached_cmd[4], cached_cmd[5])
-        _log('graph coords: %d coordinate sets' % len(keys))
-
-    def inject_graphdef(self, graphdef):
-        ''' builds the graph from commands describing node and link adds '''
-        nodes = graphdef['nodes']
-        links = graphdef['links']
-
-        for key in nodes.keys():
-            cmd = nodes[key]
-            self.node_add(cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5])
-
-        for key in links.keys():
-            for cmd in links[key]:
-                self.link_add(cmd[0], cmd[1], cmd[2], cmd[3])
-
-''' conversion table: json basetype string to server side node class equivalent '''
-basetypes = {
-    # nsgen datagraph basetypes
-    'object' : ObjNode,
-    'object_typed' : ObjNodeTyped,
-    'object_literal' : ObjLiteralNode,
-    'function_named' : FuncNode,
-    'method' : MethodNode,
-
-    # nsgen flowchart basetypes
-    'term' : NodeTerm,
-    'proc' : NodeProc,
-    'dec' : NodeDecision,
-}
