@@ -37,7 +37,6 @@ def cogen(graphdef, typetree):
     try:
         astroot, gotos, labels = flowchartToSyntaxTree(term_I)
         
-        print()
         treePrintRec(astroot)
     except Exception as e:
         print("FAIL: " + str(e))

@@ -557,7 +557,6 @@ class SimpleGraph:
             for cmd in links[key]:
                 self._link_add(cmd[0], cmd[1], cmd[2], cmd[3])
 
-
     def _create_node(self, id, label, tpe_addr):
         conf = self.tpe_tree.retrieve(tpe_addr)
         n = None
