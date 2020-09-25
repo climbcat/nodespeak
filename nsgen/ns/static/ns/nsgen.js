@@ -48,6 +48,8 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
       // process nodes assigned to objects
       let tcb_1 = a2.owner.owner.basetype == "object"; // assign
       let tcb_5 = a2.owner.owner.basetype == "method"; // read/activate
+      let tcb_6 = a2.owner.owner.basetype == "function_named"; // direct function call flag
+      let proc_to_func_flag = true; // this will enable/disable tcb_6
       let tcb_2 = a1.owner.owner.basetype == "proc"; // procs can execute
       let tcb_3 = a1.numconnections == 0;
       let tcb_4 = a1.owner.owner.basetype == "term"; // terms also
@@ -58,12 +60,12 @@ class ConnectionRulesNSGen extends ConnectionRulesBase {
       //       happily becomes white/active even without a target obj to catch
       //       its output value
       let anch2 = a2.owner.anchors;
-      let a2_tpe = anch2.length>0 ? anch2[anch2.length-1].type : null; // this one does not have an exit type
+      let a2_tpe = anch2.length > 0 ? anch2[anch2.length-1].type : null; // this one does not have an exit type
       let tcb_1b = ["bool", "int"].indexOf(a2_tpe) >= 0;
       let tcb_2b = a1.owner.owner.basetype == "dec";
       let tcb_3b = a1.numconnections == 0;
 
-      return ((tcb_1 || tcb_5) && (tcb_2 || tcb_4) && (tcb_3 || could))  ||  (tcb_1b && tcb_2b && (tcb_3b || could));
+      return ((tcb_1 || tcb_5 || (tcb_6 && proc_to_func_flag)) && (tcb_2 || tcb_4) && (tcb_3 || could))  ||  (tcb_1b && tcb_2b && (tcb_3b || could));
     }
 
     // neither, undefined
