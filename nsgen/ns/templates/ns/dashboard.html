@@ -6,6 +6,7 @@
   </head>
 <body>
 
+<fieldset style="width: 300px">
 <table id="tbl_sessions">
 {% for gs_id in sessions %}
 <tr>
@@ -15,6 +16,11 @@
 </tr>
 {% endfor %}
 </table>
+</fieldset>
+
+<p><a href="/new" target=_>new</> <br>
+<a href="/latest" target=_>latest</> <br>
+<a href="/logout">logout</></p>
 
 </body>
 </html>
