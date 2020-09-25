@@ -3,9 +3,10 @@ TODO:
 - OK - build node graph from a frontend-generated graph def
 - OK - gen pseudocode with goto statements representing the fc as a test
 - OK - gen AST from fc graph with a goto list and labels dict
-- write atomic goto-lifting and goto-elimination operations operating on the AST
-- use operations to implement the goto-elimination alg operating on the AST
-- gen code from goto-eliminated AST (language specific)
+- goto- and label diagnostics functions
+- goto movement and elimination operations
+- use operations to implement the goto-elimination
+- generate code from goto-eliminated AST (language specific)
 - gen typedefs and stubs (language specific)
 '''
 
@@ -26,22 +27,29 @@ def cogen(graphdef, typetree):
         raise Exception("flow control graph must have exactly one entry point")
     term_I = term_Is[0]
 
-    # flowchart to pseudocode:
-    lines = flowchartToPseudocode(term_I)
-    makeLineExpressions(lines, graph.root.subnodes)
-    lw = LineWriter(lines)
-    text = lw.write()
-    print(text)
+    # pseudocode
+    pscode = get_pseudocode(term_I, graph.root.subnodes)
 
-    # flowchart to syntax tree:
+    # syntax tree
+    ast = get_ast(term_I)
+
+    # return data
+    return pscode
+
+def get_pseudocode(enter_node, all_nodes):
+    lines = flowchartToPseudocode(enter_node)
+    makeLineExpressions(lines, all_nodes)
+    lw = LineWriter(lines)
+    return lw.write()
+
+def get_ast(enter_node):
     try:
-        astroot, gotos, labels = flowchartToSyntaxTree(term_I)
-        
+        astroot, gotos, labels = flowchartToSyntaxTree(enter_node)
         treePrintRec(astroot)
     except Exception as e:
         print("FAIL: " + str(e))
-
-    return text
+    
+    return astroot
 
 
 '''
