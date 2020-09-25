@@ -2436,12 +2436,14 @@ class GraphInterface {
   undo() {
     if (this.lock == true) { console.log("undo call during lock"); return -1; }
     let cmds = this.undoredo.undo();
+    if (cmds == null) return; // safeguard empty redo-stack
     this._molecular_commands(cmds);
     this.updateUi();
   }
   redo() {
     if (this.lock == true) { console.log("redo call during lock"); return -1; }
     let cmds = this.undoredo.redo();
+    if (cmds == null) return; // safeguard empty redo-stack
     this._molecular_commands(cmds);
     this.updateUi();
   }
@@ -2451,7 +2453,7 @@ class GraphInterface {
     let cmd;
     let cmd_rev;
     let cmd_rev_lst = [];
-    for (i=0;i<cmds.length;i++) {
+    for (i = 0; i < cmds.length; i++) {
       cmd = cmds[i];
       cmd_rev = this._command(cmd);
       if (cmd_rev != null) {

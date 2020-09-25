@@ -59,6 +59,13 @@ $(document).ready(() => {
   $("#btnCommit").click( () => { intface.commitSession(); });
   $("#btnCogen").click( () => { intface.cogenSession(); });
 
+  // key press events for undo/redo
+  document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey && event.key === 'z') { intface.undo(); }
+    else if (event.ctrlKey && event.key === 'y') { intface.redo(); }
+    else if (event.ctrlKey && event.shiftKey && event.key === 'Z') { intface.redo(); }
+  });
+
   // construct graph engine and add listeners
   let gs_id = $("body > #gs_id")[0].value;
   let tab_id = $("body > #tab_id")[0].value;
