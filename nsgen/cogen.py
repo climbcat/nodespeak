@@ -76,21 +76,23 @@ class AST_bassign(AST_STM):
         self.bvar = bvar # must be an AST_bvar !!
         self.right = right
     def __str__(self):
-        return "bassign"
+        return "bassign: " + str(self.bvar) + ", " + str(self.right) 
 class AST_extern(AST_STM):
     def __init__(self, dgid: str):
         self.prev = None
         self.next = None
         self.dgid = dgid
+        if dgid == None:
+            pass
     def __str__(self):
-        return "extern"
+        return "extern: " + self.dgid
 class AST_ifgoto(AST_STM):
     def __init__(self, condition: AST_BOOL):
         self.prev = None
         self.next = None
         self.condition = condition
     def __str__(self):
-        return "ifgoto"
+        return "ifgoto: " + str(self.condition)
 class AST_return(AST_STM):
     def __init__(self):
         self.prev = None
@@ -105,7 +107,7 @@ class AST_if(AST_FORK):
         self.block = None
         self.condition = condition
     def __str__(self):
-        return "if"
+        return "if: " + str(self.condition)
 class AST_dowhile(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         self.prev = None
@@ -113,20 +115,20 @@ class AST_dowhile(AST_FORK):
         self.block = None
         self.condition = condition
     def __str__(self):
-        return "dowhile"
+        return "dowhile: " + str(self.condition)
 
 class AST_bextern(AST_BOOL):
     def __init__(self, dgid: str):
         self.parent = None
         self.dgid = dgid
     def __str__(self):
-        return "bexternal"
+        return "bexternal: " + self.dgid
 class AST_bvar(AST_BOOL):
     def __init__(self, varname: str):
         self.parent = None
         self.varname = varname
     def __str__(self):
-        return "bvar"
+        return "bvar: " + self.varname
 class AST_true(AST_BOOL):
     def __init__(self):
         self.parent = None
@@ -144,20 +146,20 @@ class AST_or(AST_BOOLOP):
         self.left = left
         self.right = right
     def __str__(self):
-        return "or"
+        return "or: " + str(self.left) + ", " + str(self.right)
 class AST_and(AST_BOOLOP):
     def __init__(self, left: AST_BOOL, right: AST_BOOL):
         self.parent = None
         self.left = left
         self.right = right
     def __str__(self):
-        return "and"
+        return "and: " + str(self.left) + ", " + str(self.right)
 class AST_not(AST_BOOLOP):
     def __init__(self, right: AST_BOOL):
         self.parent = None
         self.right = right
     def __str__(self):
-        return "not"
+        return "not: " + str(self.right)
 
 
 def AST_is_statement(node):
@@ -330,7 +332,7 @@ def makeLineExpressions(lines, allnodes):
                 continue
 
             target = allnodes[l.dgid]
-            if type(target) in (NodeObj, NodeMethod, ):
+            if type(target) in (NodeObj, ):
                 l.text = assign(target)
             elif type(target) in (NodeMethod, ):
                 l.text = read(target)

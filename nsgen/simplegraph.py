@@ -606,9 +606,9 @@ class SimpleGraph:
                 add_subnode(n1, n2)
             elif type(n1) == NodeMethod and type(n2) == NodeObj:
                 add_subnode(n2, n1)
-            elif type(n1) in (NodeTerm, NodeProc, NodeDecision, ) and type(n2) in (NodeObj, NodeObjTyped, NodeObjLiteral, NodeFunc, NodeReturnFunc, ):
+            elif type(n1) in (NodeTerm, NodeProc, NodeDecision, ) and type(n2) in (NodeObj, NodeObjTyped, NodeObjLiteral, NodeFunc, NodeReturnFunc, NodeMethod):
                 set_fc_targetnode(n1, n2)
-            elif type(n2) in (NodeTerm, NodeProc, NodeDecision, ) and type(n1) in (NodeObj, NodeObjTyped, NodeObjLiteral, NodeFunc, NodeReturnFunc, ):
+            elif type(n2) in (NodeTerm, NodeProc, NodeDecision, ) and type(n1) in (NodeObj, NodeObjTyped, NodeObjLiteral, NodeFunc, NodeReturnFunc, NodeMethod):
                 set_fc_targetnode(n2, n1)
         # all other connections
         else:
