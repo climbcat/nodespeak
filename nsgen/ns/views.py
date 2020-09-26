@@ -102,14 +102,14 @@ def ajax_cogen(req):
     obj = json.loads(data_str)
     try:
         text = cogen(obj["graphdef"], obj)
+        # DEBUG print
+        print(text)
     except Exception as e:
         return HttpResponse('{ "msg" : "cogen error" }')
 
     # make this a base64 string
     encoded = base64.b64encode(text.encode('utf-8'))
     text = encoded.decode('utf-8')
-    # DEBUG print
-    print(text)
 
     return HttpResponse('{ "msg" : "pseudocode generation successful", "pseudocode" : "%s" }' % text)
 

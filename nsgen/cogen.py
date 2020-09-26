@@ -43,181 +43,159 @@ def get_pseudocode(enter_node, all_nodes):
     return lw.write()
 
 def get_ast(enter_node):
+    astroot = None
+    gotos = None
+    labels = None
     try:
         astroot, gotos, labels = flowchartToSyntaxTree(enter_node)
-        treePrintRec(astroot)
     except Exception as e:
         print("FAIL: " + str(e))
     
+    treePrintRec(astroot)
     return astroot
 
 
 '''
 AST (abstract syntax tree) types
 '''
-# tree building/primary types
 class AST_root:
     def __init__(self):
-        self.parent = None;
-        self.child = None
+        self.next = None
     def __str__(self):
         return "root"
-class AST_bassign: # assignment to a boolean
-    def __init__(self):
-        self.parent = None
-        self.child = None
-        self.varname = None # bvar
-        self.right = None # brval or bext
+
+class AST_STM: pass
+class AST_BOOL: pass
+class AST_FORK(AST_STM): pass
+class AST_BOOLOP(AST_BOOL): pass
+
+class AST_bassign(AST_STM):
+    def __init__(self, bvar: AST_BOOL, right: AST_BOOL):
+        self.prev = None
+        self.next = None
+        self.bvar = bvar # must be an AST_bvar !!
+        self.right = right
     def __str__(self):
         return "bassign"
-class AST_extern: # external statement (dg subtree call)
-    def __init__(self):
-        self.parent = None
-        self.child = None
-        self.dgid = None
+class AST_extern(AST_STM):
+    def __init__(self, dgid: str):
+        self.prev = None
+        self.next = None
+        self.dgid = dgid
     def __str__(self):
         return "extern"
-class AST_goto: # goto statement
-    '''
-    NOTE: the label will be handled by a list containing goto's,
-    and a label dict pointing to the appropriate AST locations
-    '''
-    def __init__(self):
-        self.parent = None
+class AST_ifgoto(AST_STM):
+    def __init__(self, condition: AST_BOOL):
+        self.prev = None
+        self.next = None
+        self.condition = condition
     def __str__(self):
-        return "goto"
-class AST_return:
+        return "ifgoto"
+class AST_return(AST_STM):
     def __init__(self):
-        self.parent = None
+        self.prev = None
+        self.next = None
     def __str__(self):
         return "return"
-class AST_if:
-    def __init__(self):
-        self.parent = None
-        self.child0 = None # false branch
-        self.child1 = None # true branch
-        self.condition = None # bvar, brval or bext
+
+class AST_if(AST_FORK):
+    def __init__(self, condition: AST_BOOL):
+        self.prev = None
+        self.next = None
+        self.block = None
+        self.condition = condition
     def __str__(self):
         return "if"
-class AST_dowhile:
-    def __init__(self):
-        self.parent = None
-        self.child0 = None
-        self.child1 = None
-        self.condition = None # bvar, brval or bext
+class AST_dowhile(AST_FORK):
+    def __init__(self, condition: AST_BOOL):
+        self.prev = None
+        self.next = None
+        self.block = None
+        self.condition = condition
     def __str__(self):
         return "dowhile"
 
-# leaf/supporting types
-class AST_bvar: # boolean value
-    def __init__(self):
+class AST_bextern(AST_BOOL):
+    def __init__(self, dgid: str):
         self.parent = None
-        self.varname = None
+        self.dgid = dgid
+    def __str__(self):
+        return "bexternal"
+class AST_bvar(AST_BOOL):
+    def __init__(self, varname: str):
+        self.parent = None
+        self.varname = varname
     def __str__(self):
         return "bvar"
-class AST_brval: # probably only true/false
-    # TODO: should we use AST_true and AST_false instead?
+class AST_true(AST_BOOL):
     def __init__(self):
         self.parent = None
-        self.valueexpr = None
     def __str__(self):
-        return "brval"
-class AST_bext: # external (dg) boolean  or subtree call
+        return "true"
+class AST_false(AST_BOOL):
     def __init__(self):
         self.parent = None
-        self.dgid = None
-class AST_or:
-    def __init__(self):
+    def __str__(self):
+        return "false"
+
+class AST_or(AST_BOOLOP):
+    def __init__(self, left: AST_BOOL, right: AST_BOOL):
         self.parent = None
-        self.left = None # bvar, brval, bext
-        self.right = None # bvar, brval, bext
+        self.left = left
+        self.right = right
     def __str__(self):
         return "or"
-class AST_not:
-    def __init__(self):
+class AST_and(AST_BOOLOP):
+    def __init__(self, left: AST_BOOL, right: AST_BOOL):
         self.parent = None
-        self.right = None # bvar, brval, bext
+        self.left = left
+        self.right = right
+    def __str__(self):
+        return "and"
+class AST_not(AST_BOOLOP):
+    def __init__(self, right: AST_BOOL):
+        self.parent = None
+        self.right = right
     def __str__(self):
         return "not"
 
 
-''' syntax tree classify & iterate '''
-def AST_is_primary_node(p):
-    return p in (AST_root, AST_bassign, AST_extern, AST_goto, AST_return, AST_if, AST_dowhile, )
-def AST_is_leaf_node(c):
-    return c in (AST_bvar, AST_brval, AST_bext, AST_or, AST_not, )
+def AST_is_statement(node):
+    return issubclass(node, AST_STM, )
+def AST_is_boolean(node):
+    return issubclass(node, AST_BOOL, )
 
 
 ''' syntax tree operations '''
-def AST_connect(p, c, branchfirst=0):
-    ''' connects a primary syntax tree node with a subnode '''
-    ''' NOTE: branchfirst parameter decides how c should be connected to a binary branch p '''
-    if type(c) in (AST_root, ):
-        raise Exception("AST_connect error: AST_root can have no parent")
-    # c has a parent
-    if type(p) in (AST_root, AST_bassign, AST_extern, AST_return, ):
-        p.child = c
-        c.parent = p
-    elif type(p) in (AST_if, AST_dowhile, ):
-        if branchfirst==0 and p.child0 == None:
-            p.child0 = c
-        elif branchfirst==0 and p.child1 == None:
-            p.child1 = c
-        elif branchfirst==1 and p.child0 == None:
-            p.child0 = c
-        elif branchfirst==1 and p.child1 == None:
-            p.child1 = c
+
+def AST_connect(stm1: AST_STM, stm2: AST_STM):
+    ''' Will always connect "block first" when stm1 is an AST_if or an AST_dowhile. '''
+    if issubclass(type(stm1), AST_FORK) and issubclass(type(stm2), AST_STM):
+        if stm1.block == None:
+            stm1.block = stm2
+            stm2.prev = stm1 # this is debatable, but we do need to move "up" somehow
         else:
-            raise Exception("AST_connect: inconsistent use of branchfirst or too many children")
-
-        c.parent = p
+            stm1.next = stm2
+            stm2.prev = stm1
+    elif issubclass(type(stm1), AST_STM) and issubclass(type(stm2), AST_STM):
+        stm1.next = stm2
+        stm2.prev = stm1
+    elif type(stm1) == AST_root and issubclass(type(stm2), AST_STM):
+        stm1.next = stm2
+        stm2.prev = stm1 # this is also debatable, but we do need some end condition
     else:
-        raise Exception("AST_connect error: %s, %s" % (str(p), str(c)))
-_bool_rval_types = (AST_bvar, AST_brval, AST_extern, AST_not, AST_or, )
+        raise Exception("stm1 and stm2 must be AST_STM (are type hints enforced?)")
 
-'''
-jg-200902: I don't think this code is useful at this point
-
-def AST_leafto(p, c1, c2=None):
-    # connects certain primary syntax tree nodes (bassign/if/dowhile) with leaf children
-    if type(p) in (AST_bassign, ):
-        if type(c1) in (AST_bvar, ) and type(c2) in _bool_rval_types:
-            p.varname = c1
-            p.right = c2
-            c1.parent = p
-            c2.parent = p
-        else: 
-            raise Exception("AST_leafto: AST_bassign can leaf a pair of (AST_bvar, AST_bvar/AST_brval)")
-    if type(p) in (AST_if, AST_dowhile, ) and c2 == None:
-        if type(c1) in _bool_rval_types:
-            pass
-        else:
-            raise Exception("AST_leafto: AST_if/AST_dowhile can leaf a condition AST_bvar/AST_brval")
-def AST_notleafto(p, c):
-    if type(p) in (AST_not, ) and type(c) in _bool_rval_types:
-        p.right = c
-        c.parent = p
-    else:
-        raise Exception("AST_notleafto: mismatch")
-def AST_orleafto(p, c1, c2):
-    if type(p) in (AST_or, ) and type(c1) in _bool_rval_types and type(c2) in _bool_rval_types:
-        p.left = c1
-        p.right = c2
-        c1.parent = p
-        c2.parent = p
-    else:
-        raise Exception("AST_orleafto: mismatch")
-'''
-
-def treePrintRec(astnode, indentlvl=2):
+def treePrintRec(astnode, indentlvl=0):
+    if astnode == None: # end condition
+        return
     print("".ljust(2*indentlvl) + str(astnode))
-    if type(astnode) in (AST_if, AST_dowhile, ):
-        treePrintRec(astnode.child0, indentlvl+1)
-        treePrintRec(astnode.child1, indentlvl+1)
+    if issubclass(type(astnode), AST_FORK):
+        treePrintRec(astnode.block, indentlvl+1)
+        treePrintRec(astnode.next, indentlvl+1)
     else:
-        if hasattr(astnode, "child"):
-            treePrintRec(astnode.child, indentlvl+1)
-
+        if hasattr(astnode, "next"):
+            treePrintRec(astnode.next, indentlvl+1)
 
 def flowchartToSyntaxTree(fcroot):
     '''
@@ -245,7 +223,7 @@ def flowchartToSyntaxTree(fcroot):
     while node is not None:
         vis = visited.get(node.fcid, None)
         if vis is not None:
-            astnew = AST_goto()
+            astnew = AST_ifgoto(AST_true())
             labels[astnew] = treesibs[vis]
             gotos.append(astnew)
             AST_connect(astnode, astnew)
@@ -256,33 +234,27 @@ def flowchartToSyntaxTree(fcroot):
         else:
             visited[node.fcid] = node
             if type(node) == NodeDecision:
-                # if branch:
-
-                astnew = AST_if()
-                astcond = AST_extern()
-                astcond.dgid = node.dgid
-                astnew.condition = astcond
-                AST_connect(astnode, astnew, branchfirst=1)
+                # if fork:
+                astnew = AST_if(AST_bextern(node.dgid))
+                AST_connect(astnode, astnew)
                 astnode = astnew
 
                 # save state for branch 0:
-                stack.put( (getChild0(node), astnode) )
+                stack.put( (getChild0(node), astnew) )
 
                 # continue iterating on branch 1:
                 treesibs[node] = astnew
                 node = getChild1(node)
             else:
                 # stm or return:
-
-                astnew = AST_extern()
-                astnew.dgid = node.dgid
+                astnew = AST_extern(node.dgid)
                 AST_connect(astnode, astnew)
 
                 treesibs[node] = astnew
                 node = getSingleChild(node)
                 if not node:
                     AST_connect(astnew, AST_return())
-                    astnode = None # the end:)
+                    astnode = None # end of branch
                 else:
                     astnode = astnew # continue
 
