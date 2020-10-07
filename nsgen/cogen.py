@@ -108,6 +108,14 @@ class AST_if(AST_FORK):
         self.condition = condition
     def __str__(self):
         return "if: " + str(self.condition)
+class AST_while(AST_FORK):
+    def __init__(self, condition: AST_BOOL):
+        self.prev = None
+        self.next = None
+        self.block = None
+        self.condition = condition
+    def __str__(self):
+        return "while: " + str(self.condition)
 class AST_dowhile(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         self.prev = None
