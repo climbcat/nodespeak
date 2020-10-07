@@ -33,8 +33,12 @@ def cogen(graphdef, typetree):
     # syntax tree
     ast = get_ast(term_I)
 
+    lines = []
+    treePrintRec(ast, lines)
+    astrepr = '\n'.join(lines)
+
     # return data
-    return pscode
+    return pscode + '\n' + astrepr
 
 def get_pseudocode(enter_node, all_nodes):
     lines = flowchartToPseudocode(enter_node)
@@ -50,11 +54,6 @@ def get_ast(enter_node):
         astroot, gotos, labels = flowchartToSyntaxTree(enter_node)
     except Exception as e:
         print("FAIL: " + str(e))
-    
-    lines = []
-    treePrintRec(astroot, lines)
-    for l in lines:
-        print(l)
     return astroot
 
 
