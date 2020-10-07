@@ -51,121 +51,124 @@ def get_ast(enter_node):
     except Exception as e:
         print("FAIL: " + str(e))
     
-    treePrintRec(astroot)
+    lines = []
+    treePrintRec(astroot, lines)
+    for l in lines:
+        print(l)
     return astroot
 
 
-'''
-AST (abstract syntax tree) types
-'''
+''' AST (abstract syntax tree) types '''
+
+
 class AST_root:
     def __init__(self):
         self.next = None
     def __str__(self):
         return "root"
 
-class AST_STM: pass
-class AST_BOOL: pass
-class AST_FORK(AST_STM): pass
-class AST_BOOLOP(AST_BOOL): pass
+class AST_STM:
+    def __init__(self):
+        self.prev = None
+        self.next = None
+        self.up = None
+class AST_BOOL:
+    def __init__(self):
+        self.parent = None
+class AST_FORK(AST_STM):
+    def __init__(self, condition: AST_BOOL):
+        super().__init__()
+        self.block = None
+        self.condition = condition
+class AST_BOOLOP(AST_BOOL):
+    def __init__(self):
+        super().__init__()
 
 class AST_bassign(AST_STM):
     def __init__(self, bvar: AST_BOOL, right: AST_BOOL):
-        self.prev = None
-        self.next = None
+        super().__init__()
         self.bvar = bvar # must be an AST_bvar !!
         self.right = right
     def __str__(self):
         return "bassign: " + str(self.bvar) + ", " + str(self.right) 
 class AST_extern(AST_STM):
     def __init__(self, dgid: str):
-        self.prev = None
-        self.next = None
+        super().__init__()
         self.dgid = dgid
-        if dgid == None:
-            pass
     def __str__(self):
-        return "extern: " + self.dgid
+        if self.dgid == None:
+            return "extern: None"
+        else:
+            return "extern: " + self.dgid   
 class AST_ifgoto(AST_STM):
-    def __init__(self, condition: AST_BOOL):
-        self.prev = None
-        self.next = None
-        self.condition = condition
+    def __init__(self, ifcond: AST_BOOL): # named ifcond rather than condition to distinguish this from AST_FORK types
+        super().__init__()
+        self.ifcond = ifcond
     def __str__(self):
-        return "ifgoto: " + str(self.condition)
+        return "ifgoto: " + str(self.ifcond)
 class AST_return(AST_STM):
     def __init__(self):
-        self.prev = None
-        self.next = None
+        super().__init__()
     def __str__(self):
         return "return"
 
 class AST_if(AST_FORK):
     def __init__(self, condition: AST_BOOL):
-        self.prev = None
-        self.next = None
-        self.block = None
-        self.condition = condition
+        super().__init__(condition)
     def __str__(self):
         return "if: " + str(self.condition)
 class AST_while(AST_FORK):
     def __init__(self, condition: AST_BOOL):
-        self.prev = None
-        self.next = None
-        self.block = None
-        self.condition = condition
+        super().__init__(condition)
     def __str__(self):
         return "while: " + str(self.condition)
 class AST_dowhile(AST_FORK):
     def __init__(self, condition: AST_BOOL):
-        self.prev = None
-        self.next = None
-        self.block = None
-        self.condition = condition
+        super().__init__(condition)
     def __str__(self):
         return "dowhile: " + str(self.condition)
 
 class AST_bextern(AST_BOOL):
     def __init__(self, dgid: str):
-        self.parent = None
+        super().__init__()
         self.dgid = dgid
     def __str__(self):
         return "bexternal: " + self.dgid
 class AST_bvar(AST_BOOL):
     def __init__(self, varname: str):
-        self.parent = None
+        super().__init__()
         self.varname = varname
     def __str__(self):
         return "bvar: " + self.varname
 class AST_true(AST_BOOL):
     def __init__(self):
-        self.parent = None
+        super().__init__()
     def __str__(self):
         return "true"
 class AST_false(AST_BOOL):
     def __init__(self):
-        self.parent = None
+        super().__init__()
     def __str__(self):
         return "false"
 
 class AST_or(AST_BOOLOP):
     def __init__(self, left: AST_BOOL, right: AST_BOOL):
-        self.parent = None
+        super().__init__()
         self.left = left
         self.right = right
     def __str__(self):
         return "or: " + str(self.left) + ", " + str(self.right)
 class AST_and(AST_BOOLOP):
     def __init__(self, left: AST_BOOL, right: AST_BOOL):
-        self.parent = None
+        super().__init__()
         self.left = left
         self.right = right
     def __str__(self):
         return "and: " + str(self.left) + ", " + str(self.right)
 class AST_not(AST_BOOLOP):
-    def __init__(self, right: AST_BOOL):
-        self.parent = None
-        self.right = right
+    def __init__(self, nott: AST_BOOL):
+        super().__init__()
+        self.right = nott
     def __str__(self):
         return "not: " + str(self.right)
 
@@ -177,6 +180,7 @@ def AST_is_boolean(node):
 
 
 ''' syntax tree operations '''
+
 
 def AST_connect(stm1: AST_STM, stm2: AST_STM):
     ''' Will always connect "block first" when stm1 is an AST_if or an AST_dowhile. '''
@@ -196,16 +200,16 @@ def AST_connect(stm1: AST_STM, stm2: AST_STM):
     else:
         raise Exception("stm1 and stm2 must be AST_STM (are type hints enforced?)")
 
-def treePrintRec(astnode, indentlvl=0):
+def treePrintRec(astnode, lines, indentlvl=0):
     if astnode == None: # end condition
         return
-    print("".ljust(2*indentlvl) + str(astnode))
+    lines.append("".ljust(2*indentlvl) + str(astnode))
     if issubclass(type(astnode), AST_FORK):
-        treePrintRec(astnode.block, indentlvl+1)
-        treePrintRec(astnode.next, indentlvl+1)
+        treePrintRec(astnode.block, lines, indentlvl+1)
+        treePrintRec(astnode.next, lines, indentlvl+1)
     else:
         if hasattr(astnode, "next"):
-            treePrintRec(astnode.next, indentlvl+1)
+            treePrintRec(astnode.next, lines, indentlvl+1)
 
 def flowchartToSyntaxTree(fcroot):
     '''
@@ -275,7 +279,7 @@ def flowchartToSyntaxTree(fcroot):
     return astroot, gotos, labels
 
 
-def findCommonParentFork(n1, n2):
+def _findCommonParentFork(n1, n2):
     ''' find the common parent fork of n1 and n2 '''
     forks = []
     if n1.parent == None or n2.parent == None:
