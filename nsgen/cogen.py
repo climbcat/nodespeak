@@ -132,6 +132,8 @@ class AST_bextern(AST_BOOL):
         super().__init__()
         self.dgid = dgid
     def __str__(self):
+        if self.dgid == None:
+            return "bexternal: None"
         return "bexternal: " + self.dgid
 class AST_bvar(AST_BOOL):
     def __init__(self, varname: str):
