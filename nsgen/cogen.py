@@ -12,12 +12,15 @@ TODO:
 
 from queue import LifoQueue
 from simplegraph import *
-
+import simplegraph
 
 '''
 Cogen interface
 '''
-def cogen(graphdef, typetree):
+def cogen(graphdef, typetree, DB_logging=True):
+    if DB_logging == False:
+        simplegraph.g_logmode = 0
+    
     # create the graph given the graphdef
     graph = SimpleGraph(typetree, graphdef)
 
@@ -50,10 +53,7 @@ def get_ast(enter_node):
     astroot = None
     gotos = None
     labels = None
-    try:
-        astroot, gotos, labels = flowchartToSyntaxTree(enter_node)
-    except Exception as e:
-        print("FAIL: " + str(e))
+    astroot, gotos, labels = flowchartToSyntaxTree(enter_node)
     return astroot
 
 
@@ -132,8 +132,8 @@ class AST_bextern(AST_BOOL):
         super().__init__()
         self.dgid = dgid
     def __str__(self):
-        if self.dgid == None:
-            return "bexternal: None"
+        #if self.dgid == None:
+        #    return "bexternal: None"
         return "bexternal: " + self.dgid
 class AST_bvar(AST_BOOL):
     def __init__(self, varname: str):

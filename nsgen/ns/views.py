@@ -1,5 +1,5 @@
 from django.shortcuts import render, HttpResponse, redirect
-from .models import GraphSession, TypeSchema, TabId
+from .models import GraphSession, TypeSchema
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 import django.contrib.auth as auth

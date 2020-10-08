@@ -523,8 +523,11 @@ def call_dg_subtree(tree):
     return result
 
 
+g_logmode = 1
 def _log(msg):
-    print(msg)
+    if g_logmode == 1:
+        print(msg)
+        
 '''
 Simple one-off flow-chart and data-graph representation.
 Can not be changed, is created once from a graph definition.
