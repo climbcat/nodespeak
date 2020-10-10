@@ -14,9 +14,10 @@ from queue import LifoQueue
 from simplegraph import *
 import simplegraph
 
-'''
-Cogen interface
-'''
+
+''' Interface '''
+
+
 def cogen(graphdef, typetree, DB_logging=True):
     if DB_logging == False:
         simplegraph.g_logmode = 0
@@ -34,7 +35,7 @@ def cogen(graphdef, typetree, DB_logging=True):
     pscode = get_pseudocode(term_I, graph.root.subnodes)
 
     # syntax tree
-    ast = get_ast(term_I)
+    ast, gotos, labels = flowchartToSyntaxTree(term_I)
 
     lines = []
     treePrintRec(ast, lines)
@@ -49,20 +50,13 @@ def get_pseudocode(enter_node, all_nodes):
     lw = LineWriter(lines)
     return lw.write()
 
-def get_ast(enter_node):
-    astroot = None
-    gotos = None
-    labels = None
-    astroot, gotos, labels = flowchartToSyntaxTree(enter_node)
-    return astroot
 
-
-''' AST (abstract syntax tree) types '''
+''' syntax tree types '''
 
 
 class AST_root:
     def __init__(self):
-        self.next = None
+        self.block = None
     def __str__(self):
         return "root"
 
@@ -70,7 +64,7 @@ class AST_STM:
     def __init__(self):
         self.prev = None
         self.next = None
-        self.up = None
+        self.up = None # the reverse of AST_FORM.block
 class AST_BOOL:
     def __init__(self):
         self.parent = None
@@ -182,13 +176,13 @@ def AST_is_boolean(node):
 
 ''' syntax tree operations '''
 
-
+# TODO: rewrite to include the block and up properties
 def AST_connect(stm1: AST_STM, stm2: AST_STM):
     ''' Will always connect "block first" when stm1 is an AST_if or an AST_dowhile. '''
     if issubclass(type(stm1), AST_FORK) and issubclass(type(stm2), AST_STM):
         if stm1.block == None:
             stm1.block = stm2
-            stm2.prev = stm1 # this is debatable, but we do need to move "up" somehow
+            stm2.up = stm1
         else:
             stm1.next = stm2
             stm2.prev = stm1
@@ -196,21 +190,24 @@ def AST_connect(stm1: AST_STM, stm2: AST_STM):
         stm1.next = stm2
         stm2.prev = stm1
     elif type(stm1) == AST_root and issubclass(type(stm2), AST_STM):
-        stm1.next = stm2
-        stm2.prev = stm1 # this is also debatable, but we do need some end condition
+        stm1.block = stm2
+        stm2.up = stm1 # this is also debatable, but we do need some end condition
     else:
         raise Exception("stm1 and stm2 must be AST_STM (are type hints enforced?)")
 
 def treePrintRec(astnode, lines, indentlvl=0):
     if astnode == None: # end condition
         return
-    lines.append("".ljust(2*indentlvl) + str(astnode))
+    if issubclass(type(astnode), AST_root):
+        treePrintRec(astnode.block, lines, indentlvl)
+        return
+    lines.append("".ljust(2 * indentlvl) + str(astnode))
     if issubclass(type(astnode), AST_FORK):
-        treePrintRec(astnode.block, lines, indentlvl+1)
-        treePrintRec(astnode.next, lines, indentlvl+1)
-    else:
-        if hasattr(astnode, "next"):
-            treePrintRec(astnode.next, lines, indentlvl+1)
+        treePrintRec(astnode.block, lines, indentlvl + 1)
+        treePrintRec(astnode.next, lines, indentlvl)
+    elif hasattr(astnode, "next"):
+        treePrintRec(astnode.next, lines, indentlvl)
+
 
 def flowchartToSyntaxTree(fcroot):
     '''
@@ -302,10 +299,8 @@ def _findCommonParentFork(n1, n2):
         parent = parent.parent
 
 
-'''
-Flow chart to pseudocode generation. Pseudocode is a list of "line" objects which can be printed into actual pseudocode.
-But this is not sufficient for goto-elimination, which requires a syntax tree for various manipulations.
-'''
+''' flow chart to pseudocode '''
+
 
 def makeLineExpressions(lines, allnodes):
     ''' For every line, insert text corresponding to the target data graph node subtree. '''
@@ -347,10 +342,10 @@ def makeLineExpressions(lines, allnodes):
             target = allnodes[l.dgid]
             if type(target) in (NodeObj, ):
                 l.text = assign(target)
-            elif type(target) in (NodeMethod, ):
+            elif type(target) in (NodeMethod, NodeFunc):
                 l.text = read(target)
             else:
-                raise Exception("fc proc/term can only be associated with Obj or Method dg nodes: %s" % target.name)
+                raise Exception("fc proc/term can only be associated with Obj, Func or Method dg nodes: %s" % target.name)
         # dec generated lines
         elif type(l) in (LineBranch, ):
             if l.dgid is None:
