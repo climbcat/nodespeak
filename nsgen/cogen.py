@@ -13,6 +13,7 @@ TODO:
 from queue import LifoQueue
 from simplegraph import *
 import simplegraph
+from django.utils.lorem_ipsum import COMMON_P
 
 
 ''' Interface '''
@@ -176,7 +177,7 @@ def AST_is_boolean(node):
 
 ''' syntax tree operations '''
 
-# TODO: rewrite to include the block and up properties
+
 def AST_connect(stm1: AST_STM, stm2: AST_STM):
     ''' Will always connect "block first" when stm1 is an AST_if or an AST_dowhile. '''
     if issubclass(type(stm1), AST_FORK) and issubclass(type(stm2), AST_STM):
@@ -208,7 +209,6 @@ def treePrintRec(astnode, lines, indentlvl=0):
     elif hasattr(astnode, "next"):
         treePrintRec(astnode.next, lines, indentlvl)
 
-
 def flowchartToSyntaxTree(fcroot):
     '''
     Flowchart to syntax tree iterator using queues.
@@ -231,7 +231,7 @@ def flowchartToSyntaxTree(fcroot):
     astroot = AST_root()
     astnode = astroot
 
-    # TODO: infinite loop here??
+    # TODO: infinite loop possible here??
     while node is not None:
         vis = visited.get(node.fcid, None)
         if vis is not None:
@@ -277,26 +277,193 @@ def flowchartToSyntaxTree(fcroot):
     return astroot, gotos, labels
 
 
-def _findCommonParentFork(n1, n2):
-    ''' find the common parent fork of n1 and n2 '''
-    forks = []
-    if n1.parent == None or n2.parent == None:
-        return None
-    
-    # map all forks above n1
-    parent = n1.parent
-    while parent is not None:
-        if type(parent) in (AST_if, AST_dowhile, ):
-            forks.append(parent)
-        parent = parent.parent
-    
-    # search n2's parent forks for a match
-    parent = n2.parent
-    while parent is not None:
-        if type(parent) in (AST_if, AST_dowhile, ):
-            if parent in forks:
-                return parent
-        parent = parent.parent
+# NOTE: untested
+def elimination_alg(gotos, lbls):
+
+    # select goto/lbl pair
+    for goto in gotos:
+        lbl = lbls[goto]
+
+        while indirectly_related(goto, lbl):
+            move_out(goto)
+
+        while directly_related(goto, lbl):
+            if level(goto) > level(lbl):
+                move_out(goto)
+            else:
+                lblstm = find_directly_related_lblstm(goto, lbl)
+                if offset(goto) > offset(lbl):
+                    lift_above_lblstm(goto, lblstm)
+                else:
+                    move_in(goto)
+
+        if siblings(goto, lbl):
+            if offset(goto) < offset(lbl):
+                eliminate_by_cond(goto, lbl)
+            else:
+                eliminate_by_while(goto, lbl)
+        else:
+            raise Exception("elimination fail")
+
+# NOTE: untested
+def move_out(goto):
+    if is_in_loop(goto):
+        move_out_of_loop(goto)
+    elif is_in_if(goto):
+        move_out_of_if(goto)
+    else:
+        raise Exception("move_out fail")
+# NOTE: untested
+def move_in(goto):
+    if is_in_loop(goto):
+        move_into_loop(goto)
+    elif is_in_if(goto):
+        move_into_if(goto)
+    else:
+        raise Exception("move_in fail")
+# NOTE: untested
+def find_directly_related_lblstm(goto, lbl) -> AST_STM:
+    ''' assumnes level(goto) < level(lbl) and goto, lbl are directly related '''
+    lvldiff = level(lbl) - level(goto)
+    node = lbl
+    if lvldiff < 0:
+        raise Exception("find_lblstm fail: o(g) must be < o(l)")
+    while lvldiff > 0:
+        while node.prev != None and node.up == None:
+            node = node.prev
+        if node.up != None:
+            node = node.up
+            lvldiff = lvldiff -1
+        if lvldiff == 0 and issubclass(type(node), AST_FORK):
+            return node
+    raise Exception("find_directly_related_lblstm: find_lblstm fail: did not converge, are goto and lbl directly related?")
+
+
+# NOTE: untested
+def indirectly_related(goto, lbl) -> bool:
+    if siblings(goto, lbl):
+        return False
+    elif directly_related(goto, lbl):
+        return False
+    else:
+        return True
+# NOTE: untested
+def directly_related(goto, lbl) -> bool:
+    lvlgoto = level(goto)
+    lvllbl = level(lbl)
+    if lvlgoto == lvllbl:
+        # must be siblings or indirectly related
+        return False
+    else:
+        # can be directly or indirectly related
+        n1 = goto
+        n2 = lbl
+        goto_parents = []
+        common_parent = None
+
+        # map all nodes above goto, return if lbl is encountered
+        while type(n1) != AST_root:
+            if n1.prev != None:
+                n1 = n1.prev
+            elif n1.up != None:
+                n1 = n1.up
+            if n1 == lbl:
+                return True
+            goto_parents.append(n1)
+
+        # search above lbl for any marked, return if goto is encountered
+        while common_parent == None:
+            if n2.prev != None:
+                n2 = n2.prev
+            elif n2.up != None:
+                n2 = n2.up
+            if n2 == goto:
+                return True
+            elif n2 in goto_parents:
+                common_parent = n2
+
+        # common parent must be on level with goto or lbl
+        lvlcommon = level(common_parent)
+        if lvlcommon == lvlgoto or lvlcommon == lvllbl:
+            return True
+        else:
+            return False
+# NOTE: untested
+def siblings(goto, lbl) -> bool:
+    ogoto = offset(goto)
+    olbl = offset(lbl)
+    node = None
+    node2 = None
+    if ogoto < olbl:
+        node = lbl
+        node2 = goto
+    else:
+        node = goto
+        node2 = lbl
+
+    while node != node2:
+        if node.prev != None:
+            node = node.prev
+        else:
+            return False
+    return True
+
+# NOTE: untested
+def level(node) -> int:
+    lvl = -1
+    while type(node) != AST_root:
+        while node.prev != None:
+            node = node.prev
+        if node.up != None: # could be root
+            lvl = lvl + 1
+            node = node.up
+    return lvl
+# NOTE: untested
+def offset(node) -> int:
+    ''' returns -1 for rootnode, and 0 or above for all others '''
+    offset = -1
+    while type(node) != AST_root:
+        while node.prev != None:
+            node = node.prev
+            offset = offset + 1
+        if node.up != None: # could be root
+            node = node.up
+            offset = offset + 1
+    return offset
+
+# NOTE: untested
+def is_in_loop(node) -> bool:
+    ''' is node directly in a while of dowhile '''
+    while node.prev != None:
+        node = node.prev
+    if node.up == None:
+        raise Exception("is_in_loop: node.up xor node.prev must be set")
+    if type(node.up) == AST_while or type(node.up) == AST_dowhile:
+        return True
+    else:
+        return False # includes AST_root
+# NOTE: untested
+def is_in_if(node) -> bool:
+    ''' is node directly in an if '''
+    while node.prev != None:
+        node = node.prev
+    if node.up == None:
+        raise Exception("is_in_if: node.up xor node.prev must be set")
+    if type(node.up) == AST_if:
+        return True
+    else:
+        return False # includes AST_root
+
+# TODO: remove, we probably do not need this
+def is_in_stm(node, stm) -> bool: pass # is node nested in stm somehow
+
+def eliminate_by_cond(goto, lbl): pass # when o(g) < o(l)
+def eliminate_by_while(goto, lbl): pass # when o(g) > o(l)
+def move_out_of_loop(goto): pass
+def move_out_of_if(goto): pass
+def move_into_loop(goto, loopstm): pass
+def move_into_if(goto, ifstm): pass
+def lift_above_lblstm(goto, lblstm): pass
 
 
 ''' flow chart to pseudocode '''
@@ -330,7 +497,6 @@ def makeLineExpressions(lines, allnodes):
             return varname
         else:
             return varname + " = " + read(parent)
-
 
     for l in lines:
         # proc/term generated lines
