@@ -14,19 +14,15 @@ def add_subnode(root, node, transitive=True):
     root.own(node)
     if transitive:
         node.subnode_to(root)
-
 def remove_subnode(root, node):
     root.disown(node)
     node.unsubnode_from(root)
-
 def add_connection(node1, idx1, node2, idx2):
     node1.add_child(node2, idx1)
     node2.add_parent(node1, idx2)
-
 def remove_connection(node1, idx1, node2, idx2):
     node1.remove_child(node2, idx1)
     node2.remove_parent(node1, idx2)
-
 def del_node(node):
     ''' disconnect a node and recursively disconnect all its subnodes '''
     for c in node.children:

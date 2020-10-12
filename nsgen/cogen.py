@@ -22,7 +22,7 @@ from django.utils.lorem_ipsum import COMMON_P
 def cogen(graphdef, typetree, DB_logging=True):
     if DB_logging == False:
         simplegraph.g_logmode = 0
-    
+
     # create the graph given the graphdef
     graph = SimpleGraph(typetree, graphdef)
 
@@ -124,11 +124,11 @@ class AST_dowhile(AST_FORK):
 
 class AST_bextern(AST_BOOL):
     def __init__(self, dgid: str):
+        if dgid == None: # when the dec is not connected
+            raise Exception("AST_bextern: Decision nodes must have a target bvar or bfunc, to be used for creating this")
         super().__init__()
         self.dgid = dgid
     def __str__(self):
-        #if self.dgid == None:
-        #    return "bexternal: None"
         return "bexternal: " + self.dgid
 class AST_bvar(AST_BOOL):
     def __init__(self, varname: str):
