@@ -13,15 +13,14 @@ TODO:
 from queue import LifoQueue
 from simplegraph import *
 import simplegraph
-from django.utils.lorem_ipsum import COMMON_P
 
 
 ''' Interface '''
 
 
-def cogen(graphdef, typetree, DB_logging=True):
-    if DB_logging == False:
-        simplegraph.g_logmode = 0
+def cogen(graphdef, typetree, DB_logging=False):
+    if DB_logging == True:
+        simplegraph.g_logmode = 1
 
     # create the graph given the graphdef
     graph = SimpleGraph(typetree, graphdef)

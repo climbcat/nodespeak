@@ -519,7 +519,7 @@ def call_dg_subtree(tree):
     return result
 
 
-g_logmode = 1
+g_logmode = 0
 def _log(msg):
     if g_logmode == 1:
         print(msg)

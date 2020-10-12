@@ -8,7 +8,7 @@ from ns.models import GraphSession, TypeSchema
 def test_session(s) -> str:
     obj = json.loads(s.data_str)
     try:
-        text = cogen(obj["graphdef"], obj, DB_logging=False)
+        text = cogen(obj["graphdef"], obj)
     except Exception as e:
         text = traceback.format_exc()
     return text
@@ -39,7 +39,6 @@ class Command(BaseCommand):
         for s in sessions:
             text = test_session(s)
 
-            print()
             print()
             print("session #%d:" % s.id)
             print()
