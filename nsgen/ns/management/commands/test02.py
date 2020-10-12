@@ -9,7 +9,6 @@ from cogen import *
 import simplegraph
 from simplegraph import *
 
-
 def get_ast_text(ast):
     lines = []
     cg.treePrintRec(ast, lines)
@@ -29,13 +28,34 @@ def load_ast(s):
     ast, gotos, labels = cg.flowchartToSyntaxTree(term_I)
     return ast, gotos, labels
 
-def diagnose(s):
-    ast, gotos, labels = load_ast(s)
+def diagnose(gotos, lbls):
+    print()
+    print("--- diagnostics ---")
 
-    # TODO: do the diagnostics test
+    for goto in gotos:
+        lbl = lbls[goto]
 
+        glvl = cg.level(goto)
+        llvl = cg.level(lbl)
+        goff = cg.level(goto)
+        loff = cg.level(lbl)
+        irel = cg.indirectly_related(goto, lbl)
+        drel = cg.directly_related(goto, lbl)
+        sibs = cg.siblings(goto, lbl)
+        
+        print()
+        print("%s -> %s" % (str(goto), str(lbl)))
+        print("goto level:  %s" % str(glvl))
+        print("lbl level:   %s" % str(llvl))
+        print("goto offset: %s" % str(goff))
+        print("lbl offset:  %s" % str(loff))
+        if irel:
+            print("indirectly related")
+        if drel:
+            print("directly related")
+        if sibs:
+            print("siblings")
 
-    return get_ast_text(ast)
 
 class Command(BaseCommand):
     help = 'Test all available flow charts/graph sessions by loading them and running cogen.'
@@ -46,16 +66,20 @@ class Command(BaseCommand):
         # session filter
         sessions = None
         if options["sessionid"]:
-            sid = int(options["sessionid"][0])
+            sid = int(options["sessionid"])
             sessions = [GraphSession.objects.get(id=sid)]
         else:
             sessions = GraphSession.objects.all()
 
         # test and print
         for s in sessions:
-            text = diagnose(s)
+            ast, gotos, lbls = load_ast(s)
+            text = get_ast_text(ast)
 
             print()
             print("session #%d:" % s.id)
             print()
             print(text)
+
+            diagnose(gotos, lbls)
+
