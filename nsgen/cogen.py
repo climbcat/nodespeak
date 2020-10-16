@@ -59,7 +59,6 @@ class AST_root:
         self.block = None
     def __str__(self):
         return "root"
-
 class AST_STM:
     def __init__(self):
         self.prev = None
@@ -92,13 +91,14 @@ class AST_extern(AST_STM):
         if self.dgid == None:
             return "extern: None"
         else:
-            return "extern: " + self.dgid   
+            return "extern: " + self.dgid
 class AST_ifgoto(AST_STM):
     def __init__(self, ifcond: AST_BOOL): # named ifcond rather than condition to distinguish this from AST_FORK types
         super().__init__()
+        self.label = ""
         self.ifcond = ifcond
     def __str__(self):
-        return "ifgoto: " + str(self.ifcond)
+        return "ifgoto: " + str(self.ifcond) + " -> " + self.label
 class AST_return(AST_STM):
     def __init__(self):
         super().__init__()
@@ -235,6 +235,7 @@ def flowchartToSyntaxTree(fcroot):
         vis = visited.get(node.fcid, None)
         if vis is not None:
             astnew = AST_ifgoto(AST_true())
+            astnew.label = vis.label #!
             labels[astnew] = treesibs[vis]
             gotos.append(astnew)
             AST_connect(astnode, astnew)
@@ -338,7 +339,6 @@ def find_directly_related_lblstm(goto, lbl) -> AST_STM:
     raise Exception("find_directly_related_lblstm: find_lblstm fail: did not converge, are goto and lbl directly related?")
 
 
-# NOTE: untested
 def indirectly_related(goto, lbl) -> bool:
     if siblings(goto, lbl):
         return False
@@ -346,7 +346,6 @@ def indirectly_related(goto, lbl) -> bool:
         return False
     else:
         return True
-# NOTE: untested
 def directly_related(goto, lbl) -> bool:
     lvlgoto = level(goto)
     lvllbl = level(lbl)
@@ -387,7 +386,6 @@ def directly_related(goto, lbl) -> bool:
             return True
         else:
             return False
-# NOTE: untested
 def siblings(goto, lbl) -> bool:
     ogoto = offset(goto)
     olbl = offset(lbl)
@@ -407,17 +405,16 @@ def siblings(goto, lbl) -> bool:
             return False
     return True
 
-# NOTE: untested
 def level(node) -> int:
     lvl = -1
     while type(node) != AST_root:
         while node.prev != None:
             node = node.prev
-        if node.up != None: # could be root
+        if node.up != None: # node.up could be root, since this is how root is attached
             lvl = lvl + 1
             node = node.up
     return lvl
-# NOTE: untested
+# NOTE: seems bugged - see sess 14
 def offset(node) -> int:
     ''' returns -1 for rootnode, and 0 or above for all others '''
     offset = -1

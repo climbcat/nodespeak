@@ -30,7 +30,7 @@ class Command(BaseCommand):
         # session filter
         sessions = None
         if options["sessionid"]:
-            sid = int(options["sessionid"][0])
+            sid = int(options["sessionid"])
             sessions = [GraphSession.objects.get(id=sid)]
         else:
             sessions = GraphSession.objects.all()
