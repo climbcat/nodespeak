@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<head>
+</head>
+
+<body>
+
+<fieldset style="width:900px;">
+
+<p>Account</p>
+<p style="padding-left:25px;">Username: {{ username }}</p>
+<p style="padding-left:25px;"><a href="/ifl/logout">logout</a></p>
+
+<hr>
+<p>Sessions</p>
+
+<table id="tbl_sessions">
+{% for gs_id_title in session_ids_titles %}
+<tr>
+<td style="padding-left:25px;"><input style="background:white;color:black;" type="text", id="{{ gs_id_title.0 }}" value="{{ gs_id_title.1 }}"/></td>
+<td style="padding-left:25px;">session_{{ gs_id_title.0 }}</td>
+<td style="padding-left:25px;"><a href="/ifl/graphsession/{{ gs_id_title.0 }}" target="_blank">resume</a></td>
+<td style="padding-left:25px;"><a href="/ifl/clone/{{ gs_id_title.0 }}">clone</a></td>
+<td style="padding-left:25px;"><a href="/ifl/delete/{{ gs_id_title.0 }}">delete</a></td>
+<td style="padding-left:25px;"><a href="/ifl/reset/{{ gs_id_title.0 }}">reset</a></td>
+<td style="padding-left:25px;"><a href="/ifl/up/{{ gs_id_title.0 }}">up</a></td>
+</tr>
+{% endfor %}
+</table>
+
+<p style="padding-left:25px;"><a href="/ifl/new">new</a></p>
+<hr>
+<p>Examples</p>
+{% if admin %}
+  <table id="tbl_examples">
+  {% for gs_id_title_comment_owner in example_ids_titles_comments_owner %}
+  <tr>
+  <td style="padding-left:25px;">{{ gs_id_title_comment_owner.1 }}</td>
+  <td style="padding-left:25px;"><a href="/ifl/clone/{{ gs_id_title_comment_owner.0 }}">create</a></td>
+  <td style="padding-left:25px;"><input style="background:white;color:black" type="text", id="{{ gs_id_title_comment_owner.0 }}" value="{{ gs_id_title_comment_owner.2 }}"/></td>
+  <td style="padding-left:25px;"><a href="/ifl/graphsession/{{ gs_id_title_comment_owner.0 }}" target="_blank">edit</a> ({{ gs_id_title_comment_owner.0 }} {{ gs_id_title_comment_owner.3 }})</td>
+  </tr>
+  {% endfor %}
+  </table>
+{% else %}
+  <table id="tbl_examples">
+  {% for gs_id_title_comment_owner in example_ids_titles_comments_owner %}
+  <tr>
+  <td style="padding-left:25px;">{{ gs_id_title_comment_owner.1 }}</td>
+  <td style="padding-left:25px;"><a href="/ifl/clone/{{ gs_id_title_comment_owner.0 }}">create</a></td>
+  <td style="padding-left:25px;">{{ gs_id_title_comment_owner.2 }}</td>
+  </tr>
+  {% endfor %}
+  </table>
+{% endif %}
+<hr>
+<p>Instructions</p>
+<ul>How to use tutorials and examples: <li>1) Click "create" on an tutorial or example <li>2) Click "resume" on the created instance, found in the "Sessions" section.</ul>
+<ul>In-depth resources:<li><a href="https://github.com/McStasMcXtrace/ifitlab/wiki" target=_blank>Wiki guide on Github</a></ul>
+</fieldset>
+
+</body>
+
+<script src="/ifl/ifl-static/fitlab/jquery.min.js"></script>
+
+<script>
+simpleajax = function(url, data) {
+  $.ajax({
+    type: "POST",
+    url: url,
+    data: { "data_str" : JSON.stringify(data) },
+  })
+  .fail(function(xhr, statusText, errorThrown) {
+  })
+  .success(function(ans) {
+    let obj = JSON.parse(ans);
+    if (obj.message) console.log(obj.message);
+    location.reload(); // the easy way of refreshing all references to this data (e.g. examples...)
+  });
+}
+
+$(document).ready(() => {
+  $("#tbl_sessions input")
+    .change( (event) => {
+      let val = { "title" : event.target.value, "gs_id" : event.target.id };
+      simpleajax("/ifl/ajax_dashboard_edt_title/", val);
+    });
+
+  $("#tbl_examples input")
+    .change( (event) => {
+      let val = { "excomment" : event.target.value, "gs_id" : event.target.id };
+      simpleajax("/ifl/ajax_dashboard_edt_excomment/", val);
+    });
+});
+</script>
+
+
+
+</html>
