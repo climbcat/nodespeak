@@ -7,6 +7,9 @@ import base64
 import json
 from cogen import cogen
 
+def test(req):
+    return HttpResponse("test")
+
 def index(req):
     return redirect("/login")
 

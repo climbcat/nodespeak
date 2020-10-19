@@ -19,6 +19,8 @@ from django.conf.urls import url
 from ns import views
 
 urlpatterns = [
+    url(r'test/?$', views.test),
+    
     url(r'login/?$', views.login),
     url(r'login_submit/?$', views.login_submit),
     url(r'logout/?$', views.logout),
