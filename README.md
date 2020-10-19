@@ -1,6 +1,9 @@
 # nsgen
 
-Development setup:
+#### Development setup:
+
+Django version:
+- pip install Django==2.2.12
 
 Files:
 - git clone https://github.com/climbcat/nodespeak/
@@ -15,8 +18,3 @@ Run these commands from nsgen:
 In the browser:
 - go to http://127.0.0.1:8000/admin and log in
 - go to http://127.0.0.1:8000/new/1 where "1" is the schema id that was created by the gentypes command
-
-Release:
-
-Django version:
-- pip install Django==1.0.4
