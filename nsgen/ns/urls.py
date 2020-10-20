@@ -19,8 +19,6 @@ from django.conf.urls import url
 from ns import views
 
 urlpatterns = [
-    url(r'test/?$', views.test),
-    
     url(r'login/?$', views.login),
     url(r'login_submit/?$', views.login_submit),
     url(r'logout/?$', views.logout),
@@ -33,10 +31,12 @@ urlpatterns = [
     url(r'new/(?P<ts_id>[0-9]+)/?$', views.new_gs),
     url(r'new/?$', views.new_gs),
     url(r'dashboard/?$', views.dashboard),
-
     
     url(r'ajax_load/(?P<gs_id>[\w0-9]+)/?$', views.ajax_load),
     url(r'ajax_commit/?$', views.ajax_commit),
     url(r'ajax_cogen/?$', views.ajax_cogen),
+
+    url(r'test/?$', views.test),
+
     url(r'', views.index),
 ]
