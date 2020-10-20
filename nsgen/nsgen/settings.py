@@ -32,7 +32,7 @@ SECRET_KEY = '5_1lebnbdr)556wa+&gyuid)6os0zet#zu4)4#g+=wqhjavh5k'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['jgarde.pythonanywhere.com']
 
 
 # Application definition
