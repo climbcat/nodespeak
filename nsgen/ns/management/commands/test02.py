@@ -30,15 +30,15 @@ def load_ast(s):
 
 def diagnose(gotos, lbls):
     print()
-    print("--- diagnostics ---")
+    print("# diagnostics:")
 
     for goto in gotos:
         lbl = lbls[goto]
 
         glvl = cg.level(goto)
         llvl = cg.level(lbl)
-        goff = cg.level(goto)
-        loff = cg.level(lbl)
+        goff = cg.offset(goto)
+        loff = cg.offset(lbl)
         irel = cg.indirectly_related(goto, lbl)
         drel = cg.directly_related(goto, lbl)
         sibs = cg.siblings(goto, lbl)
@@ -77,7 +77,7 @@ class Command(BaseCommand):
             text = get_ast_text(ast)
 
             print()
-            print("session #%d:" % s.id)
+            print("## session #%d:" % s.id)
             print()
             print(text)
 

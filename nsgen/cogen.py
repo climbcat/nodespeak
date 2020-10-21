@@ -292,7 +292,7 @@ def elimination_alg(gotos, lbls):
                 move_out(goto)
             else:
                 lblstm = find_directly_related_lblstm(goto, lbl)
-                if offset(goto) > offset(lbl):
+                if offset(goto) > offset(lblstm):
                     lift_above_lblstm(goto, lblstm)
                 else:
                     move_in(goto)
@@ -414,17 +414,12 @@ def level(node) -> int:
             lvl = lvl + 1
             node = node.up
     return lvl
-# NOTE: seems bugged - see sess 14
 def offset(node) -> int:
-    ''' returns -1 for rootnode, and 0 or above for all others '''
-    offset = -1
-    while type(node) != AST_root:
-        while node.prev != None:
-            node = node.prev
-            offset = offset + 1
-        if node.up != None: # could be root
-            node = node.up
-            offset = offset + 1
+    ''' returns the offset/index within the current block '''
+    offset = 0
+    while node.prev != None:
+        node = node.prev
+        offset = offset + 1
     return offset
 
 # NOTE: untested
