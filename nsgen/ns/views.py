@@ -51,6 +51,16 @@ def new_gs(req, ts_id=None):
     return redirect(graphui, gs_id=gs.id)
 
 @login_required
+def duplicate_gs(req, gs_id=None):
+    ts_data = None
+    gsold = GraphSession.objects.get(id=gs_id)
+    gsnew = GraphSession()
+    gsnew.data_str = gsold.data_str
+    gsnew.org_version = gsold.org_version
+    gsnew.save()
+    return redirect(graphui, gs_id=gsnew.id)
+
+@login_required
 def delete_gs(req, gs_id):
     try:
         gs = GraphSession.objects.get(id=gs_id)

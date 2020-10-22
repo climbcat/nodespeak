@@ -27,6 +27,7 @@ urlpatterns = [
 
     url(r'latest/?$', views.latest_gs),
     url(r'last/?$', views.latest_gs),
+    url(r'duplicate/(?P<gs_id>[0-9]+)/?$', views.duplicate_gs),
     url(r'delete/(?P<gs_id>[0-9]+)/?$', views.delete_gs),
     url(r'new/(?P<ts_id>[0-9]+)/?$', views.new_gs),
     url(r'new/?$', views.new_gs),
