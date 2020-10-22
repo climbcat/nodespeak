@@ -304,13 +304,10 @@ def elimination_alg(gotos, lbls):
         while directly_related(goto, lbl):
             if level(goto) > level(lbl):
                 move_out_of_loop_or_if(goto)
-
-
-                # DEBUG:
-                return
-
-
             else:
+                
+                # TODO: now impl. and test dir rel with l(g) > l(l)...
+                
                 lblstm = find_directly_related_lblstm(goto, lbl)
                 if offset(goto) > offset(lblstm):
                     lift_above_lblstm(goto, lblstm)
