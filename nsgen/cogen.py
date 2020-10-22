@@ -97,13 +97,20 @@ class AST_ifgoto(AST_STM):
         super().__init__()
         self.label = ""
         self.ifcond = ifcond
+        self.index = -1
     def __str__(self):
-        return "ifgoto: " + str(self.ifcond) + " -> " + self.label
+        return "ifgoto %d: " % self.index + str(self.ifcond) + " -> " + self.label
 class AST_return(AST_STM):
     def __init__(self):
         super().__init__()
     def __str__(self):
         return "return"
+class AST_pass(AST_STM):
+    def __init__(self):
+        super().__init__()
+    def __str__(self):
+        return "pass"
+
 
 class AST_if(AST_FORK):
     def __init__(self, condition: AST_BOOL):
@@ -235,7 +242,7 @@ def flowchartToSyntaxTree(fcroot):
         vis = visited.get(node.fcid, None)
         if vis is not None:
             astnew = AST_ifgoto(AST_true())
-            astnew.label = vis.label #!
+            astnew.label = vis.label # putting this information aids debugging
             labels[astnew] = treesibs[vis]
             gotos.append(astnew)
             AST_connect(astnode, astnew)
@@ -274,6 +281,13 @@ def flowchartToSyntaxTree(fcroot):
             if stack.qsize() > 0:  # safe get no wait
                 (node, astnode) = stack.get_nowait()
 
+    # assign an index to each goto to ease debugging
+    gidx = 0
+    for g in gotos:
+        g.index = gidx
+        gidx = gidx + 1
+
+    # done
     return astroot, gotos, labels
 
 
@@ -285,17 +299,23 @@ def elimination_alg(gotos, lbls):
         lbl = lbls[goto]
 
         while indirectly_related(goto, lbl):
-            move_out(goto)
+            move_out_of_loop_or_if(goto)
 
         while directly_related(goto, lbl):
             if level(goto) > level(lbl):
-                move_out(goto)
+                move_out_of_loop_or_if(goto)
+
+
+                # DEBUG:
+                return
+
+
             else:
                 lblstm = find_directly_related_lblstm(goto, lbl)
                 if offset(goto) > offset(lblstm):
                     lift_above_lblstm(goto, lblstm)
                 else:
-                    move_in(goto)
+                    move_into_loop_or_if(goto)
 
         if siblings(goto, lbl):
             if offset(goto) < offset(lbl):
@@ -306,28 +326,12 @@ def elimination_alg(gotos, lbls):
             raise Exception("elimination fail")
 
 # NOTE: untested
-def move_out(goto):
-    if is_in_loop(goto):
-        move_out_of_loop(goto)
-    elif is_in_if(goto):
-        move_out_of_if(goto)
-    else:
-        raise Exception("move_out fail")
-# NOTE: untested
-def move_in(goto):
-    if is_in_loop(goto):
-        move_into_loop(goto)
-    elif is_in_if(goto):
-        move_into_if(goto)
-    else:
-        raise Exception("move_in fail")
-# NOTE: untested
 def find_directly_related_lblstm(goto, lbl) -> AST_STM:
-    ''' assumnes level(goto) < level(lbl) and goto, lbl are directly related '''
+    ''' assumnes level(goto) < level(lbl) and directly related '''
     lvldiff = level(lbl) - level(goto)
     node = lbl
     if lvldiff < 0:
-        raise Exception("find_lblstm fail: o(g) must be < o(l)")
+        raise Exception("find_lblstm fail: l(g) must be < l(l)")
     while lvldiff > 0:
         while node.prev != None and node.up == None:
             node = node.prev
@@ -337,7 +341,6 @@ def find_directly_related_lblstm(goto, lbl) -> AST_STM:
         if lvldiff == 0 and issubclass(type(node), AST_FORK):
             return node
     raise Exception("find_directly_related_lblstm: find_lblstm fail: did not converge, are goto and lbl directly related?")
-
 
 def indirectly_related(goto, lbl) -> bool:
     if siblings(goto, lbl):
@@ -421,21 +424,18 @@ def offset(node) -> int:
         node = node.prev
         offset = offset + 1
     return offset
-
-# NOTE: untested
 def is_in_loop(node) -> bool:
-    ''' is node directly in a while of dowhile '''
+    ''' is node in the block of a while or dowhile '''
     while node.prev != None:
         node = node.prev
     if node.up == None:
         raise Exception("is_in_loop: node.up xor node.prev must be set")
-    if type(node.up) == AST_while or type(node.up) == AST_dowhile:
+    if type(node.up) in (AST_while, AST_dowhile):
         return True
     else:
-        return False # includes AST_root
-# NOTE: untested
+        return False
 def is_in_if(node) -> bool:
-    ''' is node directly in an if '''
+    ''' is node in the block of an if '''
     while node.prev != None:
         node = node.prev
     if node.up == None:
@@ -443,18 +443,102 @@ def is_in_if(node) -> bool:
     if type(node.up) == AST_if:
         return True
     else:
-        return False # includes AST_root
+        return False
 
-# TODO: remove, we probably do not need this
-def is_in_stm(node, stm) -> bool: pass # is node nested in stm somehow
+gotovar_idx = -1 # all "bassign goto_N" need a globally unique tag/name, we can use this index 
+def move_out_of_loop_or_if(goto):
+    global gotovar_idx
+    gotovar_idx = gotovar_idx + 1
 
+    # map goto context
+    node = goto
+    loop = None
+    while node.prev != None:
+        node = node.prev
+    if node.up:
+        loop = node.up # the while, dowhile or if containing the goto
+    else:
+        raise Exception("move_out_of_loop_or_if: loop/if not found")
+    stm_after_goto = goto.next
+    stm_before_goto = goto.prev
+
+    # create replacing nodes
+    bvar = AST_bvar("goto_%s" % gotovar_idx)
+    bass = AST_bassign(bvar, goto.ifcond)
+    if_replacing_goto = AST_if(AST_not(bvar))
+
+    # extract and redefine the goto
+    _remove(goto)
+    goto.ifcond = bvar
+
+    # re-insert the goto after the loop/if
+    _insert_after(goto, loop)
+
+    # repair the hole where the goto was
+    if stm_after_goto != None:
+        # there is some statement after the goto
+        _insert_before(bass, stm_after_goto)
+        _insert_loop_or_if_above(stm_after_goto, if_replacing_goto)
+    elif stm_before_goto:
+        # NOTE: untested
+        # the goto was the last statement in a non-trivial block (thus we don't need if_replacing_goto)
+        _insert_after(bass, stm_before_goto)
+    else:
+        # NOTE: untested
+        # the block consists of the goto and nothing else, the situation calls for a full simplification
+        goto.condition = AST_and(goto.ifcond, loop.condition)
+        _remove(loop)
+
+# NOTE: untested
 def eliminate_by_cond(goto, lbl): pass # when o(g) < o(l)
+# NOTE: untested
 def eliminate_by_while(goto, lbl): pass # when o(g) > o(l)
-def move_out_of_loop(goto): pass
-def move_out_of_if(goto): pass
-def move_into_loop(goto, loopstm): pass
-def move_into_if(goto, ifstm): pass
+# NOTE: untested
+def move_into_loop_or_if(goto, loopstm): pass
+# NOTE: untested
 def lift_above_lblstm(goto, lblstm): pass
+
+# NOTE: untested
+def _remove(node):
+    if node.prev:
+        if node.next:
+            node.next.prev = node.prev
+            node.prev.next = node.next
+        else:
+            node.prev.next = None
+    elif node.up:
+        if node.next:
+            node.up.block = node.next
+            node.next.prev = None
+            node.next.up = node.up
+        else:
+            node.up.block = AST_pass()
+    else:
+        raise Exception("_remove assert: (node.up xor node.prev) must be tru3")
+def _insert_loop_or_if_above(node, loop):
+    # set prev.next to be the loop
+    if node.prev != None:
+        node.prev.next = loop
+    # set node and loop relations
+    node.prev = None
+    node.up = loop
+    loop.block = node
+def _insert_after(node, after):
+    # set next.prev to node
+    if after.next != None:
+        after.next.prev = node
+    # set next to node
+    after.next = node
+def _insert_before(node, before):
+    # set prev.next to node
+    if before.prev != None:
+        before.prev.next = node
+    # set prev to node
+    before.prev = node
+    # reset up from before to node
+    if before.up != None:
+        node.up = before.up
+        before.up = None
 
 
 ''' flow chart to pseudocode '''
