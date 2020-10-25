@@ -104,8 +104,7 @@ class Command(BaseCommand):
 
             diagnose(gotos, lbls)
 
-            # DEBUG
-            cg.elimination_alg(gotos, lbls)
+            cg.elimination_alg(gotos, lbls, ast)
 
             print()
             print("## take two:")

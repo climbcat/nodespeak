@@ -291,8 +291,21 @@ def flowchartToSyntaxTree(fcroot):
     return astroot, gotos, labels
 
 
+# DEBUG
+g_ast = None
+def print_ast():
+    global g_ast
+    lines = []
+    treePrintRec(g_ast, lines)
+    astrepr = '\n'.join(lines)
+    print(astrepr)
+
+
 # NOTE: untested
-def elimination_alg(gotos, lbls):
+def elimination_alg(gotos, lbls, ast):
+    # DEBUG
+    global g_ast
+    g_ast = ast
 
     # select goto/lbl pair
     for goto in gotos:
@@ -305,14 +318,14 @@ def elimination_alg(gotos, lbls):
             if level(goto) > level(lbl):
                 move_out_of_loop_or_if(goto)
             else:
-                
+
                 # TODO: now impl. and test dir rel with l(g) > l(l)...
-                
+
                 lblstm = find_directly_related_lblstm(goto, lbl)
                 if offset(goto) > offset(lblstm):
                     lift_above_lblstm(goto, lblstm)
                 else:
-                    move_into_loop_or_if(goto)
+                    move_into_loop_or_if(goto, lbl)
 
         if siblings(goto, lbl):
             if offset(goto) < offset(lbl):
@@ -323,9 +336,9 @@ def elimination_alg(gotos, lbls):
             raise Exception("elimination fail")
 
 # NOTE: untested
-def find_directly_related_lblstm(goto, lbl) -> AST_STM:
-    ''' assumnes level(goto) < level(lbl) and directly related '''
-    lvldiff = level(lbl) - level(goto)
+def find_directly_related_lblstm(blocknode, lbl) -> AST_STM:
+    ''' assumnes level(blocknode) < level(lbl) and directly related '''
+    lvldiff = level(lbl) - level(blocknode)
     node = lbl
     if lvldiff < 0:
         raise Exception("find_lblstm fail: l(g) must be < l(l)")
@@ -337,7 +350,7 @@ def find_directly_related_lblstm(goto, lbl) -> AST_STM:
             lvldiff = lvldiff -1
         if lvldiff == 0 and issubclass(type(node), AST_FORK):
             return node
-    raise Exception("find_directly_related_lblstm: find_lblstm fail: did not converge, are goto and lbl directly related?")
+    raise Exception("find_directly_related_lblstm: find_lblstm fail: did not converge, are blocknode and lbl directly related?")
 
 def indirectly_related(goto, lbl) -> bool:
     if siblings(goto, lbl):
@@ -442,11 +455,14 @@ def is_in_if(node) -> bool:
     else:
         return False
 
-gotovar_idx = -1 # all "bassign goto_N" need a globally unique tag/name, we can use this index 
-def move_out_of_loop_or_if(goto):
-    global gotovar_idx
-    gotovar_idx = gotovar_idx + 1
+_gotovar_idx = -1
+def _get_gotovar_idx():
+    ''' all "bassign goto_N" need a globally unique tag/name, we can use this index '''
+    global _gotovar_idx
+    _gotovar_idx = _gotovar_idx + 1
+    return _gotovar_idx
 
+def move_out_of_loop_or_if(goto):
     # map goto context
     node = goto
     loop = None
@@ -460,7 +476,7 @@ def move_out_of_loop_or_if(goto):
     stm_before_goto = goto.prev
 
     # create replacing nodes
-    bvar = AST_bvar("goto_%s" % gotovar_idx)
+    bvar = AST_bvar("goto_%s" % _get_gotovar_idx())
     bass = AST_bassign(bvar, goto.ifcond)
     if_replacing_goto = AST_if(AST_not(bvar))
 
@@ -491,11 +507,68 @@ def eliminate_by_cond(goto, lbl): pass # when o(g) < o(l)
 # NOTE: untested
 def eliminate_by_while(goto, lbl): pass # when o(g) > o(l)
 # NOTE: untested
-def move_into_loop_or_if(goto, loopstm): pass
-# NOTE: untested
-def lift_above_lblstm(goto, lblstm): pass
+def move_into_loop_or_if(goto, lbl):
+    ''' move goto into the loop/if that contains lbl (or the statement containing lbl) '''
+    loop = find_directly_related_lblstm(goto, lbl)
+    if not type(loop) in (AST_if, AST_while, AST_dowhile):
+        raise Exception("move_into_loop_or_if assert: loop must be a loop type")
+    lblstm = find_directly_related_lblstm(loop.block, lbl) # in loop
+    stm1 = None
+    if goto.next != loop:
+        stm1 = goto.next
 
-# NOTE: untested
+    # create replacing nodes
+    bvar = AST_bvar("goto_%s" % _get_gotovar_idx())
+    bass_initial = AST_bassign(bvar, goto.ifcond)
+    bass_final = AST_bassign(bvar, AST_false)
+    if_replacing_goto = AST_if(AST_not(bvar))
+
+    # modify loop and goto conditions
+    loop.condition = AST_or(bvar, loop.condition)
+    goto.ifcond = bvar
+    
+    # modify AST
+    if stm1 != None:
+        # stms between the goto and the loop
+        _insert_loop_or_if_above(stm1, if_replacing_goto)
+        # repair the tail
+        loop.prev.next = None
+        loop.prev = if_replacing_goto
+    _remove(goto)
+    _insert_before(bass_initial, loop)
+    _insert_before(goto, loop.block)
+    _insert_before(bass_final, lblstm)
+def lift_above_lblstm(goto, lblstm):
+    ''' assuming, of course, that o(g) > o(l) '''
+    # map goto context
+    stm_after_goto = goto.next # could be None
+    stm_before_goto = goto.prev # must not be None
+    if stm_before_goto == None:
+        raise Exception("lift_above_lblstm: stm_before_goto must not be None")
+
+    # create replacing nodes
+    bvar = AST_bvar("goto_%s" % _get_gotovar_idx())
+    bass_initial = AST_bassign(bvar, AST_false)
+    bass_dolast = AST_bassign(bvar, goto.ifcond)
+    dowhile_replacing_goto = AST_dowhile(bvar)
+
+    # extract and redefine the goto
+    _remove(goto)
+    goto.ifcond = bvar
+
+    # reorganize the ast
+    _insert_before(goto, lblstm)
+    _insert_before(bass_initial, goto)
+    _insert_loop_or_if_above(goto, dowhile_replacing_goto)
+
+    # insert that goto-var end condition
+    _insert_after(bass_dolast, stm_before_goto)
+
+    # limit the dowhile block - UNTESTED
+    if stm_after_goto != None:
+        _remove(stm_after_goto)
+        _insert_after(stm_after_goto, dowhile_replacing_goto) 
+
 def _remove(node):
     if node.prev:
         if node.next:
@@ -512,30 +585,35 @@ def _remove(node):
             node.up.block = AST_pass()
     else:
         raise Exception("_remove assert: (node.up xor node.prev) must be tru3")
+# untested
 def _insert_loop_or_if_above(node, loop):
     # set prev.next to be the loop
     if node.prev != None:
         node.prev.next = loop
+        node.prev = None
     # set node and loop relations
-    node.prev = None
     node.up = loop
     loop.block = node
 def _insert_after(node, after):
     # set next.prev to node
     if after.next != None:
         after.next.prev = node
+        node.next = after.next
     # set next to node
     after.next = node
+    node.prev = after
 def _insert_before(node, before):
     # set prev.next to node
     if before.prev != None:
         before.prev.next = node
-    # set prev to node
-    before.prev = node
+        node.prev = before.prev
     # reset up from before to node
-    if before.up != None:
+    elif before.up != None:
         node.up = before.up
         before.up = None
+    # set direct relations
+    before.prev = node
+    node.next = before
 
 
 ''' flow chart to pseudocode '''
