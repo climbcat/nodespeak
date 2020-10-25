@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
 import json
-import traceback
 
 from ns.models import GraphSession, TypeSchema
 
@@ -103,13 +102,3 @@ class Command(BaseCommand):
             print(text_ast)
 
             diagnose(gotos, lbls)
-
-            # DEBUG
-            cg.elimination_alg(gotos, lbls)
-
-            print()
-            print("## take two:")
-            print()
-            print(get_ast_text(ast))
-            diagnose(gotos, lbls)
-
