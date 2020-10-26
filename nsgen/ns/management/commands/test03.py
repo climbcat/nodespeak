@@ -37,6 +37,11 @@ def diagnose(gotos, lbls):
     for goto in gotos:
         lbl = lbls[goto]
 
+        # check if it was removed
+        if goto.next == None and goto.prev == None and goto.up == None:
+            print("%s -> %s was removed" % (str(goto), str(lbl)))
+            continue
+
         # test level, offset, indir, dir and sib
         glvl = cg.level(goto)
         llvl = cg.level(lbl)
