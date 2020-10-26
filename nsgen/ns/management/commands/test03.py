@@ -101,6 +101,7 @@ class Command(BaseCommand):
             text_ast = get_ast_text(ast)
 
             print()
+            print()
             print("## session #%d:" % s.id)
             print()
             print(text_psc)

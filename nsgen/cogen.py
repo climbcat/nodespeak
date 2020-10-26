@@ -616,6 +616,10 @@ def _insert_loop_or_if_above(loop, node):
         loop.prev = node.prev
         node.prev.next = loop
         node.prev = None
+    elif node.up != None:
+        loop.up = node.up
+        node.up.block = loop
+        node.up = None
     # set node and loop relations
     node.up = loop
     loop.block = node
