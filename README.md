@@ -7,7 +7,7 @@ Django version:
 
 Files:
 - git clone https://github.com/climbcat/nodespeak/
-- download the files d3.v4.min.js and jquery.min.js, and put them in nsgen/ns/static/ns
+- put the files d3.v4.min.js and jquery.min.js in nsgen/ns/static/ns
 - or link directly to source, e.g. https://d3js.org/d3.v4.min.js
 
 Run these commands from nsgen:
