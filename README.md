@@ -9,7 +9,8 @@ Files:
 - git clone https://github.com/climbcat/nodespeak/
 - put the files d3.v4.min.js and jquery.min.js in nsgen/ns/static/ns (or link directly to source, e.g. https://d3js.org/d3.v4.min.js, in ns/templates/ns/graphs.html)
 
-Run these commands from nsgen:
+Run these commands from nsgen to prepare a setup:
+- python3 manage.py collectstatic (for release setups)
 - python3 manage.py migrate
 - python3 manage.py createsuperuser
 - python3 manage.py gentypes02
