@@ -120,6 +120,6 @@ class Command(BaseCommand):
             print()
             print("## take two:")
             print()
-            print(get_ast_text(ast))
+            print(cg.get_ast_text(ast))
             diagnose(gotos, lbls)
 
