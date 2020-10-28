@@ -49,7 +49,7 @@ def diagnose(gotos, lbls):
         irel = cg.indirectly_related(goto, lbl)
         drel = cg.directly_related(goto, lbl)
         sibs = cg.siblings(goto, lbl)
-        
+
         # test inloop, inif
         ginloop = cg.is_in_loop(goto)
         ginif = cg.is_in_if(goto)
@@ -64,7 +64,7 @@ def diagnose(gotos, lbls):
             sinstructure = sinstructure + ", lbl in loop"
         elif linif:
             sinstructure = sinstructure + ", lbl in if"
-        
+
         print()
         print("%s -> %s%s" % (str(goto), str(lbl), sinstructure))
         print("goto level:  %s" % str(glvl))

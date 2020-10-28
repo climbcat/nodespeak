@@ -161,7 +161,7 @@ class Node:
         pass
 
     ''' Subject/Object execution interface '''
-    def assign(self, node):
+    def dg_expr_assign(self, node):
         raise AbstractMethodException()
     def call(self, *args):
         raise AbstractMethodException()
@@ -235,7 +235,7 @@ class NodeObj(Node):
             return self.label
         else:
             return self.name
-    def assign(self, obj):
+    def dg_expr_assign(self, obj):
         self.obj = obj
         for m in [node for node in list(self.subnodes.values()) if type(node) is NodeMethod]:
             m._check_owner(self)
@@ -262,7 +262,7 @@ class NodeObjLiteral(NodeObj):
     ''' Literal value handle '''
     class ExeModel(ExecutionModel):
         def can_assign(self):
-            ''' This does not mean that you can't assign, but the execution function! '''
+            ''' This does not mean that you can't dg_expr_assign, but the execution function! '''
             return False
         def can_call(self):
             return False
@@ -289,7 +289,7 @@ class NodeFunc(Node):
         super().__init__(name, exe_model=NodeFunc.ExeModel())
     def __str__(self):
         return str(self.func)
-    def assign(self, obj):
+    def dg_expr_assign(self, obj):
         pass
     def call(self, *args):
         return self.func + str(args).replace("'", "")
@@ -324,7 +324,7 @@ class NodeMethod(Node):
     def __str__(self):
         return str(self.methodname)
 
-    def assign(self, obj):
+    def dg_expr_assign(self, obj):
         pass
     def call(self, *args):
         owners = [o for o in self.owners if type(o) in (NodeObj, NodeObjTyped, )]
@@ -362,7 +362,7 @@ class NodeReturnFunc(Node):
     def __str__(self):
         return str(self.func)
 
-    def assign(self, obj):
+    def dg_expr_assign(self, obj):
         raise NodeReturnFunc.AssignException()
     def call(self, *args):
         if self.func:
@@ -507,15 +507,15 @@ def call_dg_subtree(tree):
     result = None
     if len(tree) == 0:
         result = None
-        if root is not None: root.assign(result)
+        if root is not None: root.dg_expr_assign(result)
     elif len(tree) == 1:
         result = tree[0].get_object()
-        if root is not None: root.assign(result)
+        if root is not None: root.dg_expr_assign(result)
     else:
         func = tree[0]
         args = tree[1]
         result = call_recurse(func, args)
-        if root: root.assign(result)
+        if root: root.dg_expr_assign(result)
     return result
 
 

@@ -48,7 +48,7 @@ def cogen(graphdef, typetree, DB_logging=False):
 
 def get_pseudocode(enter_node, all_nodes):
     lines = flowchartToPseudocode(enter_node)
-    makeLineExpressions(lines, all_nodes)
+    make_line_expressions(lines, all_nodes)
     lw = LineWriter(lines)
     return lw.write()
 
@@ -70,6 +70,47 @@ def get_ast_text(ast):
     treePrintRec(g_ast, lines)
     return '\n'.join(lines)
 
+class AST_iterator:
+    def __init__(self, ast_root):
+        if not type(ast_root) == AST_root:
+            raise Exception("AST_iterator: must initialize using root")
+        self.ast = ast_root
+        self.stack = LifoQueue(maxsize=10000) # some outrageously large maxsize here
+    def next(self):
+        if type(self.ast) == AST_root:
+            self.ast = self.ast.block
+            return self.ast
+        
+        # stack-based branched iteration doing block-first
+        if issubclass(type(self.ast), AST_FORK) and self.ast.block != None:
+            if self.ast.next:
+                self.stack.put_nowait(self.ast.next)
+            self.ast = self.ast.block
+        else:
+            self.ast = self.ast.next
+        if self.ast == None and self.stack.qsize() > 0: # safe get no wait
+            self.ast = self.stack.get_nowait()
+        return self.ast
+
+class AST_line_writer_py:
+    def __init__(self, ast_iter):
+        self.iter = ast_iter
+        self.lines = []
+    def write(self):
+        a = 4
+        node = self.iter.next()
+        while node != None:
+            l = level(node)
+            self.lines.append(''.ljust(l*a) + node.pycode())
+            node = self.iter.next()
+        return '\n'.join(self.lines)
+
+def get_pycode(ast_root, all_nodes):
+    '''  '''
+    make_AST_expressions(AST_iterator(ast_root), all_nodes)
+    writer = AST_line_writer_py(AST_iterator(ast_root))
+    return writer.write()
+
 
 ''' syntax tree types '''
 
@@ -77,6 +118,7 @@ def get_ast_text(ast):
 class AST_root:
     def __init__(self):
         self.block = None
+        self.next = None # this should not be used, it's only here to ease iteration
     def __str__(self):
         return "root"
 class AST_STM:
@@ -100,12 +142,17 @@ class AST_bassign(AST_STM):
         super().__init__()
         self.bvar = bvar # must be an AST_bvar !!
         self.right = right
+    def pycode(self):
+        return "%s = %s" % (self.bvar.pycode(), self.right.pycode())
     def __str__(self):
         return "bassign: " + str(self.bvar) + ", " + str(self.right) 
 class AST_extern(AST_STM):
     def __init__(self, dgid: str):
         super().__init__()
         self.dgid = dgid
+        self.extern_text = None
+    def pycode(self):
+        return self.extern_text
     def __str__(self):
         if self.dgid == None:
             return "extern: None"
@@ -117,32 +164,44 @@ class AST_ifgoto(AST_STM):
         self.label = ""
         self.ifcond = ifcond
         self.index = -1
+    def pycode(self):
+        raise Exception("AST_ifgoto.pycode: can not be generated")
     def __str__(self):
         return "ifgoto %d: " % self.index + str(self.ifcond) + " -> " + self.label
 class AST_return(AST_STM):
     def __init__(self):
         super().__init__()
+    def pycode(self):
+        return "return"
     def __str__(self):
         return "return"
 class AST_pass(AST_STM):
     def __init__(self):
         super().__init__()
+    def pycode(self):
+        return "pass"
     def __str__(self):
         return "pass"
 
 class AST_if(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
+    def pycode(self):
+        return "if %s:" % self.condition.pycode()
     def __str__(self):
         return "if: " + str(self.condition)
 class AST_while(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
+    def pycode(self):
+        return "while %s:" % self.condition.pycode()
     def __str__(self):
         return "while: " + str(self.condition)
 class AST_dowhile(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
+    def pycode(self):
+        return "dowhile %s:" % self.condition.pycode() # TODO: fix, this doesn't exist in python - maybe while True: ... if not conditon: break
     def __str__(self):
         return "dowhile: " + str(self.condition)
 
@@ -152,22 +211,31 @@ class AST_bextern(AST_BOOL):
             raise Exception("AST_bextern: Decision nodes must have a target bvar or bfunc, to be used for creating this")
         super().__init__()
         self.dgid = dgid
+        self.extern_text = "extern-placeholder"
+    def pycode(self):
+        return self.extern_text
     def __str__(self):
         return "bexternal: " + self.dgid
 class AST_bvar(AST_BOOL):
     def __init__(self, varname: str):
         super().__init__()
         self.varname = varname
+    def pycode(self):
+        return self.varname
     def __str__(self):
         return "bvar: " + self.varname
 class AST_true(AST_BOOL):
     def __init__(self):
         super().__init__()
+    def pycode(self):
+        return "True"
     def __str__(self):
         return "true"
 class AST_false(AST_BOOL):
     def __init__(self):
         super().__init__()
+    def pycode(self):
+        return "False"
     def __str__(self):
         return "false"
 
@@ -176,6 +244,8 @@ class AST_or(AST_BOOLOP):
         super().__init__()
         self.left = left
         self.right = right
+    def pycode(self):
+        return "%s or %s" % (self.left.pycode(), self.right.pycode())
     def __str__(self):
         return "or: " + str(self.left) + ", " + str(self.right)
 class AST_and(AST_BOOLOP):
@@ -183,12 +253,16 @@ class AST_and(AST_BOOLOP):
         super().__init__()
         self.left = left
         self.right = right
+    def pycode(self):
+        return "%s and %s" % (self.left.pycode(), self.right.pycode())
     def __str__(self):
         return "and: " + str(self.left) + ", " + str(self.right)
 class AST_not(AST_BOOLOP):
     def __init__(self, nott: AST_BOOL):
         super().__init__()
         self.right = nott
+    def pycode(self):
+        return "not %s" % (self.right.pycode(), )
     def __str__(self):
         return "not: " + str(self.right)
 
@@ -280,7 +354,7 @@ def flowchartToSyntaxTree(fcroot):
             if stack.qsize() > 0:  # safe get no wait
                 (node, astnode) = stack.get_nowait()
 
-    # assign an index to each goto to ease debugging
+    # dg_expr_assign an index to each goto to ease debugging
     gidx = 0
     for g in gotos:
         g.index = gidx
@@ -532,7 +606,7 @@ def move_into_loop_or_if(goto, lbl):
     # create replacing nodes
     bvar = AST_bvar("goto_%s" % _get_gotovar_idx())
     bass_initial = AST_bassign(bvar, goto.ifcond)
-    bass_final = AST_bassign(bvar, AST_false)
+    bass_final = AST_bassign(bvar, AST_false())
 
     # modify loop and goto conditions
     loop.condition = AST_or(bvar, loop.condition)
@@ -561,7 +635,7 @@ def lift_above_lblstm(goto, lblstm):
 
     # create replacing nodes
     bvar = AST_bvar("goto_%s" % _get_gotovar_idx())
-    bass_initial = AST_bassign(bvar, AST_false)
+    bass_initial = AST_bassign(bvar, AST_false())
     bass_dolast = AST_bassign(bvar, goto.ifcond)
     dowhile_replacing_goto = AST_dowhile(bvar)
 
@@ -645,35 +719,55 @@ def _insert_before(node, before):
 ''' flow chart to pseudocode '''
 
 
-def makeLineExpressions(lines, allnodes):
-    ''' For every line, insert text corresponding to the target data graph node subtree. '''
-    def read(dgnode):
-        ''' Returns an rvalue expression. dgnode: can be a obj, method or func '''
-        if dgnode is None:
+def dg_expr_read(dgnode):
+    ''' Returns an rvalue expression. dgnode: can be a obj, method or func '''
+    if dgnode is None:
+        return None
+    if type(dgnode) in (NodeObj, NodeObjTyped, ):
+        varname = dgnode.get_varname()
+        return varname
+    subtree = build_dg_subtree(dgnode)
+    return call_dg_subtree(subtree)
+def dg_expr_assign(obj_node):
+    ''' returns an assignment expression to obj_node '''
+    def getSingleParent(n):
+        plst = parents_get(n.parents)
+        if len(plst) > 1:
+            raise Exception("obj nodes should only have zero or one parents!")
+        elif len(plst) == 0:
             return None
-        if type(dgnode) in (NodeObj, NodeObjTyped, ):
-            varname = dgnode.get_varname()
-            return varname
-        subtree = build_dg_subtree(dgnode)
-        return call_dg_subtree(subtree)
-    def assign(obj_node):
-        ''' returns an assignment expression to obj_node '''
-        def getSingleParent(n):
-            plst = parents_get(n.parents)
-            if len(plst) > 1:
-                raise Exception("obj nodes should only have zero or one parents!")
-            elif len(plst) == 0:
-                return None
-            elif len(plst) == 1:
-                return plst[0]
-        ''' obj_node: must be an obj node which will be assigned to '''
-        parent = getSingleParent(obj_node)
-        varname = obj_node.get_varname()
-        if parent == None:
-            return varname
-        else:
-            return varname + " = " + read(parent)
+        elif len(plst) == 1:
+            return plst[0]
+    ''' obj_node: must be an obj node which will be assigned to '''
+    parent = getSingleParent(obj_node)
+    varname = obj_node.get_varname()
+    if parent == None:
+        return varname
+    else:
+        return varname + " = " + dg_expr_read(parent)
 
+def make_AST_expressions(ast_iterator, allnodes):
+    node = ast_iterator.next()
+    while node != None:
+        # proc/term generated
+        if type(node) == AST_extern:
+            if node.dgid == None:
+                node.extern_text = "# no dg target"
+            else:
+                dgnode = allnodes[node.dgid]
+                if type(dgnode) in (NodeObj, NodeObjTyped, ):
+                    node.extern_text = dg_expr_assign(dgnode)
+                elif type(dgnode) in (NodeMethod, NodeFunc, ):
+                    node.extern_text = dg_expr_read(dgnode)
+        # dec generated
+        elif type(node) == AST_bextern:
+            dgnode = allnodes[node.dgid]
+            if type(dgnode) in (NodeObj, NodeObjTyped, NodeFunc, NodeMethod, ):
+                node.extern_text = dg_expr_read(dgnode)
+        node = ast_iterator.next()
+
+def make_line_expressions(lines, allnodes):
+    ''' For every line, insert text corresponding to the target data graph node subtree. '''
     for l in lines:
         # proc/term generated lines
         if type(l) in (LineStatement, ):
@@ -682,10 +776,10 @@ def makeLineExpressions(lines, allnodes):
                 continue
 
             target = allnodes[l.dgid]
-            if type(target) in (NodeObj, ):
-                l.text = assign(target)
+            if type(target) in (NodeObj, NodeObjTyped, ):
+                l.text = dg_expr_assign(target)
             elif type(target) in (NodeMethod, NodeFunc):
-                l.text = read(target)
+                l.text = dg_expr_read(target)
             else:
                 raise Exception("fc proc/term can only be associated with Obj, Func or Method dg nodes: %s" % target.name)
         # dec generated lines
@@ -696,7 +790,7 @@ def makeLineExpressions(lines, allnodes):
 
             target = allnodes[l.dgid]
             if type(target) in (NodeObj, NodeObjTyped, NodeFunc, NodeMethod, ):
-                txt = read(target)
+                txt = dg_expr_read(target)
                 l.setText(txt)
             else:
                 raise Exception("fc dec can only be associated with Obj, Func or Method nodes: %s" % target.name)
@@ -704,7 +798,7 @@ def makeLineExpressions(lines, allnodes):
 class LineWriter:
     def __init__(self, lines, indent=4):
         self.ilines = lines
-        self.olines = []
+        self.lines = []
         self.indent_amount = indent
         self.indent_level = 0
     def write(self):
@@ -712,16 +806,15 @@ class LineWriter:
         i = self.indent_level
         lineno = 1
         for l in self.ilines:
-            # postivie: adjust indentation level after
-            if l.ilvl<1:
+            if l.ilvl < 1:
                 i = i + l.ilvl
             # indent and print line
-            self.olines.append(str(lineno).ljust(4) + ''.ljust(i*a) + str(l))
-            # postivie: adjust indentation level after
+            self.lines.append(str(lineno).ljust(4) + ''.ljust(i*a) + str(l))
+            # postive: adjust indentation level after
             if l.ilvl >= 0:
                 i = i + l.ilvl
             lineno = lineno + 1
-        return '\n'.join(self.olines)
+        return '\n'.join(self.lines)
 
 class LineStatement:
     def __init__(self, node):
@@ -736,7 +829,7 @@ class LineStatement:
         if self.text != None:
             return self.text
         return s
-class LineReturnStatement:
+class LineReturn:
     def __init__(self):
         self.dgid = None
         self.ilvl = 0
@@ -799,7 +892,7 @@ def flowchartToPseudocode(root):
     vis = {} # visited node id:idx entries
     lines = [LineOpen()] # just a line open, because everything ends in a line close
     idx = idx + 1 # line was added
-    stack = LifoQueue(maxsize=100) # some outrageously large maxsize here
+    stack = LifoQueue(maxsize=10000) # some outrageously large maxsize here
     node = root
 
     while node is not None:
@@ -820,7 +913,7 @@ def flowchartToPseudocode(root):
                 node = getSingleChild(node)
                 if node == None:
                     idx = idx + 1
-                    lines.append(LineReturnStatement())
+                    lines.append(LineReturn())
         if node == None:
             idx = idx + 1
             lines.append(LineClose())
@@ -828,7 +921,7 @@ def flowchartToPseudocode(root):
                 node = stack.get_nowait()
         idx = idx + 1
 
-    # assign lineno to goto's
+    # dg_expr_assign lineno to goto's
     for l in lines:
         if type(l) == LineGoto:
             l.lineno = vis[l.fcid] + 1 # LINES start at 1, indexes at zero
