@@ -21,6 +21,11 @@ def load_ast(s):
     typetree = obj
     graphdef = obj["graphdef"]
     graph = simplegraph.SimpleGraph(typetree, graphdef)
+
+    # empty graphdef case
+    if len(graph.root.subnodes.values()) == 0:
+        raise Exeption("empty graphdef case")
+
     term_Is = [n for n in list(graph.root.subnodes.values()) if type(n)==simplegraph.NodeTerm and n.child != None]
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
@@ -96,7 +101,13 @@ class Command(BaseCommand):
 
         # test and print
         for s in sessions:
-            ast, gotos, lbls, term_I, subnodes = load_ast(s)
+            try:
+                ast, gotos, lbls, term_I, subnodes = load_ast(s)
+            except:
+                # empty graphdef case
+                print("\n\n## session #%d: empty graphdef \n" % s.id)
+                continue
+
             text_psc = cg.get_pseudocode(term_I, subnodes)
             text_ast = get_ast_text(ast)
 

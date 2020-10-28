@@ -25,6 +25,10 @@ def cogen(graphdef, typetree, DB_logging=False):
     # create the graph given the graphdef
     graph = SimpleGraph(typetree, graphdef)
 
+    # empty graphdef case
+    if len(graph.root.subnodes.values()) == 0:
+        return "empty graphdef"
+
     # get the unique term-enter node or except
     term_Is = [n for n in list(graph.root.subnodes.values()) if type(n)==NodeTerm and n.child != None]
     if len(term_Is) != 1:
@@ -497,7 +501,6 @@ def move_out_of_loop_or_if(goto):
         if type(loop) in (AST_if, AST_while, ):
             goto.ifcond = AST_and(org_goto_ifcond, loop.condition)
         _remove(loop)
-# NOTE: untested
 def eliminate_by_cond(goto, lbl):
     ''' use when o(g) < o(l) '''
     # trivial case: just remove the goto

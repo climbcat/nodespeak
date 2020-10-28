@@ -3,6 +3,7 @@ Generates hard-coded node type configurations for NSGen flowcharts.
 '''
 from django.core.management.base import BaseCommand
 import json
+import os
 
 from treealg import TreeJsonAddr, NodeConfig
 from ns.models import TypeSchema
@@ -156,7 +157,7 @@ def gen_user_branch(tree, address):
 def create_typeschema_todb(dct):
     ts = TypeSchema()
     ts.data_str = json.dumps(dct)
-    ts.version = "gentypes01"
+    ts.version = os.path.splitext(os.path.basename(__file__))[0]
     ts.save()
     print("saved typeschema to db with id=%s..." % str(ts.id))
 
@@ -168,7 +169,7 @@ class Command(BaseCommand):
         typetree = TreeJsonAddr()
 
         # add the (empty) graphdef
-        graphdef = {}
+        graphdef = {'nodes' : [], 'links' : []}
         typetree.root['graphdef'] = graphdef
 
         # node types - using tree.put
