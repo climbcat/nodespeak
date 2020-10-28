@@ -3,9 +3,9 @@ TODO:
 - OK - build node graph from a frontend-generated graph def
 - OK - gen pseudocode with goto statements representing the fc as a test
 - OK - gen AST from fc graph with a goto list and labels dict
-- goto- and label diagnostics functions
-- goto movement and elimination operations
-- use operations to implement the goto-elimination
+- OK - goto- and label diagnostics functions
+- OK - goto movement and elimination operations
+- OK - use operations to implement the goto-elimination
 - generate code from goto-eliminated AST (language specific)
 - gen typedefs and stubs (language specific)
 '''
@@ -41,9 +41,7 @@ def cogen(graphdef, typetree, DB_logging=False):
     # syntax tree
     ast, gotos, labels = flowchartToSyntaxTree(term_I)
 
-    lines = []
-    treePrintRec(ast, lines)
-    astrepr = '\n'.join(lines)
+    astrepr = get_ast_text(ast)
 
     # return data
     return pscode + '\n' + astrepr
@@ -53,6 +51,24 @@ def get_pseudocode(enter_node, all_nodes):
     makeLineExpressions(lines, all_nodes)
     lw = LineWriter(lines)
     return lw.write()
+
+def get_ast_text(ast):
+    def treePrintRec(astnode, lines, indentlvl=0):
+        if astnode == None: # end condition
+            return
+        if issubclass(type(astnode), AST_root):
+            treePrintRec(astnode.block, lines, indentlvl)
+            return
+        lines.append("".ljust(2 * indentlvl) + str(astnode))
+        if issubclass(type(astnode), AST_FORK):
+            treePrintRec(astnode.block, lines, indentlvl + 1)
+            treePrintRec(astnode.next, lines, indentlvl)
+        elif hasattr(astnode, "next"):
+            treePrintRec(astnode.next, lines, indentlvl)
+
+    lines = []
+    treePrintRec(g_ast, lines)
+    return '\n'.join(lines)
 
 
 ''' syntax tree types '''
@@ -79,7 +95,6 @@ class AST_FORK(AST_STM):
 class AST_BOOLOP(AST_BOOL):
     def __init__(self):
         super().__init__()
-
 class AST_bassign(AST_STM):
     def __init__(self, bvar: AST_BOOL, right: AST_BOOL):
         super().__init__()
@@ -114,7 +129,6 @@ class AST_pass(AST_STM):
         super().__init__()
     def __str__(self):
         return "pass"
-
 
 class AST_if(AST_FORK):
     def __init__(self, condition: AST_BOOL):
@@ -179,12 +193,6 @@ class AST_not(AST_BOOLOP):
         return "not: " + str(self.right)
 
 
-def AST_is_statement(node):
-    return issubclass(node, AST_STM, )
-def AST_is_boolean(node):
-    return issubclass(node, AST_BOOL, )
-
-
 ''' syntax tree operations '''
 
 
@@ -205,19 +213,6 @@ def AST_connect(stm1: AST_STM, stm2: AST_STM):
         stm2.up = stm1 # this is also debatable, but we do need some end condition
     else:
         raise Exception("stm1 and stm2 must be AST_STM (are type hints enforced?)")
-
-def treePrintRec(astnode, lines, indentlvl=0):
-    if astnode == None: # end condition
-        return
-    if issubclass(type(astnode), AST_root):
-        treePrintRec(astnode.block, lines, indentlvl)
-        return
-    lines.append("".ljust(2 * indentlvl) + str(astnode))
-    if issubclass(type(astnode), AST_FORK):
-        treePrintRec(astnode.block, lines, indentlvl + 1)
-        treePrintRec(astnode.next, lines, indentlvl)
-    elif hasattr(astnode, "next"):
-        treePrintRec(astnode.next, lines, indentlvl)
 
 def flowchartToSyntaxTree(fcroot):
     '''
@@ -294,19 +289,15 @@ def flowchartToSyntaxTree(fcroot):
     # done
     return astroot, gotos, labels
 
-
 # DEBUG util
 g_ast = None
 def print_ast():
     global g_ast
-    lines = []
-    treePrintRec(g_ast, lines)
-    astrepr = '\n'.join(lines)
-    print(astrepr)
+    print(get_ast_text(g_ast))
 
-
-# NOTE: untested
 def elimination_alg(gotos, lbls, ast):
+    ''' goto-elimination core '''
+
     # DEBUG util
     global g_ast
     g_ast = ast

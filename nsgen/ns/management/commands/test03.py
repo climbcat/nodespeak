@@ -9,12 +9,6 @@ from cogen import *
 import simplegraph
 from simplegraph import *
 
-def get_ast_text(ast):
-    lines = []
-    cg.treePrintRec(ast, lines)
-    astrepr = '\n'.join(lines)
-    return astrepr
-
 def load_ast(s):
     # see cogen
     obj = json.loads(s.data_str)
@@ -24,7 +18,7 @@ def load_ast(s):
 
     # empty graphdef case
     if len(graph.root.subnodes.values()) == 0:
-        raise Exeption("empty graphdef case")
+        raise Exception("empty graphdef case")
 
     term_Is = [n for n in list(graph.root.subnodes.values()) if type(n)==simplegraph.NodeTerm and n.child != None]
     if len(term_Is) != 1:
@@ -109,7 +103,7 @@ class Command(BaseCommand):
                 continue
 
             text_psc = cg.get_pseudocode(term_I, subnodes)
-            text_ast = get_ast_text(ast)
+            text_ast = cg.get_ast_text(ast)
 
             print()
             print()
