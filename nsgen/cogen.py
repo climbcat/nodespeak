@@ -747,8 +747,34 @@ def dg_expr_assign(obj_node):
         return varname + " = " + dg_expr_read(parent)
 
 def make_AST_expressions(ast_iterator, allnodes):
+    def get_all_bexterns(node):
+        bexterns = []
+        stack = LifoQueue(maxsize=100)
+        if type(node) == AST_if:
+            node = node.condition
+        elif type(node) == AST_bassign:
+            node = node.right
+
+        while node != None:
+            if type(node) == AST_bextern:
+                bexterns.append(node)
+                node = None
+            elif type(node) in (AST_not, ):
+                node = node.right
+            elif type(node) in (AST_or, AST_and, ):
+                stack.put_nowait(node.right)
+                node = node.left
+            else:
+                node = None
+
+            if node == None and stack.qsize() > 0:
+                node = stack.get_nowait()
+
+        return bexterns
+
     node = ast_iterator.next()
     while node != None:
+
         # proc/term generated
         if type(node) == AST_extern:
             if node.dgid == None:
@@ -759,11 +785,14 @@ def make_AST_expressions(ast_iterator, allnodes):
                     node.extern_text = dg_expr_assign(dgnode)
                 elif type(dgnode) in (NodeMethod, NodeFunc, ):
                     node.extern_text = dg_expr_read(dgnode)
+
         # dec generated
-        elif type(node) == AST_bextern:
-            dgnode = allnodes[node.dgid]
-            if type(dgnode) in (NodeObj, NodeObjTyped, NodeFunc, NodeMethod, ):
-                node.extern_text = dg_expr_read(dgnode)
+        elif type(node) in (AST_if, AST_bassign, ):
+            for bextern in get_all_bexterns(node):
+                dgnode = allnodes[bextern.dgid]
+                if type(dgnode) in (NodeObj, NodeObjTyped, NodeFunc, NodeMethod, ):
+                    bextern.extern_text = dg_expr_read(dgnode)
+
         node = ast_iterator.next()
 
 def make_line_expressions(lines, allnodes):
