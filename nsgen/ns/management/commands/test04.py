@@ -52,18 +52,21 @@ class Command(BaseCommand):
                 print("\n\n## session #%d: empty graphdef \n" % s.id)
                 continue
 
-            text_pseudocode = cg.get_pseudocode(term_I, allnodes)
-            cg.elimination_alg(gotos, lbls, ast)
-            text_ast = cg.get_ast_text(ast)
-            text_pycode = cg.get_pycode(ast, allnodes)
-
             print()
             print()
             print("## session #%d:" % s.id)
+
+            text_pseudocode = cg.get_pseudocode(term_I, allnodes)
+            cg.elimination_alg(gotos, lbls, ast, allnodes)
+            text_ast = cg.get_ast_text(ast)
+            text_pycode = cg.get_pycode(ast, allnodes)
+
+            #continue
+
             print()
             print(text_pseudocode)
             print()
             print(text_ast)
             print()
-            print(text_pycode)
+            #print(text_pycode)
 

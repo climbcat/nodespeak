@@ -165,6 +165,7 @@ class AST_ifgoto(AST_STM):
         self.ifcond = ifcond
         self.index = -1
     def pycode(self):
+        return "if %s: goto %s" % (self.ifcond.pycode(), self.label)
         raise Exception("AST_ifgoto.pycode: can not be generated")
     def __str__(self):
         return "ifgoto %d: " % self.index + str(self.ifcond) + " -> " + self.label
@@ -365,41 +366,75 @@ def flowchartToSyntaxTree(fcroot):
 
 # DEBUG util
 g_ast = None
-def print_ast():
+def DB_print_ast():
     global g_ast
     print(get_ast_text(g_ast))
 
-def elimination_alg(gotos, lbls, ast):
+g_allnodes = None
+def DB_print_pycode():
+    text = get_pycode(g_ast, g_allnodes)
+    print(text)
+
+def DB_log(msg):
+    print(msg)
+
+def elimination_alg(gotos, lbls, ast, allnodes = None):
     ''' goto-elimination core '''
 
     # DEBUG util
     global g_ast
     g_ast = ast
+    global g_allnodes
+    g_allnodes = allnodes
+
+    # TODO: intialize logical vars for evey label, itialized to false, AND initialized to false before the label
+    init_logical_labelvars(gotos, lbls)
+
+    DB_log("\ninitial state:")
+    DB_print_pycode()
 
     # select goto/lbl pair
     for goto in gotos:
         lbl = lbls[goto]
 
         while indirectly_related(goto, lbl):
+            DB_log("\nmove_out_of_loop_or_if:")
             move_out_of_loop_or_if(goto)
+            DB_print_pycode()
 
         while directly_related(goto, lbl):
             if level(goto) > level(lbl):
+                DB_log("\nmove_out_of_loop_or_if:")
                 move_out_of_loop_or_if(goto)
+                DB_print_pycode()
             else:
                 lblstm = find_directly_related_lblstm(goto, lbl)
                 if offset(goto) > offset(lblstm):
+                    DB_log("\nlift_above_lblstm:")
                     lift_above_lblstm(goto, lblstm)
+                    DB_print_pycode()
                 else:
+                    DB_log("\nmove_into_loop_or_if:")
                     move_into_loop_or_if(goto, lbl)
+                    DB_print_pycode()
 
         if siblings(goto, lbl):
             if offset(goto) < offset(lbl):
+                DB_log("\neliminate_by_cond:")
                 eliminate_by_cond(goto, lbl)
+                DB_print_pycode()
             else:
-                eliminate_by_while(goto, lbl)
+                DB_log("\neliminate_by_while:")
+                eliminate_by_dowhile(goto, lbl)
+                DB_print_pycode()
         else:
             raise Exception("elimination fail")
+
+def init_logical_labelvars(gotos, lbls):
+    for getter in gotos:
+        lbl = lbls[getter]
+        init_to_false = AST_bassign(AST_bvar("goto_%d" % getter.index), AST_false())
+        _insert_before(node=init_to_false, before=lbl)
 
 def find_directly_related_lblstm(blocknode, lbl) -> AST_STM:
     ''' find stm in block containing, or being, lbl. Assumnes level(blocknode) <= level(lbl) and directly related '''
@@ -522,13 +557,6 @@ def is_in_if(node) -> bool:
     else:
         return False
 
-_gotovar_idx = -1
-def _get_gotovar_idx():
-    ''' all "bassign goto_N" need a globally unique tag/name, we can use this index '''
-    global _gotovar_idx
-    _gotovar_idx = _gotovar_idx + 1
-    return _gotovar_idx
-
 def move_out_of_loop_or_if(goto):
     # map goto context
     node = goto
@@ -544,7 +572,7 @@ def move_out_of_loop_or_if(goto):
     org_goto_ifcond = goto.ifcond
 
     # create replacing nodes
-    bvar = AST_bvar("goto_%s" % _get_gotovar_idx())
+    bvar = AST_bvar("goto_%s" % goto.index)
     bass = AST_bassign(bvar, goto.ifcond)
     if_replacing_goto = AST_if(AST_not(bvar))
 
@@ -582,9 +610,9 @@ def eliminate_by_cond(goto, lbl):
     _insert_loop_or_if_above(if_elim, block_first)
     block_last.next = None # lbl was also block_last.next
     lbl.prev = if_elim
-def eliminate_by_while(goto, lbl):
+def eliminate_by_dowhile(goto, lbl):
     ''' use when o(g) > o(l) '''
-    while_elim = AST_while(goto.ifcond)
+    while_elim = AST_dowhile(goto.ifcond)
     block_last = goto.prev
 
     _remove(goto)
@@ -604,7 +632,7 @@ def move_into_loop_or_if(goto, lbl):
         stm1 = goto.next
 
     # create replacing nodes
-    bvar = AST_bvar("goto_%s" % _get_gotovar_idx())
+    bvar = AST_bvar("goto_%s" % goto.index)
     bass_initial = AST_bassign(bvar, goto.ifcond)
     bass_final = AST_bassign(bvar, AST_false())
 
@@ -634,7 +662,7 @@ def lift_above_lblstm(goto, lblstm):
         raise Exception("lift_above_lblstm: stm_before_goto must not be None")
 
     # create replacing nodes
-    bvar = AST_bvar("goto_%s" % _get_gotovar_idx())
+    bvar = AST_bvar("goto_%s" % goto.index)
     bass_initial = AST_bassign(bvar, AST_false())
     bass_dolast = AST_bassign(bvar, goto.ifcond)
     dowhile_replacing_goto = AST_dowhile(bvar)
