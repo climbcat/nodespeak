@@ -623,13 +623,11 @@ class SimpleGraph:
         'proc' : NodeProc,
         'dec' : NodeDecision,
     }
-    def enable_log(self):
-        self._logenabled = True
     def _log(self, msg):
         if self._logenabled == 1:
             print(msg)
-    def __init__(self, tpe_tree, graphdef):
-        self._logenabled = False
+    def __init__(self, tpe_tree, graphdef, logging_enabled = False):
+        self._logenabled = logging_enabled
 
         self.root = NodeRoot("root")
         self.tpe_tree = TreeJsonAddr(existing=tpe_tree)
