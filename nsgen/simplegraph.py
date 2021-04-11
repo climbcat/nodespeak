@@ -1,8 +1,11 @@
 '''
-Practical graph model of function execution, in which calls are sub-trees.
+Practical graph model of function execution, in which calls are sub-trees. Such calls are 
+set up using a flow chart.
 
 Associated data structures and algoriths, "subtree execution" is handled recursively
 and outputs text expressions (transformable into code).
+
+There is a flow chart and a data graph.
 '''
 
 
@@ -474,7 +477,7 @@ standard_subjects = (NodeFunc, NodeMethod)
 
 
 '''
-FC graph assembly.
+Flw chart graph assembly.
 
 fcid: the global id of this flowchart item
 dgid: the datagraph target global id
@@ -482,6 +485,7 @@ child: single child (PROC/TERM/DEC)
 child0: "false" branch of dec node
 child1: "true" branch of dec node
 '''
+
 
 def add_fc_node_child(n1, idx, n2):
     if type(n1) in (NodeDecision, ):
@@ -525,9 +529,9 @@ class NodeDecision:
             raise Exception("NodeDecision.add_child: slots 0 and 1 full")
 
 
-'''
-Data graph subtree-expression builder/caller. Uses recursion to build or traverse the built product.
-'''
+''' Data graph subtree-expression builder/caller. Uses recursion to build and traverse the built output. '''
+
+
 def build_dg_subtree(root):
     '''
     Recursively builds a subtree from the directed graph given by root.
@@ -603,16 +607,10 @@ def call_dg_subtree(tree):
     return result
 
 
-g_logmode = 0
-def _log(msg):
-    if g_logmode == 1:
-        print(msg)
-        
-'''
-Simple one-off flow-chart and data-graph representation.
-Can not be changed, is created once from a graph definition.
-'''
 class SimpleGraph:
+    '''
+    Simple flow-chart and data-graph representation. Can not be changed, is created once from a graph definition.
+    '''
     basetypes = {
         'object' : NodeObj,
         'object_typed' : NodeObjTyped,
@@ -623,7 +621,14 @@ class SimpleGraph:
         'proc' : NodeProc,
         'dec' : NodeDecision,
     }
+    def enable_log(self):
+        self._logenabled = True
+    def _log(self, msg):
+        if self._logenabled == 1:
+            print(msg)
     def __init__(self, tpe_tree, graphdef):
+        self._logenabled = False
+
         self.root = NodeRoot("root")
         self.tpe_tree = TreeJsonAddr(existing=tpe_tree)
         self.dslinks_cache = {} # ds = downstream
@@ -673,7 +678,7 @@ class SimpleGraph:
         if label == "":
             label = id
         n = self._create_node(id, label, tpe_addr)
-        _log('created node (%s) of type: "%s"' % (id, str(type(n))))
+        self._log('created node (%s) of type: "%s"' % (id, str(type(n))))
         if type(n) in (NodeTerm, NodeProc, NodeDecision, ):
             add_subnode(self.root, n, transitive=False) # this is a safe add not requiring a subnode_to member on ownee
         else:
@@ -699,5 +704,5 @@ class SimpleGraph:
                 add_fc_node_child(n1, idx1, n2)
             else:
                 add_connection(n1, idx1, n2, idx2)
-        _log("added link from (%s, %d) to (%s, %d)" % (id1, idx1, id2, idx2))
+        self._log("added link from (%s, %d) to (%s, %d)" % (id1, idx1, id2, idx2))
 
