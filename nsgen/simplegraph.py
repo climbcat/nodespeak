@@ -94,7 +94,7 @@ class NodeConfig:
         return dct
 
 
-''' DG model assembly '''
+''' data graph model assembly '''
 
 
 def add_subnode(root, node, transitive=True):
@@ -151,7 +151,7 @@ def child_or_parent_rm_allref(lst, item):
         del lst[lst.index(l)]
 
 
-''' data graph model '''
+''' data graph model types '''
 
 
 class NodeNotExecutableException(Exception): pass
@@ -470,6 +470,7 @@ class NodeReturnFunc(Node):
     def _check_parent(self, node):
         return type(node) in standard_children and True
 
+''' useful shorthand types (remember to add new types here!) '''
 standard_children = (NodeFunc, NodeObj, NodeMethod, NodeReturnFunc)
 standard_parents = (NodeFunc, NodeObj, NodeObjLiteral, NodeMethod)
 standard_objects = (NodeObj, NodeObjLiteral)
@@ -477,10 +478,10 @@ standard_subjects = (NodeFunc, NodeMethod)
 
 
 '''
-Flw chart graph assembly.
+Flow chart graph assembly.
 
-fcid: the global id of this flowchart item
-dgid: the datagraph target global id
+fcid: the global id of this flowchart node
+dgid: the datagraph target node id
 child: single child (PROC/TERM/DEC)
 child0: "false" branch of dec node
 child1: "true" branch of dec node
@@ -498,18 +499,21 @@ def set_fc_targetnode(fcnode, dgnode):
 
 
 class NodeProc:
+    ''' procedure (rectangle) '''
     def __init__(self, fcid):
         self.fcid = fcid
         self.dgid = None
         self.child = None
         self.label = None
 class NodeTerm: # goes for both term_I and term_O ...
+    ''' terminal (square) '''
     def __init__(self, fcid):
         self.fcid = fcid
         self.dgid = None
         self.child = None
         self.label = None
 class NodeDecision:
+    ''' decision/branch (diamond) '''
     def __init__(self, fcid):
         self.fcid = fcid
         self.dgid = None
@@ -533,9 +537,7 @@ class NodeDecision:
 
 
 def build_dg_subtree(root):
-    '''
-    Recursively builds a subtree from the directed graph given by root.
-    '''
+    ''' Recursively builds a subtree from the directed graph given by root. '''
     def build_subtree_recurse(node, tree, model):
         subjs = model.subjects()
         objs = model.objects()
