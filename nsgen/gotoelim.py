@@ -1,7 +1,7 @@
 '''
 Goto elimination algorithm.
 
-Follows Erosa/Hendren'94, with a reduced detail level owing to the reduced compleity of 
+Follows Erosa/Hendren'94, with a reduced detail level owing to the reduced complexity of 
 goto's generate from flow-charts (we have no else-branches).
 '''
 from queue import LifoQueue
