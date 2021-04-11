@@ -1,14 +1,98 @@
 '''
-A simplified copy of the nodespeak graph engine.
+Practical graph model of function execution, in which calls are sub-trees.
 
-Added: Flow chart node types, near the bottom. FlatGraph replaced by SimpleGraph, which can not be modified once created.
+Associated data structures and algoriths, "subtree execution" is handled recursively
+and outputs text expressions (transformable into code).
 '''
-from treealg import TreeJsonAddr
 
 
-'''
-DG model assembly.
-'''
+''' type tree data structure '''
+
+
+class TreeJsonAddr:
+    '''
+    A local tree with "string addressing" where dots syntactically are delimiters between paths in
+    the branching hierarchy.
+
+    The tree is a "put-retrieve" tree with a "leaf" and a "branch" for every node, except root.
+    Putting items into the root layer is indicated by the address "''", within branches, nodes
+    (an instance of the mentioned node, a {leaf, branch} dict), are keyed with get_key(item).
+    The user must provide this, thus attaining full content flexibility. These keys in turn
+    make up the address words.
+
+    The tree will create any non-existing paths that are put, but not retrieved, in which case
+    None is returned.
+    '''
+    def __init__(self, existing={}):
+        self.root = existing
+
+    def retrieve(self, address):
+        root = self.root
+        item = self._descend_recurse(root, address)['leaf']
+        return item
+
+    def put(self, path, item, getkey):
+        branch = self.root
+        if path != '' and not path[0] == '.':
+            branch = self._descend_recurse(self.root, path)['branch']
+        key = getkey(item)
+        self._get_or_create(branch, key)['leaf'] = item
+
+    def _get_or_create(self, dct, key):
+        if not dct.get(key, None):
+            dct[key] = { 'leaf' : None, 'branch': {} }
+        return dct[key]
+
+    def _descend_recurse(self, branch, address):
+        m = re.match('([^\.]+)\.(.*)', address)
+        if address == '':
+            raise Exception
+        if m:
+            key = m.group(1)
+            address = m.group(2)
+            branch = self._get_or_create(branch, key)['branch']
+            return self._descend_recurse(branch, address)
+        else:
+            key = address
+            return self._get_or_create(branch, key)
+
+class NodeConfig:
+    ''' json compatible node type config schema '''
+    def __init__(self):
+        self.docstring = ''
+        self.basetype = ''
+        self.address = ''
+        self.ipars = []
+        self.opars = []
+        self.type = ''
+        self.itypes = []
+        self.otypes = []
+        self.name = ''
+        self.label = ''
+
+    def get_repr(self):
+        if self.basetype == '':
+            raise Exception("basetype not set")
+        if self.type == '':
+            raise Exception("type not set")
+
+        dct = OrderedDict([
+            ("basetype", self.basetype),
+            ("type", self.type),
+            ("address", self.address),
+            ("ipars", self.ipars),
+            ("opars", self.opars),
+            ("itypes", self.itypes),
+            ("otypes", self.otypes),
+            ("name", self.name),
+            ("label", self.label),
+            ("docstring", self.docstring),
+        ])
+        return dct
+
+
+''' DG model assembly '''
+
 
 def add_subnode(root, node, transitive=True):
     root.own(node)
@@ -64,15 +148,15 @@ def child_or_parent_rm_allref(lst, item):
         del lst[lst.index(l)]
 
 
-'''
-Data graph model - imported from IFL, then modded.
-'''
+''' data graph model '''
+
+
 class NodeNotExecutableException(Exception): pass
 class InternalExecutionException(Exception):
     def __init__(self, name, msg=None):
         self.name = name
         super().__init__(msg)
-class GraphInconsistenceException(Exception): pass
+class GraphInconsistencyException(Exception): pass
 class AbstractMethodException(Exception): pass
 
 class Node:
@@ -90,7 +174,7 @@ class Node:
         self.subnodes = {}
 
     def graph_inconsistent_fail(self, message):
-        raise GraphInconsistenceException('(%s %s): %s' % (type(self).__name__, self.name, message))
+        raise GraphInconsistencyException('(%s %s): %s' % (type(self).__name__, self.name, message))
 
     ''' Graph connectivity interface '''
     def add_child(self, node, idx):
@@ -150,7 +234,7 @@ class Node:
         else:
             raise Node.NoNodeOfNameExistsException()
 
-    ''' Graph consistence. Implement to define conditions on graph consistency, throw a GraphInconsistenceException. '''
+    ''' Graph consistency. Implement to define conditions on graph consistency, throw a GraphInconsistencyException. '''
     def _check_subnode(self, node):
         pass
     def _check_owner(self, node):
