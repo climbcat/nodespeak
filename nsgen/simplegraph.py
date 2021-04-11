@@ -2,11 +2,13 @@
 Practical graph model of function execution, in which calls are sub-trees. Such calls are 
 set up using a flow chart.
 
-Associated data structures and algoriths, "subtree execution" is handled recursively
+Associated data structures and algorithms, "subtree execution" is handled recursively
 and outputs text expressions (transformable into code).
 
 There is a flow chart and a data graph.
 '''
+from collections import OrderedDict
+import re
 
 
 ''' type tree data structure '''
