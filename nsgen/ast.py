@@ -14,6 +14,8 @@ class AST_root:
         self.next = None # this should not be used, it's only here to ease iteration
     def __str__(self):
         return "root"
+    def __clone__(self):
+        return AST_root()
 class AST_STM:
     def __init__(self):
         self.prev = None
@@ -30,6 +32,8 @@ class AST_FORK(AST_STM):
 class AST_BOOLOP(AST_BOOL):
     def __init__(self):
         super().__init__()
+    def __clone__(self):
+        return AST_BOOLOP()
 class AST_bassign(AST_STM):
     def __init__(self, bvar: AST_BOOL, right: AST_BOOL):
         super().__init__()
@@ -39,6 +43,9 @@ class AST_bassign(AST_STM):
         return "%s = %s" % (self.bvar.pycode(), self.right.pycode())
     def __str__(self):
         return "bassign: " + str(self.bvar) + ", " + str(self.right) 
+    def __clone__(self):
+        cln = AST_bassign(self.bvar.__clone__(), self.right.__clone__())
+        return cln
 class AST_extern(AST_STM):
     def __init__(self, dgid: str):
         super().__init__()
@@ -51,6 +58,10 @@ class AST_extern(AST_STM):
             return "extern: None"
         else:
             return "extern: " + self.dgid
+    def __clone__(self):
+        cln = AST_extern(self.dgid)
+        cln.extern_text = self.extern_text
+        return cln
 class AST_ifgoto(AST_STM):
     def __init__(self, ifcond: AST_BOOL): # named ifcond rather than condition to distinguish this from AST_FORK types
         super().__init__()
@@ -62,6 +73,11 @@ class AST_ifgoto(AST_STM):
         raise Exception("AST_ifgoto.pycode: can not be generated")
     def __str__(self):
         return "ifgoto %d: " % self.index + str(self.ifcond) + " -> " + self.label
+    def __clone__(self):
+        cln = AST_ifgoto(self.ifcond.__clone__())
+        cln.label = self.label
+        cln.index = self.index
+        return cln
 class AST_return(AST_STM):
     def __init__(self):
         super().__init__()
@@ -69,6 +85,8 @@ class AST_return(AST_STM):
         return "return"
     def __str__(self):
         return "return"
+    def __clone__(self):
+        return AST_return()
 class AST_pass(AST_STM):
     def __init__(self):
         super().__init__()
@@ -76,6 +94,8 @@ class AST_pass(AST_STM):
         return "pass"
     def __str__(self):
         return "pass"
+    def __clone__(self):
+        return AST_pass()
 
 class AST_if(AST_FORK):
     def __init__(self, condition: AST_BOOL):
@@ -84,6 +104,8 @@ class AST_if(AST_FORK):
         return "if %s:" % self.condition.pycode()
     def __str__(self):
         return "if: " + str(self.condition)
+    def __clone__(self):
+        return AST_if(self.condition.__clone__())
 class AST_while(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
@@ -91,6 +113,8 @@ class AST_while(AST_FORK):
         return "while %s:" % self.condition.pycode()
     def __str__(self):
         return "while: " + str(self.condition)
+    def __clone__(self):
+        return AST_while(self.condition.__clone__())
 class AST_dowhile(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
@@ -98,6 +122,8 @@ class AST_dowhile(AST_FORK):
         return "dowhile %s:" % self.condition.pycode() # TODO: fix, this doesn't exist in python - maybe while True: ... if not conditon: break
     def __str__(self):
         return "dowhile: " + str(self.condition)
+    def __clone__(self):
+        return AST_dowhile(self.condition.__clone__())
 
 class AST_bextern(AST_BOOL):
     def __init__(self, dgid: str):
@@ -110,6 +136,8 @@ class AST_bextern(AST_BOOL):
         return self.extern_text
     def __str__(self):
         return "bexternal: " + self.dgid
+    def __clone__(self):
+        return AST_bextern(self.dgid)
 class AST_bvar(AST_BOOL):
     def __init__(self, varname: str):
         super().__init__()
@@ -118,6 +146,8 @@ class AST_bvar(AST_BOOL):
         return self.varname
     def __str__(self):
         return "bvar: " + self.varname
+    def __clone__(self):
+        return AST_bvar(self.varname)
 class AST_true(AST_BOOL):
     def __init__(self):
         super().__init__()
@@ -125,6 +155,8 @@ class AST_true(AST_BOOL):
         return "True"
     def __str__(self):
         return "true"
+    def __clone__(self):
+        return AST_true()
 class AST_false(AST_BOOL):
     def __init__(self):
         super().__init__()
@@ -132,6 +164,8 @@ class AST_false(AST_BOOL):
         return "False"
     def __str__(self):
         return "false"
+    def __clone__(self):
+        return AST_false()
 
 class AST_or(AST_BOOLOP):
     def __init__(self, left: AST_BOOL, right: AST_BOOL):
@@ -142,6 +176,8 @@ class AST_or(AST_BOOLOP):
         return "%s or %s" % (self.left.pycode(), self.right.pycode())
     def __str__(self):
         return "or: " + str(self.left) + ", " + str(self.right)
+    def __clone__(self):
+        return AST_or(self.left.__clone__(), self.right.__clone__())
 class AST_and(AST_BOOLOP):
     def __init__(self, left: AST_BOOL, right: AST_BOOL):
         super().__init__()
@@ -151,6 +187,8 @@ class AST_and(AST_BOOLOP):
         return "%s and %s" % (self.left.pycode(), self.right.pycode())
     def __str__(self):
         return "and: " + str(self.left) + ", " + str(self.right)
+    def __clone__(self):
+        return AST_and(self.left.__clone__(), self.right.__clone__())
 class AST_not(AST_BOOLOP):
     def __init__(self, nott: AST_BOOL):
         super().__init__()
@@ -159,6 +197,8 @@ class AST_not(AST_BOOLOP):
         return "not %s" % (self.right.pycode(), )
     def __str__(self):
         return "not: " + str(self.right)
+    def __clone__(self):
+        return AST_return(self.right.__clone__())
 
 
 ''' syntax tree operations '''
@@ -169,14 +209,23 @@ class AST_iterator:
     def __init__(self, ast_root):
         if not type(ast_root) == AST_root:
             raise Exception("AST_iterator: must initialize using root")
-        self.ast = ast_root
+        self.root = ast_root
+        self.ast = None
         self.stack = queue.LifoQueue(maxsize=10000) # some outrageously large maxsize here
+    def reset(self):
+        self.ast = None
     def next(self):
-        if type(self.ast) == AST_root:
+        # first call
+        if self.ast == None:
+            self.ast = self.root
+            return self.root
+
+        # second call
+        if self.ast == self.root:
             self.ast = self.ast.block
             return self.ast
-        
-        # stack-based branched iteration doing block-first
+
+        # remaining calls - stack-based branched iteration doing block-first
         if issubclass(type(self.ast), AST_FORK) and self.ast.block != None:
             if self.ast.next:
                 self.stack.put_nowait(self.ast.next)
@@ -186,7 +235,6 @@ class AST_iterator:
         if self.ast == None and self.stack.qsize() > 0: # safe get no wait
             self.ast = self.stack.get_nowait()
         return self.ast
-
 
 def AST_to_text(ast):
     ''' Syntax tree visualization as pythonic-ish pseudocode-ish text. '''
@@ -207,6 +255,43 @@ def AST_to_text(ast):
     treePrintRec(ast, lines)
     return '\n'.join(lines)
 
+def AST_clone_tree(ast):
+    def list_safe_get(lst, idx):
+        try:
+            return lst[idx]
+        except:
+            return None
+
+    clones = []
+    idx_by_node = {}
+
+    # create all clones and associate positions with an index
+    ast_iterator = AST_iterator(ast)
+    node = ast_iterator.next()
+    idx = 0
+    while node != None:
+        clones.append(node.__clone__())
+        idx_by_node[node] = idx
+        idx += 1
+        node = ast_iterator.next()
+
+    # use index of next,prev,block,up nodes to set
+    ast_iterator.reset()
+    node = ast_iterator.next()
+    while node != None:
+        clone = clones[idx_by_node[node]]
+        if hasattr(node, "next"):
+            clone.next = list_safe_get(clones, idx_by_node.get(node.next, None))
+        if hasattr(node, "prev"):
+            clone.prev = list_safe_get(clones, idx_by_node.get(node.prev, None))
+        if hasattr(node, "block"):
+            clone.block = list_safe_get(clones, idx_by_node.get(node.block, None))
+        if hasattr(node, "up"):
+            clone.up = list_safe_get(clones, idx_by_node.get(node.up, None))
+        node = ast_iterator.next()
+
+    cloned_ast = clones[0]
+    return cloned_ast
 
 def AST_connect(stm1: AST_STM, stm2: AST_STM):
     '''
