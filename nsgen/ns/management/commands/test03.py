@@ -102,8 +102,8 @@ class Command(BaseCommand):
                 print("\n\n## session #%d: empty graphdef \n" % s.id)
                 continue
 
-            text_psc = cg.get_pseudocode(term_I, subnodes)
-            text_ast = cg.get_ast_text(ast)
+            text_psc = cg.simplegraph_to_pseudocode(term_I, subnodes)
+            text_ast = cg.AST_to_text(ast)
 
             print()
             print()
@@ -120,6 +120,6 @@ class Command(BaseCommand):
             print()
             print("## take two:")
             print()
-            print(cg.get_ast_text(ast))
+            print(cg.AST_to_text(ast))
             diagnose(gotos, lbls)
 

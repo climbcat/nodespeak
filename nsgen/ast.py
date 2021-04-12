@@ -1,3 +1,6 @@
+'''
+Abstract syntax tree types, construction from a simplegraph (flow chart), and iteration.
+'''
 import queue
 from simplegraph import *
 
@@ -183,6 +186,26 @@ class AST_iterator:
         if self.ast == None and self.stack.qsize() > 0: # safe get no wait
             self.ast = self.stack.get_nowait()
         return self.ast
+
+
+def AST_to_text(ast):
+    ''' Syntax tree visualization as pythonic-ish pseudocode-ish text. '''
+    def treePrintRec(astnode, lines, indentlvl=0):
+        if astnode == None: # end condition
+            return
+        if issubclass(type(astnode), AST_root):
+            treePrintRec(astnode.block, lines, indentlvl)
+            return
+        lines.append("".ljust(2 * indentlvl) + str(astnode))
+        if issubclass(type(astnode), AST_FORK):
+            treePrintRec(astnode.block, lines, indentlvl + 1)
+            treePrintRec(astnode.next, lines, indentlvl)
+        elif hasattr(astnode, "next"):
+            treePrintRec(astnode.next, lines, indentlvl)
+
+    lines = []
+    treePrintRec(ast, lines)
+    return '\n'.join(lines)
 
 
 def AST_connect(stm1: AST_STM, stm2: AST_STM):

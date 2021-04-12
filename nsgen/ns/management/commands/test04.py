@@ -56,9 +56,9 @@ class Command(BaseCommand):
             print()
             print("## session #%d:" % s.id)
 
-            text_pseudocode = cg.get_pseudocode(term_I, allnodes)
+            text_pseudocode = cg.simplegraph_to_pseudocode(term_I, allnodes)
             cg.elimination_alg(gotos, lbls, ast, allnodes)
-            text_ast = cg.get_ast_text(ast)
+            text_ast = cg.AST_to_text(ast)
             text_pycode = cg.get_pycode(ast, allnodes)
 
             #continue
