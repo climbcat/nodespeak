@@ -9,6 +9,14 @@ from cogen import *
 import simplegraph
 from simplegraph import *
 
+class AstDebug:
+    def __init__(self):
+        self.ast = None
+        self.gotos = None
+        self.labels = None
+        self.term_start = None
+        self.allnodes = None
+
 def load_ast(s):
     # see cogen
     obj = json.loads(s.data_str)
@@ -23,11 +31,12 @@ def load_ast(s):
     term_Is = [n for n in list(graph.root.subnodes.values()) if type(n)==simplegraph.NodeTerm and n.child != None]
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
-    term_I = term_Is[0]
-    ast, gotos, labels = cg.flowchartToSyntaxTree(term_I)
-
-    allnodes = graph.root.subnodes
-    return ast, gotos, labels, term_I, allnodes
+    
+    dbobj = AstDebug()
+    dbobj.term_start = term_Is[0]
+    dbobj.ast, dbobj.gotos, dbobj.labels = cg.flowchartToSyntaxTree(term_I)
+    dbobj.allnodes = graph.root.subnodes
+    return dbobj
 
 class Command(BaseCommand):
     help = 'Test all available flow charts/graph sessions by loading them and running cogen.'
@@ -46,7 +55,7 @@ class Command(BaseCommand):
         # test and print
         for s in sessions:
             try:
-                ast, gotos, lbls, term_I, allnodes = load_ast(s)
+                info = load_ast(s)
             except:
                 # empty graphdef case
                 print("\n\n## session #%d: empty graphdef \n" % s.id)
@@ -56,10 +65,10 @@ class Command(BaseCommand):
             print()
             print("## session #%d:" % s.id)
 
-            text_pseudocode = cg.simplegraph_to_pseudocode(term_I, allnodes)
-            cg.elimination_alg(gotos, lbls, ast, allnodes)
-            text_ast = cg.AST_to_text(ast)
-            text_pycode = cg.get_pycode(ast, allnodes)
+            text_pseudocode = cg.simplegraph_to_pseudocode(info.term_start, info.allnodes)
+            cg.elimination_alg(info.gotos, info.lbls, info.ast, info.allnodes)
+            text_ast = cg.AST_to_text(info.ast)
+            text_pycode = cg.get_pycode(info.ast, info.allnodes)
 
             #continue
 
