@@ -8,7 +8,7 @@ import simplegraph
 from simplegraph import *
 from ast import *
 
-class AstDebug:
+class AstDataObjects:
     def __init__(self):
         self.ast = None
         self.gotos = None
@@ -31,7 +31,7 @@ def load_ast(s):
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
     
-    dbobj = AstDebug()
+    dbobj = AstDataObjects()
     dbobj.term_start = term_Is[0]
     dbobj.ast, dbobj.gotos, dbobj.labels = AST_from_flowchart(dbobj.term_start)
     dbobj.allnodes = graph.root.subnodes

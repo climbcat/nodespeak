@@ -30,7 +30,7 @@ def cogen(graphdef, typetree, DB_logging=False):
     term_I = term_Is[0]
 
     # pseudocode
-    pscode = simplegraph_to_pseudocode(term_I, graph.root.subnodes)
+    pscode = pseudocode_from_simplegraph(term_I, graph.root.subnodes)
 
     # syntax tree
     ast, gotos, labels = AST_from_flowchart(term_I)
@@ -44,14 +44,14 @@ def cogen(graphdef, typetree, DB_logging=False):
 ''' AST to code operations '''
 
 
-class AST_line_writer_py:
+class AST_writer_py:
     def __init__(self, ast_iter):
         self.iter = ast_iter
         self.lines = []
     def write(self):
         a = 4
         node = self.iter.next()
-        while node != None:
+        while node != None and type(node) is not AST_root:
             l = level(node)
             self.lines.append(''.ljust(l*a) + node.pycode())
             node = self.iter.next()
@@ -59,8 +59,8 @@ class AST_line_writer_py:
 
 def get_pycode(ast_root, all_nodes):
     '''  '''
-    make_AST_expressions(AST_iterator(ast_root), all_nodes)
-    writer = AST_line_writer_py(AST_iterator(ast_root))
+    AST_make_expressions(AST_iterator(ast_root), all_nodes)
+    writer = AST_writer_py(AST_iterator(ast_root))
     return writer.write()
 
 def dg_expr_read(dgnode):
@@ -90,7 +90,7 @@ def dg_expr_assign(obj_node):
     else:
         return varname + " = " + dg_expr_read(parent)
 
-def make_AST_expressions(ast_iterator, allnodes):
+def AST_make_expressions(ast_iterator, allnodes):
     ''' Makes expressions - pure recursive function calls or assignment calls - out of graph subtrees. '''
     def get_all_bexterns(node):
         bexterns = []
@@ -144,13 +144,13 @@ def make_AST_expressions(ast_iterator, allnodes):
 ''' Pseudocode generation, a debug/development util. '''
 
 
-def simplegraph_to_pseudocode(enter_node, all_nodes):
+def pseudocode_from_simplegraph(enter_node, all_nodes):
     lines = flowchart_to_pseudocode(enter_node)
-    make_line_expressions(lines, all_nodes)
+    pseudocode_make_expressions(lines, all_nodes)
     lw = LineWriter(lines)
     return lw.write()
 
-def make_line_expressions(lines, allnodes):
+def pseudocode_make_expressions(lines, allnodes):
     ''' For every line, insert text corresponding to the target data graph node subtree. '''
     for l in lines:
         # proc/term generated lines

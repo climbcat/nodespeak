@@ -198,7 +198,7 @@ class AST_not(AST_BOOLOP):
     def __str__(self):
         return "not: " + str(self.right)
     def __clone__(self):
-        return AST_return(self.right.__clone__())
+        return AST_not(self.right.__clone__())
 
 
 ''' syntax tree operations '''

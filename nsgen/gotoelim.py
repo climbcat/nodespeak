@@ -9,68 +9,69 @@ from simplegraph import *
 from ast import *
 
 
-def DB_print_pycode():
-    print("TODO: refactor and reintroduce DB_print_pycode()")
-    #text = get_pycode(g_ast, g_allnodes)
-    #print(text)
-def DB_log(msg):
-    print(msg)
-
-
-def goto_elimination_alg(gotos, lbls, ast, allnodes = None):
+class LogASTs:
     '''
-    Goto-elimination procedure.
+    Apply to study the evolution of the AST through the goto-elim process.
     '''
+    def __init__(self, enable=True):
+        self.enable = enable
+        self.idx = -1
+        self.messages = []
+        self.clones = []
+    def log(self, message, ast):
+        if self.enable is False:
+            return
+        self.messages.append(message)
+        self.clones.append(AST_clone_tree(ast))
+    def next(self):
+        self.idx += 1
+        if self.idx >= len(self.messages):
+            return None, None
+        return self.messages[self.idx], self.clones[self.idx]
 
-    # DEBUG util
-    global g_ast
-    g_ast = ast
-    global g_allnodes
-    g_allnodes = allnodes
 
-
+def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
+    '''
+    Goto-elimination procedure. Returns step-py-step 
+    '''
     # TODO: intialize logical vars for evey label (initialized to false), AND initialized to false before the label
     init_logical_labelvars(gotos, lbls)
 
-    DB_log("\ninitial state:")
-    DB_print_pycode()
+    log_evlolution = LogASTs(log_enable)
+    log_evlolution.log("initial state:", ast)
 
     # select goto/lbl pair
     for goto in gotos:
         lbl = lbls[goto]
 
         while indirectly_related(goto, lbl):
-            DB_log("\nmove_out_of_loop_or_if:")
             move_out_of_loop_or_if(goto)
-            DB_print_pycode()
+            log_evlolution.log("move_out_of_loop_or_if:", ast)
 
         while directly_related(goto, lbl):
             if level(goto) > level(lbl):
-                DB_log("\nmove_out_of_loop_or_if:")
                 move_out_of_loop_or_if(goto)
-                DB_print_pycode()
+                log_evlolution.log("move_out_of_loop_or_if:", ast)
             else:
                 lblstm = find_directly_related_lblstm(goto, lbl)
                 if offset(goto) > offset(lblstm):
-                    DB_log("\nlift_above_lblstm:")
                     lift_above_lblstm(goto, lblstm)
-                    DB_print_pycode()
+                    log_evlolution.log("lift_above_lblstm:", ast)
                 else:
-                    DB_log("\nmove_into_loop_or_if:")
                     move_into_loop_or_if(goto, lbl)
-                    DB_print_pycode()
+                    log_evlolution.log("move_into_loop_or_if:", ast)
 
         if siblings(goto, lbl):
             if offset(goto) < offset(lbl):
-                DB_log("\neliminate_by_cond:")
                 eliminate_by_cond(goto, lbl)
-                DB_print_pycode()
+                log_evlolution.log("eliminate_by_cond:", ast)
             else:
-                DB_log("\neliminate_by_while:")
                 eliminate_by_dowhile(goto, lbl)
-                DB_print_pycode()
+                log_evlolution.log("eliminate_by_while:", ast)
         else:
             raise Exception("elimination fail")
+
+    return log_evlolution
 
 def init_logical_labelvars(gotos, lbls):
     ''' Insert a boolean false variable "goto_i" for every goto, at index i '''

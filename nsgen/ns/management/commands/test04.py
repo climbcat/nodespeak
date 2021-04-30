@@ -8,8 +8,10 @@ import cogen as cg
 from cogen import *
 import simplegraph
 from simplegraph import *
+from ast import AST_root
 
-class AstDebug:
+
+class AstDataObjects:
     def __init__(self):
         self.ast = None
         self.gotos = None
@@ -31,12 +33,12 @@ def load_ast(s):
     term_Is = [n for n in list(graph.root.subnodes.values()) if type(n)==simplegraph.NodeTerm and n.child != None]
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
-    
-    dbobj = AstDebug()
-    dbobj.term_start = term_Is[0]
-    dbobj.ast, dbobj.gotos, dbobj.labels = cg.flowchartToSyntaxTree(term_I)
-    dbobj.allnodes = graph.root.subnodes
-    return dbobj
+
+    info_obj = AstDataObjects()
+    info_obj.term_start = term_Is[0]
+    info_obj.ast, info_obj.gotos, info_obj.labels = cg.AST_from_flowchart(info_obj.term_start)
+    info_obj.allnodes = graph.root.subnodes
+    return info_obj
 
 class Command(BaseCommand):
     help = 'Test all available flow charts/graph sessions by loading them and running cogen.'
@@ -65,17 +67,24 @@ class Command(BaseCommand):
             print()
             print("## session #%d:" % s.id)
 
-            text_pseudocode = cg.simplegraph_to_pseudocode(info.term_start, info.allnodes)
-            cg.elimination_alg(info.gotos, info.lbls, info.ast, info.allnodes)
-            text_ast = cg.AST_to_text(info.ast)
-            text_pycode = cg.get_pycode(info.ast, info.allnodes)
+            # pseudocode
+            text_pseudocode = cg.pseudocode_from_simplegraph(info.term_start, info.allnodes)
 
-            #continue
+            log_evolution = cg.goto_elimination_alg(info.gotos, info.labels, info.ast, info.allnodes)
 
-            print()
-            print(text_pseudocode)
-            print()
-            print(text_ast)
-            print()
-            #print(text_pycode)
+            msg, ast_next = log_evolution.next()
+            while ast_next is not None:
+                print(msg)
+
+                if type(ast_next) is not AST_root:
+                    raise Exception("not root")
+
+                text_ast = cg.AST_to_text(ast_next)
+                text_pycode = cg.get_pycode(ast_next, info.allnodes)
+                msg, ast_next = log_evolution.next()
+
+                print()
+                print(text_ast)
+                print()
+                print(text_pycode)
 
