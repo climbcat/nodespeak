@@ -19,26 +19,22 @@ def cogen(graphdef, typetree, DB_logging=False):
     # create the graph given the graphdef
     graph = SimpleGraph(typetree, graphdef, DB_logging)
 
+    allnodes = graph.root.subnodes
     # empty graphdef case
-    if len(graph.root.subnodes.values()) == 0:
+    if len(allnodes) == 0:
         return "empty graphdef"
 
     # get the unique term-enter node or except
-    term_Is = [n for n in list(graph.root.subnodes.values()) if type(n)==NodeTerm and n.child != None]
+    term_Is = [n for n in graph.root.subnodes.values() if type(n)==NodeTerm and n.child != None]
     if len(term_Is) != 1:
         raise Exception("flow control graph must have exactly one entry point")
     term_I = term_Is[0]
 
-    # pseudocode
-    pscode = pseudocode_from_simplegraph(term_I, graph.root.subnodes)
-
-    # syntax tree
     ast, gotos, labels = AST_from_flowchart(term_I)
+    AST_make_expressions(ast, allnodes)
+    pycode = AST_write_pycode(ast)
 
-    astrepr = AST_to_text(ast)
-
-    # return data
-    return pscode + '\n' + astrepr
+    return pycode
 
 
 ''' AST to code operations '''

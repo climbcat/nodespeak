@@ -118,6 +118,7 @@ def ajax_cogen(req):
         # DEBUG print
         print(text)
     except Exception as e:
+        print(str(e))
         return HttpResponse('{ "msg" : "cogen error" }')
 
     # make this a base64 string
