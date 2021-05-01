@@ -125,7 +125,7 @@ def ajax_cogen(req):
     encoded = base64.b64encode(text.encode('utf-8'))
     text = encoded.decode('utf-8')
 
-    return HttpResponse('{ "msg" : "pseudocode generation successful", "pseudocode" : "%s" }' % text)
+    return HttpResponse('{ "msg" : "code generation successful", "code" : "%s" }' % text)
 
 @login_required
 def tab_validate(req):
