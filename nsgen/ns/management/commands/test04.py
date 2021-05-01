@@ -44,8 +44,10 @@ class Command(BaseCommand):
     help = 'Test all available flow charts/graph sessions by loading them and running cogen.'
     def add_arguments(self, parser):
         parser.add_argument('sessionid', nargs='?', type=str, help='specify session to test')
+        parser.add_argument('--iterate', '-i', help='print ast transformation steps', action='store_true')
 
     def handle(self, *args, **options):
+        
         # session filter
         sessions = None
         if options["sessionid"]:
@@ -63,33 +65,46 @@ class Command(BaseCommand):
                 print("\n\n## session #%d: empty graphdef \n" % s.id)
                 continue
 
-            print()
-            print()
-            print("## session #%d:" % s.id)
 
             # pseudocode
             #text_pseudocode = cg.pseudocode_from_simplegraph(info.term_start, info.allnodes)
 
             log_evolution = cg.goto_elimination_alg(info.gotos, info.labels, info.ast, info.allnodes)
-
             msg, ast_next = log_evolution.next()
-            while ast_next is not None:
-                if type(ast_next) is not AST_root:
-                    raise Exception("not root")
 
-                print(msg)
+            print("# session %d:" % s.id)
+            print("# %d elimination steps" % log_evolution.steps())
 
+            if not options["iterate"]:
+                ast_last = log_evolution.last_ast()
                 AST_make_expressions(ast_next, info.allnodes)
+                AST_make_expressions(ast_last, info.allnodes)
 
-                text_pycode = cg.AST_write_pycode(ast_next)
-                print()
-                print(text_pycode)
-                print()
-                print()
+                print("# " + msg + "\n")
+                print(cg.AST_write_pycode(ast_next))
 
-                #text_ast = cg.AST_to_text(ast_next)
-                #print()
-                #print(text_ast)
+                print("\n# final state:\n")
+                print(cg.AST_write_pycode(ast_last))
+                print("")
 
-                msg, ast_next = log_evolution.next()
+            else:
+                while ast_next is not None:
+                    if type(ast_next) is not AST_root:
+                        raise Exception("not root")
+    
+                    print(msg)
+    
+                    AST_make_expressions(ast_next, info.allnodes)
+    
+                    print()
+                    print(cg.AST_write_pycode(ast_next))
+                    print()
+                    print()
+    
+                    #text_ast = cg.AST_to_text(ast_next)
+                    #print()
+                    #print(text_ast)
+    
+                    msg, ast_next = log_evolution.next()
+                
 

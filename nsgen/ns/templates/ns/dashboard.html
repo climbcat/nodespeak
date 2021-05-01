@@ -8,10 +8,11 @@
 
 <fieldset style="width: 300px">
 <table id="tbl_sessions">
-{% for gs_id in sessions %}
+{% for gs_id, title in sessions %}
 <tr>
 <td style="padding-left:25px;">session_{{ gs_id }}</td>
 <td style="padding-left:25px;"><a href="/session/{{ gs_id }}" target="_blank">resume</a></td>
+<td style="padding-left:25px;">{{ title }}</td>
 <td style="padding-left:25px;"><a href="/duplicate/{{ gs_id }}" target="_blank">duplicate</a></td>
 <td style="padding-left:25px;"><a href="/delete/{{ gs_id }}">delete</a></td>
 </tr>
@@ -19,6 +20,7 @@
 </table>
 </fieldset>
 
+<p><a href="/admin" target=new>admin</a></p>
 <p><a href="/new" target=_>new</> <br>
 <a href="/latest" target=_>latest</> <br>
 <a href="/logout">logout</></p>

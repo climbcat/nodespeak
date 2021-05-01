@@ -71,7 +71,7 @@ def delete_gs(req, gs_id):
 
 @login_required
 def dashboard(req):
-    ct = { "sessions" : [s.id for s in GraphSession.objects.all() ] }
+    ct = { "sessions" : [(s.id, s.title) for s in GraphSession.objects.all() ] }
     return render(req, "ns/dashboard.html", context = ct)
 
 @login_required

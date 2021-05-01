@@ -28,6 +28,10 @@ class LogASTs:
         if self.idx >= len(self.messages):
             return None, None
         return self.messages[self.idx], self.clones[self.idx]
+    def last_ast(self):
+        return self.clones[-1]
+    def steps(self):
+        return len(self.clones)
 
 
 def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
