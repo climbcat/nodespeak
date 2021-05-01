@@ -51,15 +51,17 @@ class AST_writer_py:
     def write(self):
         a = 4
         node = self.iter.next()
-        while node != None and type(node) is not AST_root:
+        if type(node) is AST_root:
+            node = self.iter.next()
+
+        while node != None:
             l = level(node)
             self.lines.append(''.ljust(l*a) + node.pycode())
             node = self.iter.next()
         return '\n'.join(self.lines)
 
-def get_pycode(ast_root, all_nodes):
-    '''  '''
-    AST_make_expressions(AST_iterator(ast_root), all_nodes)
+def AST_write_pycode(ast_root):
+    ''' call AST_make_expressions first! '''
     writer = AST_writer_py(AST_iterator(ast_root))
     return writer.write()
 
@@ -90,7 +92,7 @@ def dg_expr_assign(obj_node):
     else:
         return varname + " = " + dg_expr_read(parent)
 
-def AST_make_expressions(ast_iterator, allnodes):
+def AST_make_expressions(ast_root, allnodes):
     ''' Makes expressions - pure recursive function calls or assignment calls - out of graph subtrees. '''
     def get_all_bexterns(node):
         bexterns = []
@@ -116,6 +118,8 @@ def AST_make_expressions(ast_iterator, allnodes):
                 node = stack.get_nowait()
 
         return bexterns
+
+    ast_iterator = AST_iterator(ast_root)
 
     node = ast_iterator.next()
     while node != None:

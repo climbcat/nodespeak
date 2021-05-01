@@ -68,23 +68,28 @@ class Command(BaseCommand):
             print("## session #%d:" % s.id)
 
             # pseudocode
-            text_pseudocode = cg.pseudocode_from_simplegraph(info.term_start, info.allnodes)
+            #text_pseudocode = cg.pseudocode_from_simplegraph(info.term_start, info.allnodes)
 
             log_evolution = cg.goto_elimination_alg(info.gotos, info.labels, info.ast, info.allnodes)
 
             msg, ast_next = log_evolution.next()
             while ast_next is not None:
-                print(msg)
-
                 if type(ast_next) is not AST_root:
                     raise Exception("not root")
 
-                text_ast = cg.AST_to_text(ast_next)
-                text_pycode = cg.get_pycode(ast_next, info.allnodes)
-                msg, ast_next = log_evolution.next()
+                print(msg)
 
-                print()
-                print(text_ast)
+                AST_make_expressions(ast_next, info.allnodes)
+
+                text_pycode = cg.AST_write_pycode(ast_next)
                 print()
                 print(text_pycode)
+                print()
+                print()
+
+                #text_ast = cg.AST_to_text(ast_next)
+                #print()
+                #print(text_ast)
+
+                msg, ast_next = log_evolution.next()
 
