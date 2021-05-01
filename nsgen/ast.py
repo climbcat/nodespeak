@@ -6,8 +6,6 @@ from simplegraph import *
 
 
 ''' syntax tree types '''
-
-
 class AST_root:
     def __init__(self):
         self.block = None
@@ -21,6 +19,7 @@ class AST_STM:
         self.prev = None
         self.next = None
         self.up = None # the reverse of AST_FORM.block
+        self.label = None
 class AST_BOOL:
     def __init__(self):
         self.parent = None
@@ -40,7 +39,7 @@ class AST_bassign(AST_STM):
         self.bvar = bvar # must be an AST_bvar !!
         self.right = right
     def pycode(self):
-        return "%s = %s" % (self.bvar.pycode(), self.right.pycode())
+        return "%s = %s" % (self.bvar.pycode(), self.right.pycode()) + get_label_str(self.label)
     def __str__(self):
         return "bassign: " + str(self.bvar) + ", " + str(self.right) 
     def __clone__(self):
@@ -52,7 +51,7 @@ class AST_extern(AST_STM):
         self.dgid = dgid
         self.extern_text = None
     def pycode(self):
-        return self.extern_text
+        return self.extern_text + get_label_str(self.label)
     def __str__(self):
         if self.dgid == None:
             return "extern: None"
@@ -65,11 +64,10 @@ class AST_extern(AST_STM):
 class AST_ifgoto(AST_STM):
     def __init__(self, ifcond: AST_BOOL): # named ifcond rather than condition to distinguish this from AST_FORK types
         super().__init__()
-        self.label = ""
         self.ifcond = ifcond
         self.index = -1
     def pycode(self):
-        return "if %s: goto %s" % (self.ifcond.pycode(), self.label)
+        return "if %s: goto" % self.ifcond.pycode() + get_label_str(self.label)
         raise Exception("AST_ifgoto.pycode: can not be generated")
     def __str__(self):
         return "ifgoto %d: " % self.index + str(self.ifcond) + " -> " + self.label
@@ -82,7 +80,7 @@ class AST_return(AST_STM):
     def __init__(self):
         super().__init__()
     def pycode(self):
-        return "return"
+        return "return" + get_label_str(self.label)
     def __str__(self):
         return "return"
     def __clone__(self):
@@ -91,7 +89,7 @@ class AST_pass(AST_STM):
     def __init__(self):
         super().__init__()
     def pycode(self):
-        return "pass"
+        return "pass" + get_label_str(self.label)
     def __str__(self):
         return "pass"
     def __clone__(self):
@@ -101,7 +99,7 @@ class AST_if(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
     def pycode(self):
-        return "if %s:" % self.condition.pycode()
+        return "if %s:" % self.condition.pycode() + get_label_str(self.label)
     def __str__(self):
         return "if: " + str(self.condition)
     def __clone__(self):
@@ -110,7 +108,7 @@ class AST_while(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
     def pycode(self):
-        return "while %s:" % self.condition.pycode()
+        return "while %s:" % self.condition.pycode() + get_label_str(self.label)
     def __str__(self):
         return "while: " + str(self.condition)
     def __clone__(self):
@@ -119,7 +117,7 @@ class AST_dowhile(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
     def pycode(self):
-        return "dowhile %s:" % self.condition.pycode() # TODO: fix, this doesn't exist in python - maybe while True: ... if not conditon: break
+        return "dowhile %s:" % self.condition.pycode() + get_label_str(self.label)
     def __str__(self):
         return "dowhile: " + str(self.condition)
     def __clone__(self):
@@ -132,8 +130,9 @@ class AST_bextern(AST_BOOL):
         super().__init__()
         self.dgid = dgid
         self.extern_text = "extern-placeholder"
+        self.label = None
     def pycode(self):
-        return self.extern_text
+        return self.extern_text + get_label_str(self.label)
     def __str__(self):
         return "bexternal: " + self.dgid
     def __clone__(self):
@@ -200,6 +199,11 @@ class AST_not(AST_BOOLOP):
     def __clone__(self):
         return AST_not(self.right.__clone__())
 
+def get_label_str(label):
+    if label == None:
+        return ""
+    else:
+        return " ## %s" % label
 
 ''' syntax tree operations '''
 
@@ -352,13 +356,19 @@ def AST_from_flowchart(fcroot):
     astroot = AST_root()
     astnode = astroot
 
+    labeling_idx = 0
+
     while node is not None:
         vis = visited.get(node.fcid, None)
         if vis is not None:
             # a goto
             astnew = AST_ifgoto(AST_true())
-            astnew.label = vis.label # useful for debugging
             labels[astnew] = treesibs[vis]
+
+            labeling_idx += 1
+            astnew.label = "goto_%d" % labeling_idx
+            labels[astnew].label = "lbl_%d" % labeling_idx
+
             gotos.append(astnew)
             AST_connect(astnode, astnew)
 
