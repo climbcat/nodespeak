@@ -293,25 +293,40 @@ def AST_clone_tree(ast):
     cloned_ast = clones[0]
     return cloned_ast
 
-def AST_connect(stm1: AST_STM, stm2: AST_STM):
+def AST_connect(stm1: AST_STM, stm2: AST_STM, blockfirst=False):
     '''
     Connect two AST statement nodes.
     
     Will always connect "block first" when stm1 is an AST_if or an AST_dowhile.
     '''
     if issubclass(type(stm1), AST_FORK) and issubclass(type(stm2), AST_STM):
-        if stm1.block == None:
-            stm1.block = stm2
-            stm2.up = stm1
+        if blockfirst:
+            if stm1.block == None:
+                stm1.block = stm2
+                stm2.up = stm1
+            elif stm1.next == None:
+                stm1.next = stm2
+                stm2.prev = stm1
+            else:
+                raise Exception("AST_connect: already connected")
         else:
-            stm1.next = stm2
-            stm2.prev = stm1
+            if stm1.next == None:
+                stm1.next = stm2
+                stm2.prev = stm1
+            elif stm1.block == None:
+                stm1.block = stm2
+                stm2.up = stm1
+            else:
+                raise Exception("AST_connect: already connected")
+
     elif issubclass(type(stm1), AST_STM) and issubclass(type(stm2), AST_STM):
         stm1.next = stm2
         stm2.prev = stm1
+
     elif type(stm1) == AST_root and issubclass(type(stm2), AST_STM):
         stm1.block = stm2
         stm2.up = stm1 # this is also debatable, but we do need some end condition
+
     else:
         raise Exception("stm1 and stm2 must be AST_STM (are type hints enforced?)")
 
@@ -337,12 +352,12 @@ def AST_from_flowchart(fcroot):
     astroot = AST_root()
     astnode = astroot
 
-    # TODO: infinite loop possible here??
     while node is not None:
         vis = visited.get(node.fcid, None)
         if vis is not None:
+            # a goto
             astnew = AST_ifgoto(AST_true())
-            astnew.label = vis.label # putting this information aids debugging
+            astnew.label = vis.label # useful for debugging
             labels[astnew] = treesibs[vis]
             gotos.append(astnew)
             AST_connect(astnode, astnew)
@@ -359,11 +374,11 @@ def AST_from_flowchart(fcroot):
                 astnode = astnew
 
                 # save state for branch 0:
-                stack.put( (getChild0(node), astnew) )
+                stack.put( (getChild1(node), astnew) )
 
                 # continue iterating on branch 1:
                 treesibs[node] = astnew
-                node = getChild1(node)
+                node = getChild0(node)
             else:
                 # stm or return:
                 astnew = AST_extern(node.dgid)
