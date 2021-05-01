@@ -39,11 +39,12 @@ class AST_bassign(AST_STM):
         self.bvar = bvar # must be an AST_bvar !!
         self.right = right
     def pycode(self):
-        return "%s = %s" % (self.bvar.pycode(), self.right.pycode()) + get_label_str(self.label)
+        return "%s = %s" % (self.bvar.pycode(), self.right.pycode()) + _get_label_str(self.label)
     def __str__(self):
         return "bassign: " + str(self.bvar) + ", " + str(self.right) 
     def __clone__(self):
         cln = AST_bassign(self.bvar.__clone__(), self.right.__clone__())
+        _clone_label(cln, self)
         return cln
 class AST_extern(AST_STM):
     def __init__(self, dgid: str):
@@ -51,7 +52,7 @@ class AST_extern(AST_STM):
         self.dgid = dgid
         self.extern_text = None
     def pycode(self):
-        return self.extern_text + get_label_str(self.label)
+        return self.extern_text + _get_label_str(self.label)
     def __str__(self):
         if self.dgid == None:
             return "extern: None"
@@ -60,6 +61,7 @@ class AST_extern(AST_STM):
     def __clone__(self):
         cln = AST_extern(self.dgid)
         cln.extern_text = self.extern_text
+        _clone_label(cln, self)
         return cln
 class AST_ifgoto(AST_STM):
     def __init__(self, ifcond: AST_BOOL): # named ifcond rather than condition to distinguish this from AST_FORK types
@@ -67,61 +69,71 @@ class AST_ifgoto(AST_STM):
         self.ifcond = ifcond
         self.index = -1
     def pycode(self):
-        return "if %s: goto" % self.ifcond.pycode() + get_label_str(self.label)
+        return "if %s: goto" % self.ifcond.pycode() + _get_label_str(self.label)
         raise Exception("AST_ifgoto.pycode: can not be generated")
     def __str__(self):
         return "ifgoto %d: " % self.index + str(self.ifcond) + " -> " + self.label
     def __clone__(self):
         cln = AST_ifgoto(self.ifcond.__clone__())
-        cln.label = self.label
         cln.index = self.index
+        _clone_label(cln, self)
         return cln
 class AST_return(AST_STM):
     def __init__(self):
         super().__init__()
     def pycode(self):
-        return "return" + get_label_str(self.label)
+        return "return" + _get_label_str(self.label)
     def __str__(self):
         return "return"
     def __clone__(self):
-        return AST_return()
+        cln = AST_return()
+        _clone_label(cln, self)
+        return cln
 class AST_pass(AST_STM):
     def __init__(self):
         super().__init__()
     def pycode(self):
-        return "pass" + get_label_str(self.label)
+        return "pass" + _get_label_str(self.label)
     def __str__(self):
         return "pass"
     def __clone__(self):
-        return AST_pass()
+        cln = AST_pass()
+        _clone_label(cln, self)
+        return cln
 
 class AST_if(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
     def pycode(self):
-        return "if %s:" % self.condition.pycode() + get_label_str(self.label)
+        return "if %s:" % self.condition.pycode() + _get_label_str(self.label)
     def __str__(self):
         return "if: " + str(self.condition)
     def __clone__(self):
-        return AST_if(self.condition.__clone__())
+        cln = AST_if(self.condition.__clone__())
+        _clone_label(cln, self)
+        return cln
 class AST_while(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
     def pycode(self):
-        return "while %s:" % self.condition.pycode() + get_label_str(self.label)
+        return "while %s:" % self.condition.pycode() + _get_label_str(self.label)
     def __str__(self):
         return "while: " + str(self.condition)
     def __clone__(self):
-        return AST_while(self.condition.__clone__())
+        cln = AST_while(self.condition.__clone__())
+        _clone_label(cln, self)
+        return cln
 class AST_dowhile(AST_FORK):
     def __init__(self, condition: AST_BOOL):
         super().__init__(condition)
     def pycode(self):
-        return "dowhile %s:" % self.condition.pycode() + get_label_str(self.label)
+        return "dowhile %s:" % self.condition.pycode() + _get_label_str(self.label)
     def __str__(self):
         return "dowhile: " + str(self.condition)
     def __clone__(self):
-        return AST_dowhile(self.condition.__clone__())
+        cln = AST_dowhile(self.condition.__clone__())
+        _clone_label(cln, self)
+        return cln
 
 class AST_bextern(AST_BOOL):
     def __init__(self, dgid: str):
@@ -132,11 +144,13 @@ class AST_bextern(AST_BOOL):
         self.extern_text = "extern-placeholder"
         self.label = None
     def pycode(self):
-        return self.extern_text + get_label_str(self.label)
+        return self.extern_text + _get_label_str(self.label)
     def __str__(self):
         return "bexternal: " + self.dgid
     def __clone__(self):
-        return AST_bextern(self.dgid)
+        cln = AST_bextern(self.dgid)
+        _clone_label(cln, self)
+        return cln
 class AST_bvar(AST_BOOL):
     def __init__(self, varname: str):
         super().__init__()
@@ -199,11 +213,13 @@ class AST_not(AST_BOOLOP):
     def __clone__(self):
         return AST_not(self.right.__clone__())
 
-def get_label_str(label):
+def _get_label_str(label):
     if label == None:
         return ""
     else:
         return " ## %s" % label
+def _clone_label(dest, src):
+    dest.label = src.label
 
 ''' syntax tree operations '''
 
@@ -280,10 +296,11 @@ def AST_clone_tree(ast):
         node = ast_iterator.next()
 
     # use index of next,prev,block,up nodes to set
-    ast_iterator.reset()
+    ast_iterator = AST_iterator(ast)
     node = ast_iterator.next()
     while node != None:
         clone = clones[idx_by_node[node]]
+
         if hasattr(node, "next"):
             clone.next = list_safe_get(clones, idx_by_node.get(node.next, None))
         if hasattr(node, "prev"):
@@ -356,7 +373,7 @@ def AST_from_flowchart(fcroot):
     astroot = AST_root()
     astnode = astroot
 
-    labeling_idx = 0
+    labeling_idx = -1
 
     while node is not None:
         vis = visited.get(node.fcid, None)
