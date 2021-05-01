@@ -18,8 +18,8 @@ from pseudocode import *
 def cogen(graphdef, typetree, DB_logging=False):
     # create the graph given the graphdef
     graph = SimpleGraph(typetree, graphdef, DB_logging)
-
     allnodes = graph.root.subnodes
+
     # empty graphdef case
     if len(allnodes) == 0:
         return "empty graphdef"
@@ -30,11 +30,14 @@ def cogen(graphdef, typetree, DB_logging=False):
         raise Exception("flow control graph must have exactly one entry point")
     term_I = term_Is[0]
 
+    # create ast and eliminate gotos
     ast, gotos, labels = AST_from_flowchart(term_I)
-    AST_make_expressions(ast, allnodes)
-    pycode = AST_write_pycode(ast)
+    log = goto_elimination_alg(gotos, labels, ast, allnodes)
 
-    return pycode
+    # get the final result and return
+    ast_final = log.last_ast()
+    AST_make_expressions(ast_final, allnodes)
+    return AST_write_pycode(ast_final)
 
 
 ''' AST to code operations '''
