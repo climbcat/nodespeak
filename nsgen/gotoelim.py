@@ -41,7 +41,8 @@ def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
     Goto-elimination procedure. Returns step-py-step 
     '''
     # TODO: intialize logical vars for evey label (initialized to false), AND initialized to false before the label
-    init_logical_labelvars(gotos, lbls)
+    init_logical_labelvars_start(gotos, lbls, ast)
+    reinit_logical_labelvars(gotos, lbls)
 
     log_evlolution = LogASTs(log_enable)
     log_evlolution.log("initial state:", ast)
@@ -79,12 +80,21 @@ def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
 
     return log_evlolution
 
-def init_logical_labelvars(gotos, lbls):
-    ''' Insert a boolean false variable "goto_i" for every goto, at index i '''
+def reinit_logical_labelvars(gotos, lbls):
+    ''' (Re-)init a boolean variable "goto_i" to false exactly at every goto '''
     for getter in gotos:
         lbl = lbls[getter]
         init_to_false = AST_bassign(AST_bvar("goto_%d" % getter.index), AST_false())
         _insert_before(node=init_to_false, before=lbl)
+
+def init_logical_labelvars_start(gotos, lbls, ast):
+    ''' Create a boolean var "goto_i" initialized to false for every goto, just after the ast root '''
+    if type(ast) is not AST_root:
+        raise Exception("init_logical_labelvars_start required: ast is root")
+    for getter in gotos:
+        lbl = lbls[getter]
+        init_to_false = AST_bassign(AST_bvar("goto_%d" % getter.index), AST_false())
+        _insert_before(node=init_to_false, before=ast.block)
 
 def find_directly_related_lblstm(blocknode, lbl) -> AST_STM:
     ''' find stm in block containing, or being, lbl. Assumnes level(blocknode) <= level(lbl) and directly related '''
