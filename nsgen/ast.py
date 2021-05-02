@@ -6,6 +6,8 @@ from simplegraph import *
 
 
 ''' syntax tree types '''
+
+
 class AST_root:
     def __init__(self):
         self.block = None
@@ -220,6 +222,7 @@ def _get_label_str(label):
         return " ## %s" % label
 def _clone_label(dest, src):
     dest.label = src.label
+
 
 ''' syntax tree operations '''
 

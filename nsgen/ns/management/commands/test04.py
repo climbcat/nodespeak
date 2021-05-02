@@ -65,15 +65,13 @@ class Command(BaseCommand):
                 print("\n\n## session #%d: empty graphdef \n" % s.id)
                 continue
 
-
-            # pseudocode
-            #text_pseudocode = cg.pseudocode_from_simplegraph(info.term_start, info.allnodes)
-
             log_evolution = cg.goto_elimination_alg(info.gotos, info.labels, info.ast, info.allnodes)
             msg, ast_next = log_evolution.next()
 
-            print("# session %d:" % s.id)
-            print("# %d elimination steps" % log_evolution.steps())
+            print("# session: %d" % s.id)
+            print("# elimination steps: %d" % log_evolution.steps())
+            print("# gotos: %d" % len(info.gotos))
+            print("")
 
             if not options["iterate"]:
                 ast_last = log_evolution.last_ast()
@@ -90,21 +88,20 @@ class Command(BaseCommand):
             else:
                 while ast_next is not None:
                     if type(ast_next) is not AST_root:
-                        raise Exception("not root")
-    
+                        raise Exception("handle not AST_root")
+
                     print(msg)
-    
+
                     AST_make_expressions(ast_next, info.allnodes)
-    
+
                     print()
                     print(cg.AST_write_pycode(ast_next))
                     print()
                     print()
-    
+
                     #text_ast = cg.AST_to_text(ast_next)
                     #print()
                     #print(text_ast)
-    
+
                     msg, ast_next = log_evolution.next()
-                
 
