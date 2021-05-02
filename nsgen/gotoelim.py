@@ -268,7 +268,8 @@ def eliminate_by_cond(goto, lbl):
 
     _remove(goto)
     _insert_loop_or_if_above(if_elim, block_first)
-    block_last.next = None # lbl was also block_last.next
+    block_last.next = None
+    if_elim.next = lbl
     lbl.prev = if_elim
 def eliminate_by_dowhile(goto, lbl):
     ''' use when o(g) > o(l) '''
