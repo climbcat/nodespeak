@@ -41,7 +41,7 @@ def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
     Goto-elimination procedure. Returns step-py-step 
     '''
     init_logical_labelvars_start(gotos, lbls, ast)
-    reinit_logical_labelvars(gotos, lbls)
+    reinit_logical_labelvars_at_label(gotos, lbls)
 
     log_evlolution = LogASTs(log_enable)
     log_evlolution.log("initial state:", ast)
@@ -86,11 +86,6 @@ def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
 
 def trim_trivial_stms_and_ifbranches(ast):
     ''' Removes artefacts of the goto-elimination transitions, where if branches s.a. "if not goto_0: goto_0 = False" can appear. '''
-    # iterate untill if branch
-    # remove statements s.a. goto_0 = goto_0
-    # formalize branch condition
-    # compare branch condition with branch stms
-    # e.g.
 
     def is_trivial_assignment(stm):
         ''' detects statements such as goto_0 == goto_0 '''
@@ -101,14 +96,19 @@ def trim_trivial_stms_and_ifbranches(ast):
 
     def is_tautological_ifbranch_statement(stm, cond):
         ''' checks if if-branch condition is simply reassigned '''
-        if type(stm) == AST_bassign:
+        if type(stm) is not AST_bassign:
+            return False
+        if type(cond) is AST_bextern:
+            return False
+        if not hasattr(stm, "right") or not hasattr(stm, "bvar"):
+            return False
+        if not hasattr(cond.right, "varname"):
+            return False
+        if not hasattr(cond, "right"):
+            return False
 
-            if not hasattr(stm, "right") or not hasattr(stm, "bvar"):
-                return False
-            if not hasattr(cond, "right"):
-                return False
-            if stm.bvar.varname == cond.right.varname and (type(cond) == AST_not and type(stm.right) == AST_false):
-                return True
+        if stm.bvar.varname == cond.right.varname and (type(cond) == AST_not and type(stm.right) == AST_false):
+            return True
 
         return False
 
@@ -117,14 +117,15 @@ def trim_trivial_stms_and_ifbranches(ast):
             return True
         return False
 
-    iter = AST_iterator(ast)
-    node = iter.next()
+    itr = AST_iterator(ast)
+    node = itr.next()
 
     while node is not None:
         if is_trivial_assignment(node):
+            # remove and restart iteration
             _remove(node)
-            iter = AST_iterator(ast)
-            node = iter.next()
+            itr = AST_iterator(ast)
+            node = itr.next()
             continue
 
         elif type(node) == AST_if:
@@ -133,6 +134,7 @@ def trim_trivial_stms_and_ifbranches(ast):
 
             while block is not None:
                 if is_tautological_ifbranch_statement(block, if_cond):
+                    # remove - can't restart iteration using continue
                     _remove(block)
                     break
 
@@ -141,16 +143,14 @@ def trim_trivial_stms_and_ifbranches(ast):
             if is_empty_ifbranch(node):
                 # remove and restart iteration
                 _remove(node)
-                iter = AST_iterator(ast)
-                node = iter.next()
+                itr = AST_iterator(ast)
+                node = itr.next()
                 continue
 
-            print()
-
-        node = iter.next()
+        node = itr.next()
 
 
-def reinit_logical_labelvars(gotos, lbls):
+def reinit_logical_labelvars_at_label(gotos, lbls):
     ''' (Re-)init a boolean variable "goto_i" to false exactly at every goto '''
     for getter in gotos:
         lbl = lbls[getter]
