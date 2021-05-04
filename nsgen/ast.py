@@ -91,6 +91,17 @@ class AST_return(AST_STM):
         cln = AST_return()
         _clone_label(cln, self)
         return cln
+class AST_break(AST_STM):
+    def __init__(self):
+        super().__init__()
+    def pycode(self):
+        return "break" + _get_label_str(self.label)
+    def __str__(self):
+        return "break"
+    def __clone__(self):
+        cln = AST_break()
+        _clone_label(cln, self)
+        return cln
 class AST_pass(AST_STM):
     def __init__(self):
         super().__init__()

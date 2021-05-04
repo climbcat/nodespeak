@@ -37,9 +37,7 @@ class LogASTs:
 
 
 def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
-    '''
-    Goto-elimination procedure. Returns step-py-step 
-    '''
+    ''' Goto-elimination procedure. Returns step-py-step. '''
     init_logical_labelvars_start(gotos, lbls, ast)
     reinit_logical_labelvars_at_label(gotos, lbls)
 
@@ -77,12 +75,46 @@ def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
         else:
             raise Exception("elimination fail")
 
-
     trim_trivial_stms_and_ifbranches(ast)
     log_evlolution.log("trim:", ast)
-
+    
+    if transform_dowhiles(ast):
+        log_evlolution.log("dowhile transform:", ast)
 
     return log_evlolution
+
+def transform_dowhiles(ast):
+    ''' in some languages (Python) there are no dowhile, this fnc eliminates and replaces with a while-true-if-condition-break '''
+
+    # find all dowhile nodes
+    dowhales = []
+    itr = AST_iterator(ast)
+    node = itr.next()
+    while node is not None:
+        if type(node) == AST_dowhile:
+            dowhales.append(node)
+        node = itr.next()
+
+    # change every dowhile into a while(true) { ... if(condition) break }
+    for dowhale in dowhales:
+
+        block_first = dowhale.block
+        block_last = block_first
+        subnode = block_first.next
+        while subnode is not None:
+            block_last = subnode
+            subnode = subnode.next
+
+        whale = AST_while(AST_true())
+        ifbreak = AST_if(dowhale.condition)
+        brk = AST_break()
+        ifbreak.block = brk
+        brk.up = ifbreak
+
+        _replace(node=dowhale, withnode=whale)
+        _insert_after(node=ifbreak, after=block_last)
+
+    return len(dowhales) > 0
 
 def trim_trivial_stms_and_ifbranches(ast):
     ''' Removes artefacts of the goto-elimination transitions, where if branches s.a. "if not goto_0: goto_0 = False" can appear. '''
@@ -148,7 +180,6 @@ def trim_trivial_stms_and_ifbranches(ast):
                 continue
 
         node = itr.next()
-
 
 def reinit_logical_labelvars_at_label(gotos, lbls):
     ''' (Re-)init a boolean variable "goto_i" to false exactly at every goto '''
@@ -436,6 +467,25 @@ def _remove(node):
     node.next = None
     node.prev = None
     node.up = None
+    node.block = None
+def _replace(node, withnode):
+    ''' replace node with withnode '''
+    if node.next is not None:
+        node.next.prev = withnode
+        withnode.next = node.next
+    if node.prev is not None:
+        node.prev.next = withnode
+        withnode.prev = node.prev
+    if node.block is not None:
+        node.block.up = withnode
+        withnode.block = node.block
+    if node.up is not None:
+        node.up.block = withnode
+        withnode.up = node.up
+    node.next = None
+    node.prev = None
+    node.up = None
+    node.block = None
 def _insert_loop_or_if_above(loop, node):
     ''' insert loop/if "loop" above "node" '''
     # set prev.next to be the loop
@@ -451,7 +501,7 @@ def _insert_loop_or_if_above(loop, node):
     node.up = loop
     loop.block = node
 def _insert_after(node, after):
-    ''' insert item "node" after "after" '''
+    ''' insert item "node" after item "after" '''
     # set next.prev to node
     if after.next != None:
         after.next.prev = node
@@ -460,7 +510,7 @@ def _insert_after(node, after):
     after.next = node
     node.prev = after
 def _insert_before(node, before):
-    ''' insert item "node" before "before" '''
+    ''' insert item "node" before item "before" '''
     # set prev.next to node
     if before.prev != None:
         before.prev.next = node
