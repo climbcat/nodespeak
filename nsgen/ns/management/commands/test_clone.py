@@ -16,7 +16,7 @@ class AstDataObjects:
         self.term_start = None
         self.allnodes = None
 
-def load_ast(s):
+def load_typetree(s):
     # see cogen
     obj = json.loads(s.data_str)
     typetree = obj
@@ -55,7 +55,7 @@ class Command(BaseCommand):
         for s in sessions:
             print("\nTESTING AST_clone_tree on session #%s:" % s.id)
 
-            info = load_ast(s)            
+            info = load_typetree(s)            
             cloned_ast = AST_clone_tree(info.ast)
 
             # DB CHECK IT:
