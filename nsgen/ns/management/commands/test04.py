@@ -19,7 +19,7 @@ class AstDataObjects:
         self.term_start = None
         self.allnodes = None
 
-def load_ast(s):
+def load_typetree(s):
     # see cogen
     obj = json.loads(s.data_str)
     typetree = obj
@@ -59,7 +59,7 @@ class Command(BaseCommand):
         # test and print
         for s in sessions:
             try:
-                info = load_ast(s)
+                info = load_typetree(s)
             except:
                 # empty graphdef case
                 print("\n\n## session #%d: empty graphdef \n" % s.id)

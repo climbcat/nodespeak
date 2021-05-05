@@ -8,7 +8,7 @@ TODO:
 - OK - use operations to implement the goto-elimination
 - OK - generate code from goto-eliminated AST (language specific)
 - OK - make it better to work with
-- bugfix it
+- OK - bugfix it
 - gen typedefs and stubs (language specific)
 '''
 from queue import LifoQueue
@@ -41,7 +41,12 @@ def cogen(graphdef, typetree, DB_logging=False):
     return AST_write_pycode(ast_final)
 
 
-''' AST to code operations '''
+'''  typedefs to code '''
+
+def typedefs_to_code(ast): pass
+
+
+''' AST to code '''
 
 
 class AST_writer_py:
