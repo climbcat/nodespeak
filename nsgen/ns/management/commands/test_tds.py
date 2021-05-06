@@ -50,13 +50,13 @@ class UserType:
         else:
             return self.basetype + " - " + self.tpe
 
-def load_typetree(s):
-    # get the json object
-    obj = json.loads(s.data_str)
+def cogen_typedefs(typetree):
     
+    # extract data from the typedef tree thingee
+
     # load user types subtree
-    tree = TreeJsonAddr(obj["user"]["branch"]["custom"]["branch"])
-    user_addr = list(obj["user"]["branch"]["custom"]["branch"].keys()) 
+    tree = TreeJsonAddr(typetree["user"]["branch"]["custom"]["branch"])
+    user_addr = list(typetree["user"]["branch"]["custom"]["branch"].keys()) 
 
     user_tpes = []
     user_methods = {}
@@ -76,7 +76,7 @@ def load_typetree(s):
         # get the methods from this branch
         if user_tpe.basetype == "constructor":
 
-            branch = obj["user"]["branch"]["custom"]["branch"][user_tpe.tpe]["branch"]
+            branch = typetree["user"]["branch"]["custom"]["branch"][user_tpe.tpe]["branch"]
             user_methods[user_tpe.tpe] = []
             for a in branch.keys():
 
@@ -92,32 +92,45 @@ def load_typetree(s):
 
                 user_methods[user_tpe.tpe].append(user_mthod)
 
+    # generate the code
+
+    class LinesPrinter():
+        def __init__(self):
+            self.lines = []
+        def print(self, printable=None):
+            if printable is not None:
+                self.lines.append(printable.__str__())
+            else:
+                self.lines.append("")
+        def get_text(self):
+            return "\n".join(self.lines)
+    lines = LinesPrinter()
 
     # print typedefs (should not be in pythonic cogen?)
     for user_tpe in user_tpes:
         if user_tpe.basetype != "object_typed":
             continue
-        print(user_tpe)
-        print()
+        lines.print(user_tpe)
+        lines.print()
 
     # print classes
     for user_tpe in user_tpes:
         if user_tpe.basetype != "constructor":
             continue
-        print(user_tpe)
+        lines.print(user_tpe)
 
         # print its methods
         for method_tpe in user_methods[user_tpe.tpe]:
-            print(method_tpe)
+            lines.print(method_tpe)
 
     # print function_named
     for user_tpe in user_tpes:
         if user_tpe.basetype != "function_named":
             continue
-        print()
-        print(user_tpe)
+        lines.print()
+        lines.print(user_tpe)
 
-    return None
+    return lines.get_text()
 
 
 class Command(BaseCommand):
@@ -138,10 +151,12 @@ class Command(BaseCommand):
         # test and print
         for s in sessions:
             try:
-                info = load_typetree(s)
+                # get the json object
+                tree = json.loads(s.data_str)
+
+                text = cogen_typedefs(tree)
+                print(text)
+
             except Exception as e:
                 raise e
-                ## empty graphdef case
-                #print("\n\n## session #%d: empty graphdef \n" % s.id)
-                #continue
 
