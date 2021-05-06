@@ -23,7 +23,7 @@ class UserType:
             #return "%s %s(%s %s) ## %s" % (self.otypes, self.tpe, self.itypes, self.ipars, self.label) # self.itypes,
         elif self.basetype == "object_typed":
             # we should not do this when generating Python code
-            pass
+            return "# %s - do not cogen typedefs in python" % self.tpe
         elif self.basetype == "constructor":
             if len(self.ipars) > 0:
                 lst = []
@@ -34,6 +34,15 @@ class UserType:
                 return "\n".join(lst)
             else:
                 return "class %s:\n    pass" % self.tpe
+        elif self.basetype == "method":
+            if len(self.ipars) > 0:
+                lst = []
+                lst.append("    def %s(self, %s):" % (self.tpe, ", ".join(self.ipars)))
+                lst.append("        pass")
+                
+                return "\n".join(lst)
+            else:
+                return "    def %s(self):\n        pass" % self.tpe
         else:
             return self.basetype
 
@@ -47,17 +56,34 @@ def load_typetree(s):
 
     user_tpes = []
     for addr in user_addr:
-        obj = tree.retrieve(addr)
+        localobj = tree.retrieve(addr)
 
         user_tpe = UserType(
-            tpe = obj["type"],
-            basetype = obj["basetype"],
-            ipars = obj["ipars"],
-            itypes = obj["itypes"],
-            otypes = obj["otypes"],
-            label = obj["label"])
+            tpe = localobj["type"],
+            basetype = localobj["basetype"],
+            ipars = localobj["ipars"],
+            itypes = localobj["itypes"],
+            otypes = localobj["otypes"],
+            label = localobj["label"])
 
         user_tpes.append(user_tpe)
+
+        if user_tpe.basetype == "constructor":
+            branch = obj["user"]["branch"]["custom"]["branch"][user_tpe.tpe]["branch"]
+            for a in branch.keys():
+
+                method_obj = tree.retrieve(addr + "." + a)
+
+                user_tpe = UserType(
+                    tpe = method_obj["type"],
+                    basetype = method_obj["basetype"],
+                    ipars = method_obj["ipars"],
+                    itypes = method_obj["itypes"],
+                    otypes = method_obj["otypes"],
+                    label = method_obj["label"])
+
+                user_tpes.append(user_tpe)
+
 
     # print typedefs (should not be in pythonic cogen?)
     for user_tpe in user_tpes:
@@ -73,7 +99,17 @@ def load_typetree(s):
             continue
         print(user_tpe)
 
+        for method_tpe in user_tpes:
+            if method_tpe.basetype != "method":
+                continue
+            print(method_tpe)
+    
+        print()
+
+
     print()
+
+    # methods (TODO: this only works in very special cases;)
 
     # print function_named
     for user_tpe in user_tpes:
