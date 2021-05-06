@@ -16,35 +16,39 @@ class UserType:
         self.itypes = itypes
         self.otypes = otypes
         self.label = label
+        self.method = []
+
     def __str__(self):
-        
         if self.basetype == "function_named":
             return "def %s(%s):\n    pass" % (self.tpe, ", ".join(self.ipars))
-            #return "%s %s(%s %s) ## %s" % (self.otypes, self.tpe, self.itypes, self.ipars, self.label) # self.itypes,
+
         elif self.basetype == "object_typed":
             # we should not do this when generating Python code
-            return "# %s - do not cogen typedefs in python" % self.tpe
+            return "# %s - typedefs not generated for Python" % self.tpe
+
         elif self.basetype == "constructor":
             if len(self.ipars) > 0:
                 lst = []
                 lst.append("class %s(%s):" % (self.tpe, ", ".join(self.ipars)))
                 lst.append("    def __init__(self, %s):" % (", ".join(self.ipars)))
                 lst.append("        pass")
-                
+
                 return "\n".join(lst)
             else:
                 return "class %s:\n    pass" % self.tpe
+
         elif self.basetype == "method":
             if len(self.ipars) > 0:
                 lst = []
                 lst.append("    def %s(self, %s):" % (self.tpe, ", ".join(self.ipars)))
                 lst.append("        pass")
-                
+
                 return "\n".join(lst)
             else:
                 return "    def %s(self):\n        pass" % self.tpe
+
         else:
-            return self.basetype
+            return self.basetype + " - " + self.tpe
 
 def load_typetree(s):
     # get the json object
@@ -55,6 +59,7 @@ def load_typetree(s):
     user_addr = list(obj["user"]["branch"]["custom"]["branch"].keys()) 
 
     user_tpes = []
+    user_methods = {}
     for addr in user_addr:
         localobj = tree.retrieve(addr)
 
@@ -68,13 +73,16 @@ def load_typetree(s):
 
         user_tpes.append(user_tpe)
 
+        # get the methods from this branch
         if user_tpe.basetype == "constructor":
+
             branch = obj["user"]["branch"]["custom"]["branch"][user_tpe.tpe]["branch"]
+            user_methods[user_tpe.tpe] = []
             for a in branch.keys():
 
                 method_obj = tree.retrieve(addr + "." + a)
 
-                user_tpe = UserType(
+                user_mthod = UserType(
                     tpe = method_obj["type"],
                     basetype = method_obj["basetype"],
                     ipars = method_obj["ipars"],
@@ -82,7 +90,7 @@ def load_typetree(s):
                     otypes = method_obj["otypes"],
                     label = method_obj["label"])
 
-                user_tpes.append(user_tpe)
+                user_methods[user_tpe.tpe].append(user_mthod)
 
 
     # print typedefs (should not be in pythonic cogen?)
@@ -90,8 +98,7 @@ def load_typetree(s):
         if user_tpe.basetype != "object_typed":
             continue
         print(user_tpe)
-
-    print()
+        print()
 
     # print classes
     for user_tpe in user_tpes:
@@ -99,25 +106,19 @@ def load_typetree(s):
             continue
         print(user_tpe)
 
-        for method_tpe in user_tpes:
-            if method_tpe.basetype != "method":
-                continue
+        # print its methods
+        for method_tpe in user_methods[user_tpe.tpe]:
             print(method_tpe)
-    
-        print()
-
-
-    print()
-
-    # methods (TODO: this only works in very special cases;)
 
     # print function_named
     for user_tpe in user_tpes:
         if user_tpe.basetype != "function_named":
             continue
+        print()
         print(user_tpe)
 
     return None
+
 
 class Command(BaseCommand):
     help = 'Test typetree load and code generation, which supplements the fc/dg code generation.'
