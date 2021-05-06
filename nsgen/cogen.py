@@ -16,7 +16,7 @@ from gotoelim import *
 from pseudocode import *
 
 
-def cogen(graphdef, typetree, DB_logging=False):
+def cogen_graphs_py(graphdef, typetree, DB_logging=False):
     # create the graph given the graphdef
     graph = SimpleGraph(typetree, graphdef, DB_logging)
     allnodes = graph.root.subnodes
@@ -39,6 +39,130 @@ def cogen(graphdef, typetree, DB_logging=False):
     ast_final = log.last_ast()
     AST_make_expressions(ast_final, allnodes)
     return AST_write_pycode(ast_final)
+
+class UserTypetreeItem:
+    def __init__(self, tpe, basetype, ipars, itypes, otypes, label):
+        self.tpe = tpe
+        self.basetype = basetype
+        self.ipars = ipars
+        self.itypes = itypes
+        self.otypes = otypes
+        self.label = label
+        self.method = []
+
+    def __str__(self):
+        if self.basetype == "function_named":
+            return "def %s(%s):\n    pass" % (self.tpe, ", ".join(self.ipars))
+
+        elif self.basetype == "object_typed":
+            # we should not do this when generating Python code
+            return "# %s - typedefs not generated for Python" % self.tpe
+
+        elif self.basetype == "constructor":
+            if len(self.ipars) > 0:
+                lst = []
+                lst.append("class %s(%s):" % (self.tpe, ", ".join(self.ipars)))
+                lst.append("    def __init__(self, %s):" % (", ".join(self.ipars)))
+                lst.append("        pass")
+
+                return "\n".join(lst)
+            else:
+                return "class %s:\n    pass" % self.tpe
+
+        elif self.basetype == "method":
+            if len(self.ipars) > 0:
+                lst = []
+                lst.append("    def %s(self, %s):" % (self.tpe, ", ".join(self.ipars)))
+                lst.append("        pass")
+
+                return "\n".join(lst)
+            else:
+                return "    def %s(self):\n        pass" % self.tpe
+
+        else:
+            return self.basetype + " - " + self.tpe
+
+def cogen_typedefs_py(typetree):
+    
+    # extract data from the typedef tree thingee
+
+    # load user types subtree
+    tree = TreeJsonAddr(typetree["user"]["branch"]["custom"]["branch"])
+    user_addr = list(typetree["user"]["branch"]["custom"]["branch"].keys()) 
+
+    user_tpes = []
+    user_methods = {}
+    for addr in user_addr:
+        localobj = tree.retrieve(addr)
+
+        user_tpe = UserTypetreeItem(
+            tpe = localobj["type"],
+            basetype = localobj["basetype"],
+            ipars = localobj["ipars"],
+            itypes = localobj["itypes"],
+            otypes = localobj["otypes"],
+            label = localobj["label"])
+
+        user_tpes.append(user_tpe)
+
+        # get the methods from this branch
+        if user_tpe.basetype == "constructor":
+
+            branch = typetree["user"]["branch"]["custom"]["branch"][user_tpe.tpe]["branch"]
+            user_methods[user_tpe.tpe] = []
+            for a in branch.keys():
+
+                method_obj = tree.retrieve(addr + "." + a)
+
+                user_mthod = UserTypetreeItem(
+                    tpe = method_obj["type"],
+                    basetype = method_obj["basetype"],
+                    ipars = method_obj["ipars"],
+                    itypes = method_obj["itypes"],
+                    otypes = method_obj["otypes"],
+                    label = method_obj["label"])
+
+                user_methods[user_tpe.tpe].append(user_mthod)
+
+    # generate the code
+
+    class LinesPrinter():
+        def __init__(self):
+            self.lines = []
+        def print(self, printable=None):
+            if printable is not None:
+                self.lines.append(printable.__str__())
+            else:
+                self.lines.append("")
+        def get_text(self):
+            return "\n".join(self.lines)
+    lines = LinesPrinter()
+
+    # print typedefs (should not be in pythonic cogen_graphs_py?)
+    for user_tpe in user_tpes:
+        if user_tpe.basetype != "object_typed":
+            continue
+        lines.print(user_tpe)
+        lines.print()
+
+    # print classes
+    for user_tpe in user_tpes:
+        if user_tpe.basetype != "constructor":
+            continue
+        lines.print(user_tpe)
+
+        # print its methods
+        for method_tpe in user_methods[user_tpe.tpe]:
+            lines.print(method_tpe)
+
+    # print function_named
+    for user_tpe in user_tpes:
+        if user_tpe.basetype != "function_named":
+            continue
+        lines.print()
+        lines.print(user_tpe)
+
+    return lines.get_text()
 
 
 '''  typedefs to code '''
