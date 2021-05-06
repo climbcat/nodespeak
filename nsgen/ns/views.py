@@ -5,7 +5,7 @@ from django.utils import timezone
 import django.contrib.auth as auth
 import base64
 import json
-from cogen import cogen_graphs_py
+from cogen import cogen_graphs_py, cogen_typedefs_py
 
 def test(req):
     return HttpResponse("test")
@@ -114,7 +114,7 @@ def ajax_cogen(req):
 
     obj = json.loads(data_str)
     try:
-        text = cogen_graphs_py(obj["graphdef"], obj)
+        text = cogen_typedefs_py(obj) + "\n\n" + cogen_graphs_py(obj["graphdef"], obj)
         # DEBUG print
         print(text)
     except Exception as e:

@@ -9,11 +9,68 @@ TODO:
 - OK - generate code from goto-eliminated AST (language specific)
 - OK - make it better to work with
 - OK - bugfix it
-- gen typedefs and stubs (language specific)
+- OK - gen typedefs and stubs (language specific) hooray:)
 '''
 from queue import LifoQueue
 from gotoelim import *
 from pseudocode import *
+
+
+'''  typedefs to code '''
+
+
+class UserTypetreeItem:
+    def __init__(self, tpe, basetype, ipars, itypes, otypes, label):
+        self.tpe = tpe
+        self.basetype = basetype
+        self.ipars = ipars
+        self.itypes = itypes
+        self.otypes = otypes
+        self.label = label
+        self.method = []
+
+    def __str__(self):
+        if self.basetype == "function_named":
+            return "def %s(%s):\n    pass" % (self.tpe, ", ".join(self.ipars))
+
+        elif self.basetype == "object_typed":
+            # we should not do this when generating Python code
+            return "# typedef %s ## not generated" % self.tpe
+
+        elif self.basetype == "constructor":
+            if len(self.ipars) > 0:
+                lst = []
+                lst.append("class %s(%s):" % (self.tpe, ", ".join(self.ipars)))
+                lst.append("    def __init__(self, %s):" % (", ".join(self.ipars)))
+                lst.append("        pass")
+
+                return "\n".join(lst)
+            else:
+                return "class %s:\n    pass" % self.tpe
+
+        elif self.basetype == "method":
+            if len(self.ipars) > 0:
+                lst = []
+                lst.append("    def %s(self, %s):" % (self.tpe, ", ".join(self.ipars)))
+                lst.append("        pass")
+
+                return "\n".join(lst)
+            else:
+                return "    def %s(self):\n        pass" % self.tpe
+
+        else:
+            return self.basetype + " - " + self.tpe
+
+class LinesPrinter():
+    def __init__(self):
+        self.lines = []
+    def print(self, printable=None):
+        if printable is not None:
+            self.lines.append(printable.__str__())
+        else:
+            self.lines.append("")
+    def get_text(self):
+        return "\n".join(self.lines)
 
 
 def cogen_graphs_py(graphdef, typetree, DB_logging=False):
@@ -39,48 +96,6 @@ def cogen_graphs_py(graphdef, typetree, DB_logging=False):
     ast_final = log.last_ast()
     AST_make_expressions(ast_final, allnodes)
     return AST_write_pycode(ast_final)
-
-class UserTypetreeItem:
-    def __init__(self, tpe, basetype, ipars, itypes, otypes, label):
-        self.tpe = tpe
-        self.basetype = basetype
-        self.ipars = ipars
-        self.itypes = itypes
-        self.otypes = otypes
-        self.label = label
-        self.method = []
-
-    def __str__(self):
-        if self.basetype == "function_named":
-            return "def %s(%s):\n    pass" % (self.tpe, ", ".join(self.ipars))
-
-        elif self.basetype == "object_typed":
-            # we should not do this when generating Python code
-            return "# %s - typedefs not generated for Python" % self.tpe
-
-        elif self.basetype == "constructor":
-            if len(self.ipars) > 0:
-                lst = []
-                lst.append("class %s(%s):" % (self.tpe, ", ".join(self.ipars)))
-                lst.append("    def __init__(self, %s):" % (", ".join(self.ipars)))
-                lst.append("        pass")
-
-                return "\n".join(lst)
-            else:
-                return "class %s:\n    pass" % self.tpe
-
-        elif self.basetype == "method":
-            if len(self.ipars) > 0:
-                lst = []
-                lst.append("    def %s(self, %s):" % (self.tpe, ", ".join(self.ipars)))
-                lst.append("        pass")
-
-                return "\n".join(lst)
-            else:
-                return "    def %s(self):\n        pass" % self.tpe
-
-        else:
-            return self.basetype + " - " + self.tpe
 
 def cogen_typedefs_py(typetree):
     
@@ -126,16 +141,6 @@ def cogen_typedefs_py(typetree):
 
     # generate the code
 
-    class LinesPrinter():
-        def __init__(self):
-            self.lines = []
-        def print(self, printable=None):
-            if printable is not None:
-                self.lines.append(printable.__str__())
-            else:
-                self.lines.append("")
-        def get_text(self):
-            return "\n".join(self.lines)
     lines = LinesPrinter()
 
     # print typedefs (should not be in pythonic cogen_graphs_py?)
@@ -159,18 +164,12 @@ def cogen_typedefs_py(typetree):
     for user_tpe in user_tpes:
         if user_tpe.basetype != "function_named":
             continue
-        lines.print()
         lines.print(user_tpe)
 
     return lines.get_text()
 
 
-'''  typedefs to code '''
-
-def typedefs_to_code(ast): pass
-
-
-''' AST to code '''
+''' AST / fc + dg graphs to code '''
 
 
 class AST_writer_py:
