@@ -1037,6 +1037,28 @@ class NodeFunctionNamed extends Node {
   }
 }
 
+class NodeConstructor extends Node {
+  static get basetype() { return "constructor"; }
+  get basetype() { return NodeConstructor.basetype; }
+  static get prefix() { return "c"; }
+  constructor(x, y, id, name, label, typeconf) {
+    super(x, y, id, name, label, typeconf);
+  }
+  _getGNType() {
+    return GraphicsNodeCircular;
+  }
+  _getAnchorType() {
+    return AnchorCircular;
+  }
+  isConnected(connectivity) {
+    return connectivity.indexOf(false) == -1;
+  }
+  isActive() {
+    // assumed to be associated with an underlying function object
+    return true;
+  }
+}
+
 class NodeMethod extends Node {
   static get basetype() { return "method"; }
   get basetype() { return NodeMethod.basetype; }
@@ -1295,6 +1317,7 @@ NodeLinkConstrucionHelper.register_node_class(NodeObjectTyped);
 NodeLinkConstrucionHelper.register_node_class(NodeObjectLiteral);
 NodeLinkConstrucionHelper.register_node_class(NodeFunction);
 NodeLinkConstrucionHelper.register_node_class(NodeFunctionNamed);
+NodeLinkConstrucionHelper.register_node_class(NodeConstructor);
 NodeLinkConstrucionHelper.register_node_class(NodeMethodAsFunction);
 NodeLinkConstrucionHelper.register_node_class(NodeMethod);
 
