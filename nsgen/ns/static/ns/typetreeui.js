@@ -114,7 +114,7 @@ class TypeTreeUi {
       let rettpe = tpe; // constructor: ret type is type
       let hasargs = res[1][1] != null;
       if (hasargs > 0) args = res[1][1];
-      let cn = new CreateNode("function_named", name, tpe, args, rettpe, true);
+      let cn = new CreateNode("constructor", name, tpe, args, rettpe, true);
       conf = cn.getNode(branch_name);
       conf.sort_idx = 1;
     }
