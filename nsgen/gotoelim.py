@@ -84,7 +84,7 @@ def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
     return log_evlolution
 
 def transform_dowhiles(ast):
-    ''' in some languages (Python) there are no dowhile, this fnc eliminates and replaces with a while-true-if-condition-break '''
+    ''' in some languages (Python) there are no dowhile, this fnc eliminates and replaces with a while-true-if-not-condition-break '''
 
     # find all dowhile nodes
     dowhales = []
@@ -95,7 +95,7 @@ def transform_dowhiles(ast):
             dowhales.append(node)
         node = itr.next()
 
-    # change every dowhile into a while(true) { ... if(condition) break }
+    # change every dowhile into a while(true) { ... if (not condition) break }
     for dowhale in dowhales:
 
         block_first = dowhale.block
@@ -106,13 +106,13 @@ def transform_dowhiles(ast):
             subnode = subnode.next
 
         whale = AST_while(AST_true())
-        ifbreak = AST_if(dowhale.condition)
+        ifnot_break = AST_if(AST_not(dowhale.condition))
         brk = AST_break()
-        ifbreak.block = brk
-        brk.up = ifbreak
+        ifnot_break.block = brk
+        brk.up = ifnot_break
 
         _replace(node=dowhale, withnode=whale)
-        _insert_after(node=ifbreak, after=block_last)
+        _insert_after(node=ifnot_break, after=block_last)
 
     return len(dowhales) > 0
 
