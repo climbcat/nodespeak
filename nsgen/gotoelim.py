@@ -38,11 +38,15 @@ class LogASTs:
 
 def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
     ''' Goto-elimination procedure. Returns step-py-step. '''
-    init_logical_labelvars_start(gotos, lbls, ast)
-    reinit_logical_labelvars_at_label(gotos, lbls)
 
     log_evlolution = LogASTs(log_enable)
     log_evlolution.log("initial state:", ast)
+
+    init_logical_labelvars_start(gotos, lbls, ast)
+    log_evlolution.log("init logical vars:", ast)
+
+    shift_lbls_to_reinitialized_labelvars(gotos, lbls)
+    log_evlolution.log("shift to labelvar and re-init:", ast)
 
     # select goto/lbl pair
     for goto in gotos:
@@ -71,13 +75,13 @@ def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
                 log_evlolution.log("eliminate_by_cond:", ast)
             else:
                 eliminate_by_dowhile(goto, lbl)
-                log_evlolution.log("eliminate_by_while:", ast)
+                log_evlolution.log("eliminate_by_dowhile:", ast)
         else:
             raise Exception("elimination fail")
 
     trim_trivial_stms_and_ifbranches(ast)
     log_evlolution.log("trim:", ast)
-    
+
     if transform_dowhiles(ast):
         log_evlolution.log("dowhile transform:", ast)
 
@@ -181,12 +185,18 @@ def trim_trivial_stms_and_ifbranches(ast):
 
         node = itr.next()
 
-def reinit_logical_labelvars_at_label(gotos, lbls):
-    ''' (Re-)init a boolean variable "goto_i" to false exactly at every goto '''
+def shift_lbls_to_reinitialized_labelvars(gotos, lbls):
+    '''
+    (Re-)init a boolean variable "goto_i" to false exactly at every label, to ensure this logical var is false
+    on all branches except the one leading from the goto.
+    We seem to have to shift any label to the re-init before it, to accomplish this, a modification wrt. the 
+    source paper.
+    '''
     for getter in gotos:
         lbl = lbls[getter]
         init_to_false = AST_bassign(AST_bvar("goto_%d" % getter.index), AST_false())
         _insert_before(node=init_to_false, before=lbl)
+        lbls[getter] = init_to_false
 
 def init_logical_labelvars_start(gotos, lbls, ast):
     ''' Create a boolean var "goto_i" initialized to false for every goto, just after the ast root '''
@@ -357,11 +367,9 @@ def move_out_of_loop_or_if(goto):
         _remove(loop)
 def eliminate_by_cond(goto, lbl):
     ''' use when o(g) < o(l) '''
-    # trivial case: just remove the goto
     if lbl.prev == goto:
-        # untested
         _remove(goto)
-        raise Exception("eliminate_by_cond: untested branch notification")
+        return
 
     if_elim = AST_if(AST_not(goto.ifcond))
     block_first = goto.next
