@@ -355,9 +355,21 @@ def move_out_of_loop_or_if(goto):
         _insert_after(bass, stm_before_goto)
     else:
         # the block consists only of the goto
-        if type(loop) in (AST_if, AST_while, ):
+        if type(loop) in (AST_if, AST_dowhile, AST_dowhile, ):
             goto.ifcond = AST_and(org_goto_ifcond, loop.condition)
         _remove(loop)
+
+    # bugfix jg-210513 / requires dowhile break statement
+    if type(loop) in (AST_dowhile, AST_while):
+        dowhile_break = AST_if(bvar)
+        dowhile_break.block = AST_break()
+        dowhile_break.block.up = dowhile_break
+
+        loop_last = loop.block
+        while loop_last.next is not None:
+            loop_last = loop_last.next
+        _insert_after(dowhile_break, loop_last)
+
 def eliminate_by_cond(goto, lbl):
     ''' use when o(g) < o(l) '''
     if lbl.prev == goto:

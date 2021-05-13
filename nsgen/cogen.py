@@ -10,6 +10,9 @@ TODO:
 - OK - make it better to work with
 - OK - bugfix it
 - OK - gen typedefs and stubs (language specific) hooray:)
+
+TODO: fix "while not True and cond:" type expressions, maybe using an AST_lbrace/bracket or something
+TODO: fix or remove "if not True: break" type stuff
 '''
 from queue import LifoQueue
 from gotoelim import *
