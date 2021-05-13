@@ -54,28 +54,28 @@ def goto_elimination_alg(gotos, lbls, ast, log_enable=True, allnodes=None):
 
         while indirectly_related(goto, lbl):
             move_out_of_loop_or_if(goto)
-            log_evlolution.log("move_out_of_loop_or_if:", ast)
+            log_evlolution.log("move_out_of_loop_or_if: %s" % goto.label, ast)
 
         while directly_related(goto, lbl):
             if level(goto) > level(lbl):
                 move_out_of_loop_or_if(goto)
-                log_evlolution.log("move_out_of_loop_or_if:", ast)
+                log_evlolution.log("move_out_of_loop_or_if: %s" % goto.label, ast)
             else:
                 lblstm = find_directly_related_lblstm(goto, lbl)
                 if offset(goto) > offset(lblstm):
                     lift_above_lblstm(goto, lblstm)
-                    log_evlolution.log("lift_above_lblstm:", ast)
+                    log_evlolution.log("lift_above_lblstm: %s" % goto.label, ast)
                 else:
                     move_into_loop_or_if(goto, lbl)
-                    log_evlolution.log("move_into_loop_or_if:", ast)
+                    log_evlolution.log("move_into_loop_or_if: %s" % goto.label, ast)
 
         if siblings(goto, lbl):
             if offset(goto) < offset(lbl):
                 eliminate_by_cond(goto, lbl)
-                log_evlolution.log("eliminate_by_cond:", ast)
+                log_evlolution.log("eliminate_by_cond: %s" % goto.label, ast)
             else:
                 eliminate_by_dowhile(goto, lbl)
-                log_evlolution.log("eliminate_by_dowhile:", ast)
+                log_evlolution.log("eliminate_by_dowhile: %s" % goto.label, ast)
         else:
             raise Exception("elimination fail")
 
@@ -129,7 +129,6 @@ def trim_trivial_stms_and_ifbranches(ast):
             if stm.bvar.__str__() == stm.right.__str__():
                 return True
         return False
-
     def is_tautological_ifbranch_statement(stm, cond):
         ''' checks if if-branch condition is simply reassigned '''
         if type(stm) is not AST_bassign:
@@ -142,12 +141,9 @@ def trim_trivial_stms_and_ifbranches(ast):
             return False
         if not hasattr(cond, "right"):
             return False
-
         if stm.bvar.varname == cond.right.varname and (type(cond) == AST_not and type(stm.right) == AST_false):
             return True
-
         return False
-
     def is_empty_ifbranch(ifstm):
         if type(ifstm.block) == AST_pass and ifstm.block.next == None:
             return True
@@ -184,7 +180,6 @@ def trim_trivial_stms_and_ifbranches(ast):
                 continue
 
         node = itr.next()
-
 def shift_lbls_to_reinitialized_labelvars(gotos, lbls):
     '''
     (Re-)init a boolean variable "goto_i" to false exactly at every label, to ensure this logical var is false
@@ -197,7 +192,6 @@ def shift_lbls_to_reinitialized_labelvars(gotos, lbls):
         init_to_false = AST_bassign(AST_bvar("goto_%d" % getter.index), AST_false())
         _insert_before(node=init_to_false, before=lbl)
         lbls[getter] = init_to_false
-
 def init_logical_labelvars_start(gotos, lbls, ast):
     ''' Create a boolean var "goto_i" initialized to false for every goto, just after the ast root '''
     if type(ast) is not AST_root:
@@ -224,7 +218,6 @@ def find_directly_related_lblstm(blocknode, lbl) -> AST_STM:
         if lvldiff == 0 and issubclass(type(node), AST_FORK):
             return node
     raise Exception("find_directly_related_lblstm: find_lblstm fail: did not converge, are blocknode and lbl directly related?")
-
 def indirectly_related(goto, lbl) -> bool:
     if siblings(goto, lbl):
         return False

@@ -22,6 +22,11 @@ class AST_STM:
         self.next = None
         self.up = None # the reverse of AST_FORM.block
         self.label = None
+    def add_comment(self, lbl):
+        if self.label is not None:
+            self.label = self.label + ", " + lbl
+        else:
+            self.label = lbl
 class AST_BOOL:
     def __init__(self):
         self.parent = None
@@ -54,7 +59,10 @@ class AST_extern(AST_STM):
         self.dgid = dgid
         self.extern_text = None
     def pycode(self):
-        return self.extern_text + _get_label_str(self.label)
+        if self.extern_text is not None:
+            return self.extern_text + _get_label_str(self.label)
+        else:
+            return "(no extern_text)"+ _get_label_str(self.label)
     def __str__(self):
         if self.dgid == None:
             return "extern: None"
@@ -397,8 +405,9 @@ def AST_from_flowchart(fcroot):
             labels[astnew] = treesibs[vis]
 
             labeling_idx += 1
-            astnew.label = "goto_%d" % labeling_idx
-            labels[astnew].label = "lbl_%d" % labeling_idx
+            astnew.add_comment("goto_%d" % labeling_idx)
+            astnew.index = labeling_idx
+            labels[astnew].add_comment("lbl_%d" % labeling_idx)
 
             gotos.append(astnew)
             AST_connect(astnode, astnew)
@@ -436,12 +445,6 @@ def AST_from_flowchart(fcroot):
         if node == None:
             if stack.qsize() > 0:  # safe get no wait
                 (node, astnode) = stack.get_nowait()
-
-    # dg_expr_assign an index to each goto to ease debugging
-    gidx = 0
-    for g in gotos:
-        g.index = gidx
-        gidx = gidx + 1
 
     # done
     return astroot, gotos, labels
