@@ -178,10 +178,14 @@ class GraphInterfaceNSGen extends GraphInterface {
   }
   _resizeCB() {
     let btnsmenu = d3.select("#buttons");
-    btnsmenu.style("left", window.innerWidth/2-btnsmenu.node().clientWidth/2 + "px");
+    btnsmenu.style("left", "120px");
+
+    // useful line to center some div in the windows:
+    //btnsmenu.style("left", window.innerWidth/2-btnsmenu.node().clientWidth/2 + "px");
 
     // TODO: move this out into graphs.html and put in a resize cb? (localization)
     //let tpeedt = d3.select("#tpeedt_1");
+
     let tpeedt = d3.select("#tpeedt_wrapper");
     let w = tpeedt.node().getBoundingClientRect().width;
     tpeedt.style("left", window.innerWidth - w + "px");
