@@ -19,10 +19,9 @@ function remove(lst, element) {
 }
 
 
-function isString(value) {
-  // checks if value is a string
-  let b1 = (typeof value === 'string' || value instanceof String);
-  return b1;
+function is_string(value) {
+  // check if value is a string
+  return (typeof value === 'string' || value instanceof String);
 }
 
 
@@ -2599,7 +2598,7 @@ class GraphInterface {
       }
     }
     else if (command=="node_data") {
-      if (!isString(args[1])) {
+      if (!is_string(args[1])) {
         throw "node_data: args[1] must be a string: ", args;
       }
       let id = args[0];

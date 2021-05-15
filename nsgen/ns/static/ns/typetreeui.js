@@ -133,7 +133,7 @@ class TypeTreeUi {
       conf = cn.getNode(branch_name);
       conf.sort_idx = 1;
     }
-    else throw "createNode bad format: " + res[0];
+    else throw "CreateNode bad format: " + res[0];
 
     // check global tt uniquness - assume existence, look for "not found" exception
     if (this._checkConfExists(conf, "user.builtin") || this._checkConfExists(conf, "user.custom")) {
@@ -290,11 +290,16 @@ class CreateNode {
       this.args = []; // [name, tpe] entres go here
       this._recurseArgs(args_result);
       // TO the reader: sorry for this line
-      this.name += "(" + this.args.map((itm)=>{ return (itm[1] + " " + itm[0]).trim(); }).join(", ") + ")";
+      this.name += "("+ this.args.map( (itm)=>{
+          return (itm[1] + " " + itm[0]).trim();
+        }).join(", ") + ")";
       this.label += "()";
     }
     // put a label (including args): name is actually type_tree key, so we need a label to display Cls.Mthd(...)
+    // original C-style ret type notation:
     if (rettpe != null && hiderettpe == false) this.name = rettpe + " " + this.name;
+    // next-level notation:
+    //if (rettpe != null && hiderettpe == false) this.name = this.name + " -> " + rettpe;
   }
   _recurseArgs(args_result) {
     let res = args_result;
