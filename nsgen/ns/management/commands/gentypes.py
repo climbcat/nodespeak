@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 import json
 import os
 
-from treealg import TreeJsonAddr, NodeConfig
+from simplegraph import TreeJsonAddr, NodeConfig
 from ns.models import TypeSchema
 
 
@@ -73,33 +73,6 @@ def gen_static_branch(tree, address):
     address.insert(4, dec.address)
     flowaddr.insert(4, dec.address)
 
-    # fill out static datagraph branch
-    obj = NodeConfig()
-    obj.docstring = "object handle"
-    obj.type = 'object'
-    obj.address = '.'.join(['static', 'datagraph', 'object'])
-    obj.basetype = 'object'
-    obj.ipars = ['']
-    obj.itypes = ['']
-    obj.otypes = ['']
-    obj.name = 'object'
-    tree.put('static.datagraph', obj.get_repr(), get_key)
-    address.append(obj.address)
-    dgaddr.append(obj.address)
-
-    literal = NodeConfig()
-    literal.docstring = "input value handle"
-    literal.type = 'literal'
-    literal.address = '.'.join(['static', 'datagraph', 'literal'])
-    literal.basetype = 'object_literal'
-    literal.ipars = ['']
-    literal.itypes = ['']
-    literal.otypes = ['']
-    literal.name = 'literal'
-    tree.put('static.datagraph', literal.get_repr(), get_key)
-    address.append(literal.address)
-    dgaddr.append(literal.address)
-
     return flowaddr, dgaddr
 
 
@@ -157,7 +130,7 @@ def gen_user_branch(tree, address):
 def create_typeschema_todb(dct):
     ts = TypeSchema()
     ts.data_str = json.dumps(dct)
-    ts.version = os.path.splitext(os.path.basename(__file__))[0]
+    ts.version = "gentypes_v3"
     ts.save()
     print("saved typeschema to db with id=%s..." % str(ts.id))
 
