@@ -44,6 +44,7 @@ class TypeTreeUi {
       .remove();
     this.typegrp = root.append("g");
     this.statusgrp = root.append("g");
+
     // input textbox
     let tbxid = "tbxenter" + this.title;
     if (usetbx == true) {
@@ -58,6 +59,7 @@ class TypeTreeUi {
           // clear
           el.property("value", "");
         }.bind(this));
+
       // TODO: docstring
     }
     // dynamic elements get a subgroup (so we can use delete *)
@@ -167,7 +169,7 @@ class TypeTreeUi {
   }
   _tryDeleteCB(addr) {
     // clear
-//    this._clearMsg();
+    // this._clearMsg();
 
     // this "delete hook" prevents deletion of types with active graph nodes
     if (this._canDeleteHook != null && !this._canDeleteHook(addr)) {
@@ -222,7 +224,7 @@ class TypeTreeUi {
       .enter()
       .append("div")
       .style("margin", "auto");
-    containers
+    let txt_divs = containers
       // text element
       .append("div")
       .style("display", "inline-block")
@@ -230,11 +232,11 @@ class TypeTreeUi {
       .on("click", function(d) {
         d.wordClicked();
       })
-      .html(function(d) { return d.text; })
+      .html(function(d) { return d.text; });
+
     containers
       // delete btn (x) floating to the right
       .append("div")
-      .style("display", "inline-block")
       .style("margin-left", "25px")
       .style("width", "15px")
       .style("height", "100%")
@@ -245,6 +247,27 @@ class TypeTreeUi {
         d.deleteClicked();
       })
       .html("x");
+
+    // get max width
+    let maxwidth = 0;
+    txt_divs
+      .each(function(d) {
+        let width = d3.select(this).node().getBoundingClientRect().width;
+        if (maxwidth < width) maxwidth = width;
+      });
+
+    // this should not be done, but I want to finish this project !
+    d3.select("#tpeedt_wrapper")
+      .style("min-width", maxwidth + 50 + "px")
+
+    // NOTE: duplicate code from nsgen GraphInterfaceNSGen._resizeCB():
+    let tpeedt = d3.select("#tpeedt_wrapper");
+    let w = tpeedt.node().getBoundingClientRect().width;
+    tpeedt.style("left", window.innerWidth - w + "px");
+
+    // reset the text box width
+    d3.select("#" + "tbxenter" + this.title)
+      .style("width", w - 75 + "px");
   }
 }
 
