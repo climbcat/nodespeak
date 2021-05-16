@@ -1867,6 +1867,9 @@ class GraphDraw {
   rgstrClickSVG(f) { this._clickSVGListeners.push(f); }
   deregClickSVG(f) { remove(this._clickSVGListeners, f); }
   fireClickSVG(...args) { fireEvents(this._clickSVGListeners, "clickSVG", ...args); }
+  rgstrMouseUpSVG(f) { this._mouseupSVGListeners.push(f); }
+  deregMouseUpSVG(f) { remove(this._mouseupSVGListeners, f); }
+  fireMouseUpSVG(...args) { fireEvents(this._mouseupSVGListeners, "mouseupSVG", ...args); }
   rgstrClickNode(f) { this._clickNodeListeners.push(f); }
   deregClickNode(f) { remove(this._clickNodeListeners, f); }
   fireClickNode(...args) { fireEvents(this._clickNodeListeners, "selectNode", ...args); }
@@ -1902,6 +1905,7 @@ class GraphDraw {
     this._mouseAddLinkListeners = [];
     this._dblClickNodeListeners = [];
     this._clickSVGListeners = [];
+    this._mouseupSVGListeners = [];
     this._clickNodeListeners = [];
     this._ctrlClickNodeListeners = [];
     this._mouseDownNodeListeners = [];
@@ -1935,7 +1939,14 @@ class GraphDraw {
         let svg_x = m[0];
         let svg_y = m[1];
         self.fireClickSVG(svg_x, svg_y);
-      } );
+      })
+      .on("mouseup", function() {
+        //self.update();
+        let m = d3.mouse(this)
+        let svg_x = m[0];
+        let svg_y = m[1];
+        self.fireMouseUpSVG(svg_x, svg_y);
+      });
 
     this.draggable = null;
     this.dragAnchor = null;
@@ -2222,6 +2233,7 @@ class GraphInterface {
     this.draw.rgstrClickNode(this._selNodeCB.bind(this));
     this.draw.rgstrDblClickNode(this._dblclickNodeCB.bind(this));
     this.draw.rgstrClickSVG(this._createNodeCB.bind(this));
+    this.draw.rgstrMouseUpSVG(this._createNodeCB.bind(this));
     this.draw.rgstrResize(this._resizeCB.bind(this));
     this.layout = this._getStandardLayout();
     // node connection logics
@@ -2753,6 +2765,7 @@ class NodeTypeMenu {
       .attr("height", 80)
       .datum(conf)
       .on("click", function(d) { this.fireClickConf(d); }.bind(this) )
+      .on("mousedown", function(d) { this.fireClickConf(d); }.bind(this) )
       .append("g")
       .datum(n.gNode)
       .attr("transform", "translate(40, 45)");
