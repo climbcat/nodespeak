@@ -223,7 +223,9 @@ class TypeTreeUi {
       .data(vtd_lst)
       .enter()
       .append("div")
-      .style("margin", "auto");
+      .style("font-size", "13px")
+      .style("margin-top", "0px")
+      .style("margin-bottom", "-1px")
     let txt_divs = containers
       // text element
       .append("div")
@@ -243,6 +245,7 @@ class TypeTreeUi {
       .style("background", "white")
       .style("cursor", "pointer")
       .style("float", "right")
+      .style("font-size", "12px")
       .on("click", function(d) {
         d.deleteClicked();
       })

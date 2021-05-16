@@ -7,22 +7,22 @@
 
 <body>
 
-<div id="buttons" style="position:absolute;margin:auto;">
-  <a href="/dashboard">home</a>
-  <a href="/dashboard">logout</a><br>
-  <hr style="margin-top:15px;margin-bottom:15px;">
-  <button id="btnUndo" style="font-size:12px;cursor:pointer;margin:5px;padding: 15px 15px;color: white;background-color:#e7e7e7;border:none;color:black;">Undo</button>
-  <button id="btnRedo" style="font-size:12px;cursor:pointer;margin:5px;padding: 15px 15px;color: white;background-color:#e7e7e7;border:none;color:black;">Redo</button>
-  <button id="btnLoad" style="font-size:12px;cursor:pointer;margin:5px;padding: 15px 15px;color: white;background-color:#e7e7e7;border:none;color:black;">Load</button>
-  <button id="btnCommit" style="font-size:12px;cursor:pointer;margin:5px;padding: 15px 15px;color: white;background-color:#e7e7e7;border:none;color:black;">Save</button>
-  <button id="btnCogen" style="font-size:12px;cursor:pointer;margin:5px;padding: 15px 15px;color: white;background-color:#e7e7e7;border:none;color:black;">Cogen</button>
-  <div style="text-align:left;margin-top:15px;">
-    <input type="text" id="tbxNodeLabel" size=8>
-    <label id="status" style="margin-left:15px;">(status)</label>
+<div id="buttons" style="position:absolute;margin:auto;left:90px">
+  <a href="/dashboard" style="font-size:12px;">home</a>
+  <a href="/dashboard" style="font-size:12px;">logout</a><br>
+  <hr style="margin-top:15px;margin-bottom:12px;">
+  <button id="btnUndo" style="font-size:10px;cursor:pointer;margin:5px;padding:12px 12px;color:white;background-color:#e7e7e7;border:none;color:black;">Undo</button>
+  <button id="btnRedo" style="font-size:10px;cursor:pointer;margin:5px;padding:12px 12px;color:white;background-color:#e7e7e7;border:none;color:black;">Redo</button>
+  <button id="btnLoad" style="font-size:10px;cursor:pointer;margin:5px;padding:12px 12px;color:white;background-color:#e7e7e7;border:none;color:black;">Load</button>
+  <button id="btnCommit" style="font-size:10px;cursor:pointer;margin:5px;padding:12px 12px;color:white;background-color:#e7e7e7;border:none;color:black;">Save</button>
+  <button id="btnCogen" style="font-size:10px;cursor:pointer;margin:5px;padding:12px 12px;color:white;background-color:#e7e7e7;border:none;color:black;">Cogen</button>
+  <div style="text-align:left;margin-top:12px;margin-bottom:12px;">
+    <input type="text" id="tbxNodeLabel" size=8 style="font-size:12px;">
   </div>
+  <label id="status" style="font-size:16px;">(status)</label>
 </div>
 
-<div id="graph_menu_4" style="position:absolute;left:  0px;overflow-y:hidden;overflow-x:hidden;margin:auto;margin-bottom:1px;"></div>
+<div id="graph_menu_4" style="position:absolute;left:0px;overflow-y:hidden;overflow-x:hidden;margin:auto;margin-bottom:1px;"></div>
 
 <div id="tpeedt_wrapper" style="position:absolute;overflow-y:hidden;overflow-x:hidden;margin:auto;">
 <div id="tpeedt_1"></div>
@@ -100,7 +100,7 @@ $(document).ready(() => {
 
     // type editor
     d3.select("#tpeedt_wrapper")
-      .style("width", "300px")
+      .style("width", "250px")
       .style("background-color", "white")
       .style("padding", "3px")
       .style("border", "1px solid gray");

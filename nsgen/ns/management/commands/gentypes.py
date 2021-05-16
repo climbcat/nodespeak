@@ -17,7 +17,7 @@ def get_key(conf):
 def gen_static_branch(tree, address):
     flowaddr = []
     dgaddr = []
-    
+
     # fill out static flowchart branch
     term_I = NodeConfig()
     term_I.docstring = "Terminal enter program/in."
@@ -31,19 +31,6 @@ def gen_static_branch(tree, address):
     tree.put('static.flowchart', term_I.get_repr(), get_key)
     address.insert(1, term_I.address)
     flowaddr.insert(1, term_I.address)
-
-    term_O = NodeConfig()
-    term_O.docstring = "Terminal exit program/out."
-    term_O.type = 'term_O'
-    term_O.address = '.'.join(['static', 'flowchart', 'term_O'])
-    term_O.basetype = 'term'
-    term_O.ipars = ['']
-    term_O.itypes = ['flow']
-    term_O.otypes = []
-    term_O.name = 'term_O'
-    tree.put('static.flowchart', term_O.get_repr(), get_key)
-    address.insert(2, term_O.address)
-    flowaddr.insert(2, term_O.address)
 
     proc = NodeConfig()
     proc.docstring = "Process. One process, one data graph subtree call."
@@ -73,6 +60,19 @@ def gen_static_branch(tree, address):
     address.insert(4, dec.address)
     flowaddr.insert(4, dec.address)
 
+    term_O = NodeConfig()
+    term_O.docstring = "Terminal exit program/out."
+    term_O.type = 'term_O'
+    term_O.address = '.'.join(['static', 'flowchart', 'term_O'])
+    term_O.basetype = 'term'
+    term_O.ipars = ['']
+    term_O.itypes = ['flow']
+    term_O.otypes = []
+    term_O.name = 'term_O'
+    tree.put('static.flowchart', term_O.get_repr(), get_key)
+    address.insert(2, term_O.address)
+    flowaddr.insert(2, term_O.address)
+
     return flowaddr, dgaddr
 
 
@@ -80,11 +80,12 @@ def gen_user_branch(tree, address):
     biaddr = []
     customaddr = []
 
+    # user built-in branch
+
     obj = NodeConfig()
     obj.docstring = "built-in bool"
     obj.type = 'bool'
     obj.address = 'user.builtin.bool'
-    # TODO: how do we handle nodes of simple types?
     obj.basetype = 'object_typed'
     obj.ipars = ['']
     obj.itypes = ['']
@@ -95,7 +96,6 @@ def gen_user_branch(tree, address):
     address.append(obj.address)
     biaddr.append(obj.address)
 
-    # user built-in branch
     obj = NodeConfig()
     obj.docstring = "built-in int"
     obj.type = 'int'
@@ -110,7 +110,6 @@ def gen_user_branch(tree, address):
     address.append(obj.address)
     biaddr.append(obj.address)
 
-    # user built-in branch
     obj = NodeConfig()
     obj.docstring = "built-in string"
     obj.type = 'string'
@@ -125,12 +124,26 @@ def gen_user_branch(tree, address):
     address.append(obj.address)
     biaddr.append(obj.address)
 
+    obj = NodeConfig()
+    obj.docstring = "untyped object"
+    obj.type = 'untyped'
+    obj.address = 'user.builtin.untyped'
+    obj.basetype = 'object'
+    obj.ipars = ['']
+    obj.itypes = ['']
+    obj.otypes = ['']
+    obj.name = 'any'
+    obj.label = ''
+    tree.put('user.builtin', obj.get_repr(), get_key)
+    address.append(obj.address)
+    biaddr.append(obj.address)
+
     return biaddr, customaddr
 
 def create_typeschema_todb(dct):
     ts = TypeSchema()
     ts.data_str = json.dumps(dct)
-    ts.version = "gentypes_v3"
+    ts.version = "gentypes_v4"
     ts.save()
     print("saved typeschema to db with id=%s..." % str(ts.id))
 

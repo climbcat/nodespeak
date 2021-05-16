@@ -159,10 +159,10 @@ function getOutputAngles(num) {
   } else throw "give a number from 0 to 5";
 }
 
-const nodeRadius = 30;
-const extensionLength = 40;
-const anchSpace = 40;
-const arrowHeadLength = 12;
+const nodeRadius = 24;
+const extensionLength = 32;
+const anchSpace = 34;
+const arrowHeadLength = 10;
 const arrowHeadAngle = 25;
 
 class GraphicsNode {
@@ -738,7 +738,10 @@ class LinkSingle extends Link {
     return branch
       .append('path')
       .datum(anchors)
-      .attr("class", "arrow")
+      .attr("stroke", "black")
+      .attr("stroke-width", ".8")
+      .attr("stroke-opacity", ".8")
+      .attr("fill", "none")
       .attr('d', d3.line()
         .curve(d3.curveBasis)
         .x( function(p) { return p.x; } )
@@ -770,7 +773,7 @@ class LinkDouble extends Link {
     branch
       .append('path')
       .datum(anchors)
-      .attr("class", "arrowThick")
+      .attr("stroke-width", "1px")
       .attr('d', d3.line()
         .curve(d3.curveBasis)
         .x( function(p) { return p.x; } )
@@ -779,7 +782,7 @@ class LinkDouble extends Link {
     branch
       .append('path')
       .datum(anchors)
-      .attr("class", "arrowThin")
+      .attr("stroke-width", "1px")
       .attr('d', d3.line()
         .curve(d3.curveBasis)
         .x( function(p) { return p.x; } )
@@ -822,9 +825,10 @@ class LinkStraight extends Link {
     return branch
       .append('path')
       .datum(anchors)
-      .classed("comboLine", true)
+      .attr("stroke-width", "2px")
+      .attr("stroke-dasharray", "15, 6")
       .attr("stroke", this.strokecolor)
-      .attr("opacity", "0.5")
+      .attr("opacity", "0.4")
       .attr('d', d3.line()
         .x( function(p) { return p.x; } )
         .y( function(p) { return p.y; } )
@@ -2081,7 +2085,7 @@ class GraphDraw {
     branch.append('text')
       .text( function(d) { return d.label } )
       .attr("font-family", "sans-serif")
-      .attr("font-size", "20px")
+      .attr("font-size", "15px")
       .attr("text-anchor", "middle")
       .attr("dominant-baseline", "middle")
       .style("cursor", "pointer")
@@ -2740,18 +2744,18 @@ class NodeTypeMenu {
 
     let branch = this.root
       .append("div")
-      .style('width', "100px")
-      .style('height', "100px")
+      .style('width', "80px")
+      .style('height', "80px")
       .classed("menuItem", true)
       .append("svg")
       .attr("style", "background-color:white;")
-      .attr("width", 100)
-      .attr("height", 100)
+      .attr("width", 80)
+      .attr("height", 80)
       .datum(conf)
       .on("click", function(d) { this.fireClickConf(d); }.bind(this) )
       .append("g")
       .datum(n.gNode)
-      .attr("transform", "translate(50, 60)");
+      .attr("transform", "translate(40, 45)");
 
     this.drawMenuNode(branch);
     //this.menus.push(branch);
@@ -2788,7 +2792,7 @@ class NodeTypeMenu {
       .attr("font-size", "10px")
       .attr("text-anchor", "middle")
       .attr("dominant-baseline", "middle")
-      .attr("transform", "translate(0, -45)" )
+      .attr("transform", "translate(0, -36)" )
       .classed("noselect", true)
       .lower();
 

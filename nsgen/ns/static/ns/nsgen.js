@@ -177,9 +177,6 @@ class GraphInterfaceNSGen extends GraphInterface {
     }.bind(this));
   }
   _resizeCB() {
-    let btnsmenu = d3.select("#buttons");
-    btnsmenu.style("left", "120px");
-
     // useful line to center some div in the windows:
     //btnsmenu.style("left", window.innerWidth/2-btnsmenu.node().clientWidth/2 + "px");
 
