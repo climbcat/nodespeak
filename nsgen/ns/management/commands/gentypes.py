@@ -83,7 +83,7 @@ def gen_user_branch(tree, address):
     # user built-in branch
 
     obj = NodeConfig()
-    obj.docstring = "built-in bool"
+    obj.docstring = "language bool"
     obj.type = 'bool'
     obj.address = 'user.builtin.bool'
     obj.basetype = 'object_typed'
@@ -97,7 +97,7 @@ def gen_user_branch(tree, address):
     biaddr.append(obj.address)
 
     obj = NodeConfig()
-    obj.docstring = "built-in int"
+    obj.docstring = "language int"
     obj.type = 'int'
     obj.address = 'user.builtin.int'
     obj.basetype = 'object_typed'
@@ -111,7 +111,7 @@ def gen_user_branch(tree, address):
     biaddr.append(obj.address)
 
     obj = NodeConfig()
-    obj.docstring = "built-in string"
+    obj.docstring = "language string"
     obj.type = 'string'
     obj.address = 'user.builtin.string'
     obj.basetype = 'object_typed'
@@ -125,14 +125,14 @@ def gen_user_branch(tree, address):
     biaddr.append(obj.address)
 
     obj = NodeConfig()
-    obj.docstring = "untyped object"
+    obj.docstring = "gains contextual type"
     obj.type = 'untyped'
     obj.address = 'user.builtin.untyped'
     obj.basetype = 'object'
     obj.ipars = ['']
     obj.itypes = ['']
     obj.otypes = ['']
-    obj.name = 'any'
+    obj.name = 'usertype'
     obj.label = ''
     tree.put('user.builtin', obj.get_repr(), get_key)
     address.append(obj.address)
