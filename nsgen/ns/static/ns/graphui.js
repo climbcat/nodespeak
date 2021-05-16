@@ -386,9 +386,9 @@ class GraphicsNodeHexagonal extends GraphicsNode {
 class GraphicsNodeFluffy extends GraphicsNode {
   constructor(owner, label, x, y) {
     super(owner, label, x, y);
-    this.numfluff = 14;
+    this.numfluff = 8;
     this.fluffrad = 7;
-    this.r = 1.05 * nodeRadius;
+    this.r = 0.9 * nodeRadius;
     this.colliderad = this.r;
   }
   draw(branch, i) {
