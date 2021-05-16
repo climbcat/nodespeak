@@ -234,6 +234,9 @@ class TypeTreeUi {
       .on("click", function(d) {
         d.wordClicked();
       })
+      .on("mousedown", function(d) {
+        d.wordClicked();
+      })
       .html(function(d) { return d.text; });
 
     containers
