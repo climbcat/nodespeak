@@ -36,11 +36,13 @@
 
 <script src="/static/ns/d3.v4.min.js"></script>
 <script src="/static/ns/jquery.min.js"></script>
+<script src="/static/ns/jquery-ui.js"></script>
+<script src="/static/ns/jquery.ui.css"></script>
 <script src="/static/ns/typetreeui.js"></script>
 <script src="/static/ns/tpeparser.js"></script>
 <script src="/static/ns/graphui.js"></script>
-<script src="/static/ns/nodetypes.js"></script>
 <script src="/static/ns/nsgen.js"></script>
+<script src="/static/ns/subwindow.js"></script>
 
 <script>
 let intface = null;
@@ -118,6 +120,10 @@ $(document).ready(() => {
 
   // load graph and run
   intface.loadSession();
+
+  // TEMPLATE code
+  // create a subwindow
+  createSubWindow("test_name", 500, 300, 400);
 });
 </script>
 </html>
