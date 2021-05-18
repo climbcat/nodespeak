@@ -122,11 +122,6 @@ function createSubWindow(wname, xpos, ypos, width) {
 }
 
 
-
-
-
-
-
 class IdxEditWindow {
   // This class is a multi-purpose window containing a plotter, a browser, and an index editor all in one.
   constructor(wname, xpos, ypos, titleadd=null) {
@@ -346,6 +341,7 @@ class IdxEditWindow {
     // standard window
     this.body_container = createSubWindow(
       this.wname, this.mouseupCB, this.dragCB, this.closeCB, xpos, ypos, width, height);
+
     addHeaderButtonToSubwindow(this.wname, "log", 1, this.logscaleCB, "lightgray");
     addHeaderButtonToSubwindow(this.wname, "size", 2, this.sizeCB, "gray");
     this.btnedt_id = addHeaderButtonToSubwindow(this.wname, "editor", 3, this._toggleEditor.bind(this), "dimgray");
