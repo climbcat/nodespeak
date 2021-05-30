@@ -107,15 +107,23 @@ class UserTypeTree {
     this.functions = typetree["functions"];
     this.methods = typetree["methods"];
   }
-
 }
 
 class GraphInterfaceNSGen extends GraphInterface {
+  // cogen event
+  rgstrCogenComplete(f) { this._cogenCompleteListeners.push(f); }
+  deregCogenComplete(f) { remove(this._cogenCompleteListeners, f); }
+  fireCogenComplete(...args) { fireEvents(this._cogenCompleteListeners, "cogenComplete", ...args); }
+
+  // setup
   constructor(gs_id, tab_id) {
     super(gs_id, tab_id, ConnectionRulesNSGen);
-
     this.allSessionData = null;
+
+    // event handler lists
+    this._cogenCompleteListeners = [];
   }
+
   // label set handling - only set labels on "variables" and flow control nodes
   pushSelectedNodeLabel(text) { // override
     let seln = this.graphData.getSelectedNode();
@@ -172,7 +180,9 @@ class GraphInterfaceNSGen extends GraphInterface {
     let gd = this.graphData.extractGraphDefinition();
     this.allSessionData['graphdef'] = gd;
     this.ajaxcall("/ajax_cogen/", this.allSessionData, function(obj) {
-      console.log(atob(obj["code"]));
+      let code_txt = atob(obj["code"])
+      console.log(code_txt);
+      this.fireCogenComplete(code_txt);
       $("body").css("cursor", "default");
     }.bind(this));
   }

@@ -90,7 +90,7 @@ $(document).ready(() => {
 
   // set type tree and create node menus (gentypes01 menu structure)
   intface.addSessionLoadListener( (tree) => {
-    // setup the menus manually
+    // setup the menus
     let fc_addr = tree["menus"]["FLOWCHART"];
     let fc_confs = fc_addr.map( (itm) => nodeTypeReadTree(itm, tree) );
     let menu4 = new NodeTypeMenu('graph_menu_4', 'flowchart', fc_confs);
@@ -116,19 +116,20 @@ $(document).ready(() => {
     intface.updateUi();
   });
 
+  // cogen callback handler - show code in a new subwindow
+  intface.rgstrCogenComplete(function(code_txt) {
+    createSubWindow("test_name", 500, 300, 400);
+    // TODO: use also this to add resize/copy/etc. buttons
+    //addHeaderButtonToSubwindow(this.wname, "log", 1, this.logscaleCB, "lightgray");
+    // TODO: search for "brws_container" in subwindow.js for examples of how to add subwindow "body" elements
+    //addElementToSubWindow(this.wname, brws_container)
+  });
+
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)
   $("body").addClass("noselect");
 
   // load graph and run
   intface.loadSession();
-
-  // TEMPLATE code
-  // create a subwindow
-  createSubWindow("test_name", 500, 300, 400);
-  // TODO: use also this to add resize/copy/etc. buttons
-  //addHeaderButtonToSubwindow(this.wname, "log", 1, this.logscaleCB, "lightgray");
-  // TODO: search for "brws_container" in subwindow.js for examples of how to add subwindow "body" elements
-  //addElementToSubWindow(this.wname, brws_container)
 });
 </script>
 </html>
