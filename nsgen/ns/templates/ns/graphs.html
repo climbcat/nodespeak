@@ -116,14 +116,22 @@ $(document).ready(() => {
     intface.updateUi();
   });
 
+  // code subwindow position params
+  let g_subwin_params = { wleft : 300, wtop : 200, wsize : 500, idx : 0, incf : (self) => { self.wleft += 40; self.wleft = self.wleft % (window.innerWidth - self.wsize - 300) + 100; self.wtop += 40; self.wtop = self.wtop % (window.innerHeight - 400) + 100; self.idx++; }};
   // cogen callback handler - show code in a new subwindow
   intface.rgstrCogenComplete(function(code_txt) {
-    createSubWindow("test_name", 500, 300, 400);
+    let p = g_subwin_params;
+    btn2_cb = () => { console.log("btn 2"); };
+    window_name = "code_subwin_" + p.idx;
+
+    createSubWindow(window_name, p.wleft, p.wtop, p.wsize);
     // TODO: use also this to add resize/copy/etc. buttons
-    //addHeaderButtonToSubwindow(this.wname, "log", 1, this.logscaleCB, "lightgray");
+    addHeaderButtonToSubwindow(window_name, "btn2", 1, btn2_cb, "lightgray");
     // TODO: search for "brws_container" in subwindow.js for examples of how to add subwindow "body" elements
     //addElementToSubWindow(this.wname, brws_container)
-  });
+
+    p.incf(p);
+  }.bind(g_subwin_params));
 
   // universal noselect to prevent selection during node handling. (This does not prevent selection in textboxes etc.)
   $("body").addClass("noselect");
