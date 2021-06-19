@@ -121,14 +121,27 @@ $(document).ready(() => {
   // cogen callback handler - show code in a new subwindow
   intface.rgstrCogenComplete(function(code_txt) {
     let p = g_subwin_params;
-    btn2_cb = () => { console.log("btn 2"); };
-    window_name = "code_subwin_" + p.idx;
+    copy_code_cb = () => { console.log("TODO: impl. copy code btn"); };
+    let window_name = "code_subwin_" + p.idx;
 
     createSubWindow(window_name, p.wleft, p.wtop, p.wsize);
-    // TODO: use also this to add resize/copy/etc. buttons
-    addHeaderButtonToSubwindow(window_name, "btn2", 1, btn2_cb, "lightgray");
-    // TODO: search for "brws_container" in subwindow.js for examples of how to add subwindow "body" elements
-    //addElementToSubWindow(this.wname, brws_container)
+    addHeaderButtonToSubwindow(window_name, "copy", 1, copy_code_cb, "lightgray");
+
+    let edt_container =
+      $("<div id=ID></div>".replace("ID", window_name + "_edtcontainer"))
+      .css({
+        height: "300px",
+      });
+    let tarea = $('<textarea rows=5 id=ID></textarea>'.replace("ID", window_name + "_tarea"))
+      .css({
+        resize: "none",
+        width: "98%",
+        height: "98%",
+        margin: "1px",
+      })
+      .appendTo(edt_container);
+    addElementToSubWindow(window_name, edt_container);
+    if (code_txt != null) tarea.val(code_txt);
 
     p.incf(p);
   }.bind(g_subwin_params));
