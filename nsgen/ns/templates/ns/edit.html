@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+  <script>window.onload = function() { document.getElementById("title").focus(); }</script>
+</head>
+
+<body>
+<fieldset style="width:400px;">
+<br>
+<legend>Your session {{ gs_id }} meta data:</legend>
+<form action="/edit_submit/{{ gs_id }}" id="edit_form" method="post">
+<table>
+  <tr>
+  <td style="padding-left:0px;">Title</td>
+  <td style="padding-left:25px;"><input type="text" name="title" id="title" value="{{ prev_title }}"/></td>
+  <td></td>
+  <td style="text-align:right;"><input type="submit" value="Save/Resume"></input></td>
+  </tr>
+</table>
+</form>
+
+<textarea rows="10" cols="50" name="description" id="description" form="edit_form">{{ prev_description }}</textarea>
+<br>
+<br>
+</fieldset>
+</body>
+
+</html>

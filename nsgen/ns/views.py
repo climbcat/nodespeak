@@ -23,6 +23,20 @@ def login_submit(req):
     auth.login(req, user)
     return redirect("/latest/")
 
+
+@login_required
+def edit(req, gs_id):
+    gs = GraphSession.objects.get(id=gs_id)
+    return render(req, "ns/edit.html", context={ "gs_id" : gs_id, "prev_title" : gs.title, "prev_description" : gs.description })
+
+@login_required
+def edit_submit(req, gs_id):
+    gs = GraphSession.objects.get(id=gs_id)
+    gs.title = req.POST["title"]
+    gs.description=req.POST["description"]
+    gs.save()
+    return redirect(graphui, gs_id=gs_id)
+
 @login_required
 def logout(req):
     auth.logout(req)
@@ -30,10 +44,12 @@ def logout(req):
 
 @login_required
 def graphui(req, gs_id):
+    gs = GraphSession.objects.get(id=gs_id)
     ct = {
         "gs_id" : gs_id,
         "tab_id" : 0,
-        }
+        "title" : gs.title
+    }
     return render(req, "ns/graphs.html", context=ct)
 
 @login_required
@@ -71,7 +87,14 @@ def delete_gs(req, gs_id):
 
 @login_required
 def dashboard(req):
-    ct = { "sessions" : [(s.id, s.title) for s in GraphSession.objects.all() ] }
+    sessions = []
+    for s in GraphSession.objects.all():
+        descr = ""
+        if s.description is not None:
+            descr = s.description[:50]
+        sessions.append( (s.id, s.title, descr) )
+    
+    ct = { "sessions" : sessions}
     return render(req, "ns/dashboard.html", context = ct)
 
 @login_required
