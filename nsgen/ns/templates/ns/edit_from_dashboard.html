@@ -9,13 +9,13 @@
 <fieldset style="width:400px;">
 <br>
 <legend>Your session {{ gs_id }} meta data:</legend>
-<form action="/edit_submit/{{ gs_id }}" id="edit_form" method="post">
+<form action="/edit_submit_from_dashboard/{{ gs_id }}" id="edit_form" method="post">
 <table>
   <tr>
   <td style="padding-left:0px;">Title</td>
   <td style="padding-left:25px;"><input type="text" name="title" id="title" value="{{ prev_title }}"/></td>
   <td></td>
-  <td style="text-align:right;"><input type="submit" value="Save/Resume"></input></td>
+  <td style="text-align:right;"><input type="submit" value="Save/Back"></input></td>
   </tr>
 </table>
 </form>

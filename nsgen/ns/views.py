@@ -23,19 +23,31 @@ def login_submit(req):
     auth.login(req, user)
     return redirect("/latest/")
 
-
 @login_required
-def edit(req, gs_id):
+def edit_from_graphs(req, gs_id):
     gs = GraphSession.objects.get(id=gs_id)
-    return render(req, "ns/edit.html", context={ "gs_id" : gs_id, "prev_title" : gs.title, "prev_description" : gs.description })
+    return render(req, "ns/edit_from_graphs.html", context={ "gs_id" : gs_id, "prev_title" : gs.title, "prev_description" : gs.description })
 
 @login_required
-def edit_submit(req, gs_id):
+def edit_submit_from_graphs(req, gs_id):
     gs = GraphSession.objects.get(id=gs_id)
     gs.title = req.POST["title"]
     gs.description=req.POST["description"]
     gs.save()
     return redirect(graphui, gs_id=gs_id)
+
+@login_required
+def edit_from_dashboard(req, gs_id):
+    gs = GraphSession.objects.get(id=gs_id)
+    return render(req, "ns/edit_from_dashboard.html", context={ "gs_id" : gs_id, "prev_title" : gs.title, "prev_description" : gs.description })
+
+@login_required
+def edit_submit_from_dashboard(req, gs_id):
+    gs = GraphSession.objects.get(id=gs_id)
+    gs.title = req.POST["title"]
+    gs.description=req.POST["description"]
+    gs.save()
+    return redirect(dashboard)
 
 @login_required
 def logout(req):

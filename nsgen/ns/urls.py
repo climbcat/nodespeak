@@ -21,8 +21,10 @@ from ns import views
 urlpatterns = [
     url(r'login/?$', views.login),
     url(r'login_submit/?$', views.login_submit),
-    url(r'edit/(?P<gs_id>[0-9]+)/?$', views.edit),
-    url(r'edit_submit/(?P<gs_id>[0-9]+)/?$', views.edit_submit),
+    url(r'edit_from_dashboard/(?P<gs_id>[0-9]+)/?$', views.edit_from_dashboard),
+    url(r'edit_from_graphs/(?P<gs_id>[0-9]+)/?$', views.edit_from_graphs),
+    url(r'edit_submit_from_dashboard/(?P<gs_id>[0-9]+)/?$', views.edit_submit_from_dashboard),
+    url(r'edit_submit_from_graphs/(?P<gs_id>[0-9]+)/?$', views.edit_submit_from_graphs),
     url(r'logout/?$', views.logout),
 
     url(r'session/(?P<gs_id>[0-9]+)/?$', views.graphui),
