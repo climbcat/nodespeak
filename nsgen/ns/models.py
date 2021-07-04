@@ -11,13 +11,13 @@ class TabId(models.Model):
     gs_id = CharField(max_length=200)
 
 class GraphSession(models.Model):
-    # TODO: make user-specific
+    user_id = IntegerField(default=0)
     created = DateTimeField('created', default=timezone.now)
     modified = DateTimeField('modified', default=timezone.now)
 
     org_version = CharField(max_length=200, default="", blank=True, null=True)
     title = CharField(max_length=200, default="", blank=True, null=True)
-    description = TextField(blank=True, null=True)
+    description = TextField(blank=True, default="")
 
     data_str = TextField(blank=True)
     def __str__(self):

@@ -127,6 +127,7 @@ def new_gs(req, ts_id=None):
     else:
         ts_data = TypeSchema.objects.get(id=ts_id)
     gs = GraphSession()
+    gs.user_id = req.user.id
     gs.data_str = ts_data.data_str
     gs.org_version = ts_data.version
     gs.save()
@@ -134,9 +135,15 @@ def new_gs(req, ts_id=None):
 
 @login_required
 def duplicate_gs(req, gs_id=None):
-    ts_data = None
-    gsold = GraphSession.objects.get(id=gs_id)
+    gsold = None
+    if req.user.is_superuser:
+        gsold = GraphSession.objects.get(id=gs_id)
+    else:
+        gsold = GraphSession.objects.get(id=gs_id, user_id=req.user.id)
+    if gsold is None:
+        return redirect(dashboard)
     gsnew = GraphSession()
+    gsnew.user_id = req.user.id
     gsnew.data_str = gsold.data_str
     gsnew.org_version = gsold.org_version
     gsnew.save()
@@ -145,8 +152,13 @@ def duplicate_gs(req, gs_id=None):
 @login_required
 def delete_gs(req, gs_id):
     try:
-        gs = GraphSession.objects.get(id=gs_id)
-        gs.delete()
+        gs = None
+        if req.user.is_superuser:
+            gs = GraphSession.objects.get(id=gs_id)
+        else:
+            gs = GraphSession.objects.get(id=gs_id, user_id=req.user.id)
+        if gs is not None:
+            gs.delete()
     except:
         print("graph session %s" % gs_id + " to delete not found")
     return redirect(dashboard)
@@ -154,7 +166,15 @@ def delete_gs(req, gs_id):
 @login_required
 def dashboard(req):
     sessions = []
-    for s in GraphSession.objects.all():
+
+    # load appropriate objects     
+    qset = None
+    if req.user.is_superuser:
+        qset = GraphSession.objects.all()
+    else:
+        qset = GraphSession.objects.filter(user_id=req.user.id)
+
+    for s in qset:
         descr = ""
         if s.description is not None:
             descr = s.description[:50]
