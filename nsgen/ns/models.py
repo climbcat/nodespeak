@@ -2,6 +2,10 @@ from django.db import models
 from django.db.models import TextField, CharField, DateTimeField, BooleanField, IntegerField
 from django.utils import timezone
 
+class SignUp(models.Model):
+    email = CharField(max_length=200, default="", blank=True, null=True)
+    token = CharField(max_length=200, default="", blank=True, null=True)
+
 class TabId(models.Model):
     created = DateTimeField('created', default=timezone.now)
     gs_id = CharField(max_length=200)

@@ -21,11 +21,16 @@ from ns import views
 urlpatterns = [
     url(r'login/?$', views.login),
     url(r'login_submit/?$', views.login_submit),
+    url(r'logout/?$', views.logout),
+
+    url(r'signup/?$', views.signup),
+    url(r'signup_sumit/?$', views.signup_submit),
+    url(r'emailconf/(?P<token>[0-9\w]+)/?$', views.emailconf),
+
     url(r'edit_from_dashboard/(?P<gs_id>[0-9]+)/?$', views.edit_from_dashboard),
     url(r'edit_from_graphs/(?P<gs_id>[0-9]+)/?$', views.edit_from_graphs),
     url(r'edit_submit_from_dashboard/(?P<gs_id>[0-9]+)/?$', views.edit_submit_from_dashboard),
     url(r'edit_submit_from_graphs/(?P<gs_id>[0-9]+)/?$', views.edit_submit_from_graphs),
-    url(r'logout/?$', views.logout),
 
     url(r'session/(?P<gs_id>[0-9]+)/?$', views.graphui),
 
@@ -40,8 +45,6 @@ urlpatterns = [
     url(r'ajax_load/(?P<gs_id>[\w0-9]+)/?$', views.ajax_load),
     url(r'ajax_commit/?$', views.ajax_commit),
     url(r'ajax_cogen/?$', views.ajax_cogen),
-
-    url(r'test/?$', views.test),
 
     url(r'', views.index),
 ]

@@ -1,14 +1,22 @@
 from django.shortcuts import render, HttpResponse, redirect
-from .models import GraphSession, TypeSchema
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.contrib.auth.models import User
 import django.contrib.auth as auth
+from cogen import cogen_graphs_py, cogen_typedefs_py
+from .models import GraphSession, TypeSchema, SignUp
 import base64
 import json
-from cogen import cogen_graphs_py, cogen_typedefs_py
 
-def test(req):
-    return HttpResponse("test")
+import random
+import math
+
+def create_random_hex_data_str(length : int) -> str:
+    chars = ["0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f"]
+    data_arr = []
+    for i in range(length):
+        data_arr.append(chars[math.floor(random.random()*16)])
+    return "".join(data_arr)
 
 def index(req):
     return redirect("/login")
@@ -22,6 +30,52 @@ def login_submit(req):
         return redirect("/login")
     auth.login(req, user)
     return redirect("/latest/")
+
+def signup(req):
+    return render(req, "ns/signup.html")
+
+def signup_submit(req):
+    email = req.POST["email"]
+
+    # TODO: validate format
+    valid = True
+    if not valid:
+        return HttpResponse("email format error detected, use browser back to try again")
+
+    # check if user already exists
+    user = None
+    try:
+        usr = User.objects.get(email=email)
+    except:
+        pass
+    if user is not None:
+        return HttpResponse("user already exists")
+
+    # create the signup object (awaiting email confirmation)
+    signup = SignUp()
+    signup.email = email
+    signup.token = create_random_hex_data_str(16)
+    signup.save()
+
+    conf_link_url = "127.0.0.1:8000"
+    conf_link_app = "/emailconf/%s" % signup.token
+    l = conf_link_url + conf_link_app
+    return HttpResponse("An email should be sent containing link: <a href=\"%s\">%s</a>" % (l, l))
+
+def emailconf(req, token):
+    # get email by token
+    try:
+        obj = SignUp.objects.get(token=token)
+    except:
+        import time
+        # TODO: make some error registration here to detect continued requests
+        time.sleep(1)
+        return HttpResponse("invalid request")
+
+    # TODO: make a proper password and email it to the user (username can probably be equal to email for now)
+    acc = User.objects.create_user(obj.email, obj.email, obj.email)
+
+    return render(req, "ns/email_conf.html", { "email" : obj.email, "password" : acc.password })
 
 @login_required
 def edit_from_graphs(req, gs_id):
