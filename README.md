@@ -1,3 +1,11 @@
+# Flowchart Compiler
+
+Flowcharts are generally not "structured", do not describe structured code, due to the goto-s. Goto elimination allows for a flowchart compiler into structured code. 
+
+This project contains a visual flowchart definition tool, and a back-end flowchart-to-structured-code compiler.
+
+The visual front-end allows users to define two graphs; The code path flowchart, and an associated tree of data. Both of these are combined into structured code, which is output as a python code block. The frontend uses d3js, and the web framework is django.
+
 # nsgen
 
 #### Development setup:
