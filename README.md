@@ -24,12 +24,6 @@ This project implements a combined flowchart & datagraph and goto-elimination to
 
 But what the h*** is a datagraph? The datagraph corresponds to function calls and return values, while the flowchart corresponds to control flow. It also bears mentioning that the flowchart-AST is generally a graph just like the flowchart itself, and not strictly a tree.
 
-#### tldr;
-
-Users visually define two graphs: 1) The flowchart, and 2) the datagraph, an associated tree of data. These graphs are compiled from the initial, gogo-containing, format into structured code, and output as a python code block.
-
-The tech stack is JS/d3js for the front-end and py/django for the back-end.
-
 ## Setup
 
 Django version:
