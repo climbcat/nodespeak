@@ -10,6 +10,8 @@ Well, now you can!
 
 This d3js/Django app implements a visual flowchart & datagraph editor, with a flowchart compiler outputting legal Python translations of your favourite flowcharts.
 
+It was a experimental project I did around ~2018 to learn about compiler tech, web-based UI, and a fun exploration of the concepts of flowcharts, datagraphs, and GOTOs.
+
 ## GOTO elimination
 
 Flowcharts can be transformed into structured code following a process called "GOTO elimination".
