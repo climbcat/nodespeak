@@ -8,7 +8,7 @@ So - what if you could run your flowchart as code in a high-level language like 
 
 Well, now you can!
 
-This JS/d3js front-end implements a visual flowchart & datagraph editor, with the flowchart compiler resting in the Django backend, outputting legal Python translations of your favourite flowcharts.
+This d3js/Django app implements a visual flowchart & datagraph editor, with a flowchart compiler outputting legal Python translations of your favourite flowcharts.
 
 ## GOTO elimination
 
