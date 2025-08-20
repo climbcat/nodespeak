@@ -1,14 +1,34 @@
 # Flowchart Compiler
 
-Flowcharts are generally not "structured", do not describe structured code, due to the goto-s. Goto elimination allows for a flowchart compiler into structured code. 
+Flowcharts correspond to code with GOTOs, and the use of GOTOs is broadly considered bad programming practice.
 
-This project contains a visual flowchart definition tool, and a back-end flowchart-to-structured-code compiler.
+At the same time, flowcharts are low-key considered a convenient "back-of-an-envelope" way of describing small programs. They are actually quite useful.
 
-The visual front-end allows users to define two graphs; The code path flowchart, and an associated tree of data. Both of these are combined into structured code, which is output as a python code block. The frontend uses d3js, and the web framework is django.
+So - what if you could run your flowchart as code in a high-level language like Python or C++?
 
-# nsgen
+Well, now you can!
 
-#### Development setup:
+This JS/d3js front-end implements a visual flowchart & datagraph editor, with the flowchart compiler resting in the Django backend, outputting legal Python translations of your favourite flowcharts.
+
+## GOTO elimination
+
+Flowcharts can be transformed into structured code following a process called "GOTO elimination".
+
+The GOTO elimination process compiles your flowchart-AST into a structured code-AST. AST stands for "abstract syntax tree", a central concept in most compilers - a data format that corresponds to code. Most compilers perform various optimizing operations on the AST in order to later code generate something that is more optimized. In our case, we perform GOTO-elimination on the flowchart-AST, and are able to generate structured code from that.
+
+This project implements a combined flowchart & datagraph and goto-elimination tool. So perhaps, the code it outputs tends to be unreadable, however, it does work! Declared a successful tech demo.
+
+#### NOTE
+
+What the h*** is a datagraph, you may ask? The datagraph corresponds to function calls and return values, while the flowchart corresponds to control flow. It also bears mentioning that the flowchart-AST is generally a graph just like the flowchart itself, and not strictly a tree.
+
+#### tldr;
+
+Users visually define two graphs: 1) The flowchart, and 2) the datagraph, an associated tree of data. These graphs are compiled from the initial, gogo-containing, format into structured code, and output as a python code block.
+
+The tech stack is JS/d3js for the front-end and py/django for the back-end.
+
+## Setup
 
 Django version:
 - pip install Django==2.2.12
