@@ -22,7 +22,7 @@ This project implements a combined flowchart & datagraph and goto-elimination to
 
 #### NOTE
 
-What the h*** is a datagraph, you may ask? The datagraph corresponds to function calls and return values, while the flowchart corresponds to control flow. It also bears mentioning that the flowchart-AST is generally a graph just like the flowchart itself, and not strictly a tree.
+But what the h*** is a datagraph? The datagraph corresponds to function calls and return values, while the flowchart corresponds to control flow. It also bears mentioning that the flowchart-AST is generally a graph just like the flowchart itself, and not strictly a tree.
 
 #### tldr;
 
