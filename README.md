@@ -8,6 +8,8 @@ What if we could draw a flowchart and then export it as legal Python code, witho
 
 In the service of transparency, it should be noted that the (totally legal and correct) code output by this project is actually not much more readable than the goto-riddled mess it came from, but it sure was fun to write the project though: Building the AST, read and implement the GOTO-elimination steps, the recursive code generator, and make it all come together.
 
+See the [nsgen](https://github.com/climbcat/nodespeak/tree/master/nsgen) folder for the compiler tech: [ast.py](https://github.com/climbcat/nodespeak/blob/master/nsgen/ast.py), [gotoelim.py](https://github.com/climbcat/nodespeak/blob/master/nsgen/gotoelim.py) and [cogen.py](https://github.com/climbcat/nodespeak/blob/master/nsgen/cogen.py), and see [nsgen/ns/static/ns](https://github.com/climbcat/nodespeak/tree/master/nsgen/ns/static/ns) for the SVG-based frontend: e.g. [graphui.js](https://github.com/climbcat/nodespeak/blob/master/nsgen/ns/static/ns/graphui.js).
+
 ## GOTO elimination
 
 Flowcharts can be transformed into structured code following a process called "GOTO elimination".
