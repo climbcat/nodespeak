@@ -18,11 +18,13 @@ Structued code is code that can be represented as a tree - an abstract syntax tr
 
 The GOTO elimination process compiles your flowchart-AST (a graph) into a structured code-AST. The AST is a central concept in compiler tech, and a data format that corresponds to structured code. Real compilers perform various optimizing operations on the AST in order to generate more optimized code. In our case, we perform GOTO-elimination on the AST instead, and are able to transform the AST into legal, structured code.
 
-This project implements a combined flowchart & datagraph and goto-elimination tool. So perhaps, the code it outputs tends to be unreadable, however, it does work! Declared a successful tech demo.
-
-#### NOTE
-
 However, what even is a datagraph? The datagraph corresponds to the tree of function calls and return values that can be nested as a gree, while the flowchart corresponds to a control flow graph. That simple.
+
+This project implements a combined flowchart & datagraph and goto-elimination tool. So perhaps, the code it outputs is just as unreadable as the flowchart it came from, however, the compiler certainly works.
+
+#### NOTE on testing it in 2025
+
+Rather than having this project be deployed on pythonanywhere, as it originally were, the near-term plan is to create a backend test instead as time permits. This should run when invoking the python code natively, thus making this test independent on things like the Django version, for example. The input flow chart would be represented as a JSON file and thus a litte hard to visualize, and should be accompanied by a screen-shot.
 
 ## Setup
 
