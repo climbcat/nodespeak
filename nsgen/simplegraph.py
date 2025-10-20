@@ -1,6 +1,7 @@
 '''
-Code graph model, built representing a flowchart (graph), then modified into
-a structured code AST using goto-elimination. Finally, used as input to the code generator.
+Fairly direct representation of the flow chart, and relates to the web app data types.
+
+Simplegraph istTransformed into an AST prior to semantic analysis / gogo-elimination.
 '''
 
 from collections import OrderedDict
