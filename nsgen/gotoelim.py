@@ -1,9 +1,11 @@
 '''
 Goto elimination algorithm.
 
-Follows Erosa/Hendren'94, with a reduced detail level owing to the reduced complexity of 
-goto's generate from flow-charts (we have no else-branches).
+Follows Erosa/Hendren'94, with slightly reduced complexity since we have no else-branches in our flowchart language.
+
+https://www.cs.tufts.edu/comp/150FP/archive/laurie-hendren/taming.pdf
 '''
+
 from queue import LifoQueue
 from simplegraph import *
 from ast import *
@@ -18,20 +20,25 @@ class LogASTs:
         self.idx = -1
         self.messages = []
         self.clones = []
+
     def log(self, message, ast):
         if self.enable is False:
             return
         self.messages.append(message)
         self.clones.append(AST_clone_tree(ast))
+
     def next(self):
         self.idx += 1
         if self.idx >= len(self.messages):
             return None, None
         return self.messages[self.idx], self.clones[self.idx]
+
     def last_ast(self):
         return self.clones[-1]
+
     def first_ast(self):
         return self.clones[0]
+
     def steps(self):
         return len(self.clones)
 
@@ -180,6 +187,7 @@ def trim_trivial_stms_and_ifbranches(ast):
                 continue
 
         node = itr.next()
+
 def shift_lbls_to_reinitialized_labelvars(gotos, lbls):
     '''
     (Re-)init a boolean variable "goto_i" to false exactly at every label, to ensure this logical var is false
@@ -192,6 +200,7 @@ def shift_lbls_to_reinitialized_labelvars(gotos, lbls):
         init_to_false = AST_bassign(AST_bvar("goto_%d" % getter.index), AST_false())
         _insert_before(node=init_to_false, before=lbl)
         lbls[getter] = init_to_false
+
 def init_logical_labelvars_start(gotos, lbls, ast):
     ''' Create a boolean var "goto_i" initialized to false for every goto, just after the ast root '''
     if type(ast) is not AST_root:
@@ -218,6 +227,7 @@ def find_directly_related_lblstm(blocknode, lbl) -> AST_STM:
         if lvldiff == 0 and issubclass(type(node), AST_FORK):
             return node
     raise Exception("find_directly_related_lblstm: find_lblstm fail: did not converge, are blocknode and lbl directly related?")
+
 def indirectly_related(goto, lbl) -> bool:
     if siblings(goto, lbl):
         return False
@@ -225,6 +235,7 @@ def indirectly_related(goto, lbl) -> bool:
         return False
     else:
         return True
+
 def directly_related(goto, lbl) -> bool:
     lvlgoto = level(goto)
     lvllbl = level(lbl)
@@ -265,6 +276,7 @@ def directly_related(goto, lbl) -> bool:
             return True
         else:
             return False
+
 def siblings(goto, lbl) -> bool:
     ogoto = offset(goto)
     olbl = offset(lbl)
@@ -293,6 +305,7 @@ def level(node) -> int:
             lvl = lvl + 1
             node = node.up
     return lvl
+
 def offset(node) -> int:
     ''' returns the offset/index within the current block '''
     offset = 0
@@ -300,6 +313,7 @@ def offset(node) -> int:
         node = node.prev
         offset = offset + 1
     return offset
+
 def is_in_loop(node) -> bool:
     ''' is node in the block of a while or dowhile '''
     while node.prev != None:
@@ -310,6 +324,7 @@ def is_in_loop(node) -> bool:
         return True
     else:
         return False
+
 def is_in_if(node) -> bool:
     ''' is node in the block of an if '''
     while node.prev != None:
@@ -385,6 +400,7 @@ def eliminate_by_cond(goto, lbl):
     block_last.next = None
     if_elim.next = lbl
     lbl.prev = if_elim
+
 def eliminate_by_dowhile(goto, lbl):
     ''' use when o(g) > o(l) '''
     while_elim = AST_dowhile(goto.ifcond)
@@ -396,6 +412,7 @@ def eliminate_by_dowhile(goto, lbl):
         while_elim.next = block_last.next
         block_last.next.prev = while_elim
     block_last.next = None
+
 def move_into_loop_or_if(goto, lbl):
     ''' move goto into the loop/if that contains lbl (or the statement containing lbl) '''
     loop = find_directly_related_lblstm(goto, lbl)
@@ -428,6 +445,7 @@ def move_into_loop_or_if(goto, lbl):
     _insert_before(bass_initial, loop)
     _insert_before(goto, loop.block)
     _insert_before(bass_final, lblstm)
+
 def lift_above_lblstm(goto, lblstm):
     ''' assuming, of course, that o(g) > o(l) '''
     # map goto context
@@ -481,6 +499,7 @@ def _remove(node):
     node.prev = None
     node.up = None
     node.block = None
+
 def _replace(node, withnode):
     ''' replace node with withnode '''
     if node.next is not None:
@@ -499,6 +518,7 @@ def _replace(node, withnode):
     node.prev = None
     node.up = None
     node.block = None
+
 def _insert_loop_or_if_above(loop, node):
     ''' insert loop/if "loop" above "node" '''
     # set prev.next to be the loop
@@ -513,6 +533,7 @@ def _insert_loop_or_if_above(loop, node):
     # set node and loop relations
     node.up = loop
     loop.block = node
+
 def _insert_after(node, after):
     ''' insert item "node" after item "after" '''
     # set next.prev to node
@@ -522,6 +543,7 @@ def _insert_after(node, after):
     # set next to node
     after.next = node
     node.prev = after
+
 def _insert_before(node, before):
     ''' insert item "node" before item "before" '''
     # set prev.next to node
