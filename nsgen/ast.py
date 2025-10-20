@@ -1,6 +1,7 @@
 '''
-Abstract syntax tree types, construction from a simplegraph (flow chart), and iteration.
+Abstract syntax tree types. The AST is construction from a "simplegraph" (representing a flow chart).
 '''
+
 import queue
 from simplegraph import *
 
