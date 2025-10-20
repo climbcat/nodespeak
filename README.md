@@ -4,7 +4,7 @@ This is a fun, experimental project I did to learn more about compiler tech and 
 
 Flowcharts are code with GOTOs, which are considered bad practice, but also a convenient way to visualize small branching programs or processes.
 
-What if we could draw a flowchart and then export it as legal Python code, without any of the silly GOTO's? Well, now you can! This d3js/Django app implements a visual flowchart editor and flowchart-to-Python compiler.
+What if we could draw a flowchart and then export it as legal Python code, without any of the silly GOTO's? Well, now you can! This d3js/Django app implements a visual flowchart editor and flowchart-to-Python compiler. It follows the research done in this paper: [Taming Flow Control](https://www.cs.tufts.edu/comp/150FP/archive/laurie-hendren/taming.pdf).
 
 In the service of transparency, it should be noted that the (totally legal and correct) code output by this project is actually not much more readable than the goto-riddled mess it came from, but it sure was fun to write the project though: Building the AST, read and implement the GOTO-elimination steps, the recursive code generator, and make it all come together.
 
