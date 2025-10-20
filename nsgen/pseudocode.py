@@ -1,6 +1,7 @@
 '''
-Pseudocode generation / a debug utility. Legacy, separated from the main pack.
+Pseudocode generation, a helper utility tool.
 '''
+
 import queue
 from simplegraph import *
 from cogen import *
