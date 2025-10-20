@@ -1,4 +1,6 @@
 '''
+Generates python code from the (analyzed and modified for goto-elimination) AST.
+
 TODO: 
 - OK - build node graph from a frontend-generated graph def
 - OK - gen pseudocode with goto statements representing the fc as a test
@@ -11,9 +13,10 @@ TODO:
 - OK - bugfix it
 - OK - gen typedefs and stubs (language specific) hooray:)
 
-TODO: fix "while not True and cond:" type expressions, maybe using an AST_lbrace/bracket or something
+TODO: fix "while not True and cond:" type expressions, maybe using an AST_lbrace/bracket
 TODO: fix or remove "if not True: break" type stuff
 '''
+
 from queue import LifoQueue
 from gotoelim import *
 from pseudocode import *
@@ -74,7 +77,6 @@ class LinesPrinter():
             self.lines.append("")
     def get_text(self):
         return "\n".join(self.lines)
-
 
 def cogen_graphs_py(graphdef, typetree, DB_logging=False):
     # create the graph given the graphdef
